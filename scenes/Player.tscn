@@ -1,0 +1,46 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://scripts/player.gd" id="1_script"]
+[ext_resource type="Texture2D" path="res://assets/dungeon/character_animation/priests_idle/priest3/v1/priest3_v1_1.png" id="2_f1"]
+[ext_resource type="Texture2D" path="res://assets/dungeon/character_animation/priests_idle/priest3/v1/priest3_v1_2.png" id="3_f2"]
+[ext_resource type="Texture2D" path="res://assets/dungeon/character_animation/priests_idle/priest3/v1/priest3_v1_3.png" id="4_f3"]
+[ext_resource type="Texture2D" path="res://assets/dungeon/character_animation/priests_idle/priest3/v1/priest3_v1_4.png" id="5_f4"]
+
+[sub_resource type="SpriteFrames" id="SpriteFrames_knight"]
+animations = [{
+"frames": [{
+"duration": 1.0,
+"texture": ExtResource("2_f1")
+}, {
+"duration": 1.0,
+"texture": ExtResource("3_f2")
+}, {
+"duration": 1.0,
+"texture": ExtResource("4_f3")
+}, {
+"duration": 1.0,
+"texture": ExtResource("5_f4")
+}],
+"loop": true,
+"name": &"idle",
+"speed": 6.0
+}]
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_feet"]
+size = Vector2(10, 6)
+
+[node name="Player" type="CharacterBody2D"]
+z_index = 1
+motion_mode = 1
+script = ExtResource("1_script")
+
+[node name="AnimatedSprite2D" type="AnimatedSprite2D" parent="."]
+sprite_frames = SubResource("SpriteFrames_knight")
+animation = &"idle"
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="."]
+position = Vector2(0, 5)
+shape = SubResource("RectangleShape2D_feet")
+
+[node name="Camera2D" type="Camera2D" parent="."]
+zoom = Vector2(3, 3)
