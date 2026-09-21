@@ -41,6 +41,8 @@ animations = [{
 size = Vector2(12, 12)
 
 [node name="SpikeTrap" type="Area2D"]
+collision_layer = 0
+collision_mask = 2
 script = ExtResource("1_script")
 
 [node name="AnimatedSprite2D" type="AnimatedSprite2D" parent="."]

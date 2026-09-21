@@ -29,7 +29,11 @@ animations = [{
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_feet"]
 size = Vector2(10, 6)
 
-[node name="Player" type="CharacterBody2D"]
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_hitbox"]
+size = Vector2(12, 18)
+
+[node name="Player" type="CharacterBody2D" groups=["player"]]
+collision_layer = 2
 z_index = 1
 motion_mode = 1
 script = ExtResource("1_script")
@@ -44,3 +48,24 @@ shape = SubResource("RectangleShape2D_feet")
 
 [node name="Camera2D" type="Camera2D" parent="."]
 zoom = Vector2(3, 3)
+
+[node name="AttackPivot" type="Node2D" parent="."]
+position = Vector2(0, 1)
+
+[node name="Hitbox" type="Area2D" parent="AttackPivot"]
+collision_layer = 0
+collision_mask = 4
+monitoring = false
+monitorable = false
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="AttackPivot/Hitbox"]
+position = Vector2(10, 0)
+shape = SubResource("RectangleShape2D_hitbox")
+
+[node name="Slash" type="Line2D" parent="AttackPivot"]
+visible = false
+points = PackedVector2Array(5.50, -9.53, 8.43, -7.07, 10.34, -3.76, 11.00, 0.00, 10.34, 3.76, 8.43, 7.07, 5.50, 9.53)
+width = 2.0
+default_color = Color(1, 1, 1, 1)
+begin_cap_mode = 2
+end_cap_mode = 2
