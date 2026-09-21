@@ -11,6 +11,8 @@
 [ext_resource type="PackedScene" path="res://scenes/props/Candlestick.tscn" id="5_m0xki"]
 [ext_resource type="PackedScene" path="res://scenes/Door.tscn" id="7_2eouu"]
 [ext_resource type="PackedScene" path="res://scenes/HUD.tscn" id="8_rccsh"]
+[ext_resource type="PackedScene" path="res://scenes/Reaper.tscn" id="12_m0xki"]
+[ext_resource type="PackedScene" path="res://scenes/Vampire.tscn" id="13_xe3hh"]
 
 [node name="Level" type="Node2D" unique_id=804439991]
 script = ExtResource("1_faw0r")
@@ -125,11 +127,42 @@ position = Vector2(72, 312)
 [node name="Key" parent="." unique_id=1797790524 instance=ExtResource("3_qifjx")]
 position = Vector2(728, 344)
 
-[node name="Skeleton" parent="." unique_id=715649184 instance=ExtResource("5_4qegb")]
-position = Vector2(296, 296)
-patrol_offset = Vector2(144, 0)
-
 [node name="ExitDoor" parent="." unique_id=145202325 instance=ExtResource("7_2eouu")]
 position = Vector2(944, 72)
 
 [node name="HUD" parent="." unique_id=758589850 instance=ExtResource("8_rccsh")]
+
+[node name="Enemies" type="Node2D" parent="." unique_id=1025111929]
+
+[node name="Skeleton01" parent="Enemies" unique_id=840362236 instance=ExtResource("5_4qegb")]
+position = Vector2(296, 296)
+patrol_offset = Vector2(144, 0)
+
+[node name="Skeleton02" parent="Enemies" unique_id=1981267782 instance=ExtResource("5_4qegb")]
+position = Vector2(408, 264)
+patrol_offset = Vector2(0, 112)
+
+[node name="ReaperBoss" parent="Enemies" unique_id=561186577 instance=ExtResource("12_m0xki")]
+position = Vector2(664, 408)
+
+[node name="Vampire01" parent="Enemies" unique_id=169936084 instance=ExtResource("13_xe3hh")]
+position = Vector2(936, 488)
+
+[node name="Skeleton03" parent="Enemies" unique_id=1976645158 instance=ExtResource("5_4qegb")]
+position = Vector2(264, 72)
+patrol_offset = Vector2(128, 0)
+
+[node name="Vampire02" parent="Enemies" unique_id=1484590408 instance=ExtResource("13_xe3hh")]
+position = Vector2(360, 40)
+
+[node name="Vampire03" parent="Enemies" unique_id=1472324620 instance=ExtResource("13_xe3hh")]
+position = Vector2(616, 88)
+
+[node name="Vampire04" parent="Enemies" unique_id=483955117 instance=ExtResource("13_xe3hh")]
+position = Vector2(680, 152)
+
+[node name="Vampire05" parent="Enemies" unique_id=1046998465 instance=ExtResource("13_xe3hh")]
+position = Vector2(904, 168)
+
+[node name="Vampire06" parent="Enemies" unique_id=777810880 instance=ExtResource("13_xe3hh")]
+position = Vector2(968, 200)

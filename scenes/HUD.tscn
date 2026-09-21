@@ -8,7 +8,7 @@ process_mode = 3
 script = ExtResource("1_script")
 
 [node name="TopBar" type="MarginContainer" parent="."]
-offset_right = 240.0
+offset_right = 480.0
 offset_bottom = 56.0
 theme_override_constants/margin_left = 12
 theme_override_constants/margin_top = 12
@@ -32,6 +32,12 @@ layout_mode = 2
 texture = ExtResource("2_key")
 expand_mode = 1
 stretch_mode = 5
+
+[node name="KillsLabel" type="Label" parent="TopBar/HBox"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_font_sizes/font_size = 24
+text = "Enemigos: 0/0"
 
 [node name="MessageLabel" type="Label" parent="."]
 unique_name_in_owner = true
@@ -77,6 +83,13 @@ theme_override_constants/separation = 16
 unique_name_in_owner = true
 layout_mode = 2
 theme_override_font_sizes/font_size = 56
+horizontal_alignment = 1
+
+[node name="EndStats" type="Label" parent="EndScreen/VBox"]
+unique_name_in_owner = true
+visible = false
+layout_mode = 2
+theme_override_font_sizes/font_size = 28
 horizontal_alignment = 1
 
 [node name="RestartHint" type="Label" parent="EndScreen/VBox"]
