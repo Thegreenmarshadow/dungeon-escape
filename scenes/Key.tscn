@@ -1,0 +1,43 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://scripts/key.gd" id="1_script"]
+[ext_resource type="Texture2D" path="res://assets/dungeon/items_and_traps/keys/keys_1_1.png" id="t1"]
+[ext_resource type="Texture2D" path="res://assets/dungeon/items_and_traps/keys/keys_1_2.png" id="t2"]
+[ext_resource type="Texture2D" path="res://assets/dungeon/items_and_traps/keys/keys_1_3.png" id="t3"]
+[ext_resource type="Texture2D" path="res://assets/dungeon/items_and_traps/keys/keys_1_4.png" id="t4"]
+
+[sub_resource type="SpriteFrames" id="SpriteFrames_key"]
+animations = [{
+"frames": [{
+"duration": 1.0,
+"texture": ExtResource("t1")
+},
+{
+"duration": 1.0,
+"texture": ExtResource("t2")
+},
+{
+"duration": 1.0,
+"texture": ExtResource("t3")
+},
+{
+"duration": 1.0,
+"texture": ExtResource("t4")
+}],
+"loop": true,
+"name": &"idle",
+"speed": 6.0
+}]
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_key"]
+size = Vector2(10, 10)
+
+[node name="Key" type="Area2D"]
+script = ExtResource("1_script")
+
+[node name="AnimatedSprite2D" type="AnimatedSprite2D" parent="."]
+sprite_frames = SubResource("SpriteFrames_key")
+animation = &"idle"
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="."]
+shape = SubResource("RectangleShape2D_key")
