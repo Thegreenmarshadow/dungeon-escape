@@ -1,0 +1,86 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://scripts/hud.gd" id="1_script"]
+[ext_resource type="Texture2D" path="res://assets/dungeon/items_and_traps/keys/keys_1_1.png" id="2_key"]
+
+[node name="HUD" type="CanvasLayer"]
+process_mode = 3
+script = ExtResource("1_script")
+
+[node name="TopBar" type="MarginContainer" parent="."]
+offset_right = 240.0
+offset_bottom = 56.0
+theme_override_constants/margin_left = 12
+theme_override_constants/margin_top = 12
+theme_override_constants/margin_right = 12
+theme_override_constants/margin_bottom = 12
+
+[node name="HBox" type="HBoxContainer" parent="TopBar"]
+layout_mode = 2
+theme_override_constants/separation = 16
+
+[node name="LivesLabel" type="Label" parent="TopBar/HBox"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_font_sizes/font_size = 24
+text = "Vidas: 3"
+
+[node name="KeyIcon" type="TextureRect" parent="TopBar/HBox"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(32, 32)
+layout_mode = 2
+texture = ExtResource("2_key")
+expand_mode = 1
+stretch_mode = 5
+
+[node name="MessageLabel" type="Label" parent="."]
+unique_name_in_owner = true
+visible = false
+anchors_preset = -1
+anchor_top = 1.0
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_top = -64.0
+offset_bottom = -24.0
+grow_horizontal = 2
+grow_vertical = 0
+theme_override_font_sizes/font_size = 24
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="MessageTimer" type="Timer" parent="."]
+unique_name_in_owner = true
+wait_time = 1.5
+one_shot = true
+
+[node name="EndScreen" type="ColorRect" parent="."]
+unique_name_in_owner = true
+visible = false
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+color = Color(0, 0, 0, 0.75)
+
+[node name="VBox" type="VBoxContainer" parent="EndScreen"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+alignment = 1
+theme_override_constants/separation = 16
+
+[node name="EndTitle" type="Label" parent="EndScreen/VBox"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_font_sizes/font_size = 56
+horizontal_alignment = 1
+
+[node name="RestartHint" type="Label" parent="EndScreen/VBox"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 24
+text = "Pulsa R para reiniciar"
+horizontal_alignment = 1
