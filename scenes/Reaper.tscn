@@ -1,0 +1,318 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://scripts/chaser_enemy.gd" id="1_script"]
+[ext_resource type="Texture2D" path="res://assets/enemies/enemies-skeleton2_idle.png" id="sheet_idle"]
+[ext_resource type="Texture2D" path="res://assets/enemies/enemies-skeleton2_movement.png" id="sheet_walk"]
+[ext_resource type="Texture2D" path="res://assets/enemies/enemies-skeleton2_take_damage.png" id="sheet_hurt"]
+[ext_resource type="Texture2D" path="res://assets/enemies/enemies-skeleton2_death.png" id="sheet_death"]
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_idle0"]
+atlas = ExtResource("sheet_idle")
+region = Rect2(0, 0, 32, 32)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_idle1"]
+atlas = ExtResource("sheet_idle")
+region = Rect2(32, 0, 32, 32)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_idle2"]
+atlas = ExtResource("sheet_idle")
+region = Rect2(64, 0, 32, 32)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_idle3"]
+atlas = ExtResource("sheet_idle")
+region = Rect2(96, 0, 32, 32)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_idle4"]
+atlas = ExtResource("sheet_idle")
+region = Rect2(128, 0, 32, 32)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_idle5"]
+atlas = ExtResource("sheet_idle")
+region = Rect2(160, 0, 32, 32)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_walk0"]
+atlas = ExtResource("sheet_walk")
+region = Rect2(0, 0, 32, 32)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_walk1"]
+atlas = ExtResource("sheet_walk")
+region = Rect2(32, 0, 32, 32)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_walk2"]
+atlas = ExtResource("sheet_walk")
+region = Rect2(64, 0, 32, 32)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_walk3"]
+atlas = ExtResource("sheet_walk")
+region = Rect2(96, 0, 32, 32)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_walk4"]
+atlas = ExtResource("sheet_walk")
+region = Rect2(128, 0, 32, 32)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_walk5"]
+atlas = ExtResource("sheet_walk")
+region = Rect2(160, 0, 32, 32)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_walk6"]
+atlas = ExtResource("sheet_walk")
+region = Rect2(192, 0, 32, 32)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_walk7"]
+atlas = ExtResource("sheet_walk")
+region = Rect2(224, 0, 32, 32)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_walk8"]
+atlas = ExtResource("sheet_walk")
+region = Rect2(256, 0, 32, 32)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_walk9"]
+atlas = ExtResource("sheet_walk")
+region = Rect2(288, 0, 32, 32)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_hurt0"]
+atlas = ExtResource("sheet_hurt")
+region = Rect2(0, 0, 32, 32)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_hurt1"]
+atlas = ExtResource("sheet_hurt")
+region = Rect2(32, 0, 32, 32)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_hurt2"]
+atlas = ExtResource("sheet_hurt")
+region = Rect2(64, 0, 32, 32)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_hurt3"]
+atlas = ExtResource("sheet_hurt")
+region = Rect2(96, 0, 32, 32)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_hurt4"]
+atlas = ExtResource("sheet_hurt")
+region = Rect2(128, 0, 32, 32)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_death0"]
+atlas = ExtResource("sheet_death")
+region = Rect2(0, 0, 32, 32)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_death1"]
+atlas = ExtResource("sheet_death")
+region = Rect2(32, 0, 32, 32)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_death2"]
+atlas = ExtResource("sheet_death")
+region = Rect2(64, 0, 32, 32)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_death3"]
+atlas = ExtResource("sheet_death")
+region = Rect2(96, 0, 32, 32)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_death4"]
+atlas = ExtResource("sheet_death")
+region = Rect2(128, 0, 32, 32)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_death5"]
+atlas = ExtResource("sheet_death")
+region = Rect2(160, 0, 32, 32)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_death6"]
+atlas = ExtResource("sheet_death")
+region = Rect2(192, 0, 32, 32)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_death7"]
+atlas = ExtResource("sheet_death")
+region = Rect2(224, 0, 32, 32)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_death8"]
+atlas = ExtResource("sheet_death")
+region = Rect2(256, 0, 32, 32)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_death9"]
+atlas = ExtResource("sheet_death")
+region = Rect2(288, 0, 32, 32)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_death10"]
+atlas = ExtResource("sheet_death")
+region = Rect2(320, 0, 32, 32)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_death11"]
+atlas = ExtResource("sheet_death")
+region = Rect2(352, 0, 32, 32)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_death12"]
+atlas = ExtResource("sheet_death")
+region = Rect2(384, 0, 32, 32)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_death13"]
+atlas = ExtResource("sheet_death")
+region = Rect2(416, 0, 32, 32)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_death14"]
+atlas = ExtResource("sheet_death")
+region = Rect2(448, 0, 32, 32)
+
+[sub_resource type="SpriteFrames" id="SpriteFrames_reaper"]
+animations = [{
+"frames": [{
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_idle0")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_idle1")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_idle2")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_idle3")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_idle4")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_idle5")
+}],
+"loop": true,
+"name": &"idle",
+"speed": 8.0
+}, {
+"frames": [{
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_walk0")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_walk1")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_walk2")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_walk3")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_walk4")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_walk5")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_walk6")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_walk7")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_walk8")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_walk9")
+}],
+"loop": true,
+"name": &"walk",
+"speed": 7.0
+}, {
+"frames": [{
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_hurt0")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_hurt1")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_hurt2")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_hurt3")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_hurt4")
+}],
+"loop": false,
+"name": &"hurt",
+"speed": 15.0
+}, {
+"frames": [{
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_death0")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_death1")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_death2")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_death3")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_death4")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_death5")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_death6")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_death7")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_death8")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_death9")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_death10")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_death11")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_death12")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_death13")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_death14")
+}],
+"loop": false,
+"name": &"death",
+"speed": 12.0
+}]
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_body"]
+size = Vector2(14, 10)
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_contact"]
+size = Vector2(18, 20)
+
+[node name="Reaper" type="CharacterBody2D"]
+collision_layer = 4
+motion_mode = 1
+script = ExtResource("1_script")
+max_health = 5
+speed = 22.0
+knockback_distance = 4.0
+detect_radius = 90.0
+lose_radius = 130.0
+leash_radius = 100.0
+
+[node name="AnimatedSprite2D" type="AnimatedSprite2D" parent="."]
+scale = Vector2(1.4, 1.4)
+offset = Vector2(0, -5)
+sprite_frames = SubResource("SpriteFrames_reaper")
+animation = &"idle"
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="."]
+position = Vector2(0, 6)
+shape = SubResource("RectangleShape2D_body")
+
+[node name="ContactArea" type="Area2D" parent="."]
+collision_layer = 0
+collision_mask = 2
+monitorable = false
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="ContactArea"]
+position = Vector2(0, 1)
+shape = SubResource("RectangleShape2D_contact")
