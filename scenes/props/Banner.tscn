@@ -1,0 +1,34 @@
+[gd_scene format=3]
+
+[ext_resource type="Texture2D" path="res://assets/dungeon/items_and_traps/flag/flag_1.png" id="f1"]
+[ext_resource type="Texture2D" path="res://assets/dungeon/items_and_traps/flag/flag_2.png" id="f2"]
+[ext_resource type="Texture2D" path="res://assets/dungeon/items_and_traps/flag/flag_3.png" id="f3"]
+[ext_resource type="Texture2D" path="res://assets/dungeon/items_and_traps/flag/flag_4.png" id="f4"]
+
+[sub_resource type="SpriteFrames" id="SpriteFrames_banner"]
+animations = [{
+"frames": [{
+"duration": 1.0,
+"texture": ExtResource("f1")
+},
+{
+"duration": 1.0,
+"texture": ExtResource("f2")
+},
+{
+"duration": 1.0,
+"texture": ExtResource("f3")
+},
+{
+"duration": 1.0,
+"texture": ExtResource("f4")
+}],
+"loop": true,
+"name": &"idle",
+"speed": 8.0
+}]
+
+[node name="Banner" type="AnimatedSprite2D"]
+sprite_frames = SubResource("SpriteFrames_banner")
+animation = &"idle"
+autoplay = "idle"
