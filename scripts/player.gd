@@ -26,6 +26,14 @@ signal died
 ## Píxeles que el sprite se adelanta al golpear.
 @export var attack_lunge: float = 3.0
 
+@export_group("Caminata")
+## Grados que se inclina el sprite hacia cada lado al caminar.
+@export var walk_tilt_degrees: float = 8.0
+## Píxeles que sube el sprite en cada paso.
+@export var walk_bounce_height: float = 1.5
+## Pasos por segundo.
+@export var walk_step_rate: float = 8.0
+
 var lives: int
 var has_key: bool = false
 ## Última dirección de movimiento; hacia ella se lanza el golpe.
@@ -38,6 +46,8 @@ var _attack_left: float = 0.0
 var _cooldown_left: float = 0.0
 # Objetivos ya golpeados en el golpe actual, para no pegarles dos veces.
 var _hit_this_swing: Array[Node] = []
+# Fase del ciclo de caminata; cada paso avanza PI radianes.
+var _walk_phase: float = 0.0
 
 @onready var sprite: AnimatedSprite2D = $AnimatedSprite2D
 @onready var attack_pivot: Node2D = $AttackPivot
@@ -49,7 +59,8 @@ func _ready() -> void:
 	lives = max_lives
 	# Inicia la animación de reposo.
 	sprite.play("idle")
-	# La hitbox detecta tanto áreas (esqueleto) como cuerpos (futuros enemigos).
+	# La hitbox detecta cuerpos (enemigos) y también áreas, por si algún
+	# objetivo golpeable es un Area2D.
 	hitbox.area_entered.connect(_on_hitbox_touched)
 	hitbox.body_entered.connect(_on_hitbox_touched)
 
@@ -75,6 +86,30 @@ func _physics_process(delta: float) -> void:
 
 	# Aplica el movimiento y resuelve las colisiones con las paredes.
 	move_and_slide()
+
+	# Usa la velocidad real, así no "camina en el lugar" al empujar una pared.
+	_update_walk_animation(delta, get_real_velocity().length() > 1.0)
+
+
+## Caminata simulada: el caballero solo tiene animación de reposo, así que al
+## moverse se balancea de lado a lado y rebota en cada paso.
+func _update_walk_animation(delta: float, moving: bool) -> void:
+	if moving:
+		# Pausa el reposo para que su rebote no se sume al de la caminata.
+		if sprite.is_playing():
+			sprite.pause()
+		_walk_phase = fmod(_walk_phase + delta * walk_step_rate * PI, TAU)
+		sprite.rotation = sin(_walk_phase) * deg_to_rad(walk_tilt_degrees)
+		# abs() hace que rebote una vez por paso, no una vez por ciclo.
+		sprite.offset.y = -absf(sin(_walk_phase)) * walk_bounce_height
+	else:
+		# Vuelve suavemente a la pose normal y retoma la animación de reposo.
+		var blend := minf(1.0, delta * 15.0)
+		sprite.rotation = lerpf(sprite.rotation, 0.0, blend)
+		sprite.offset.y = lerpf(sprite.offset.y, 0.0, blend)
+		_walk_phase = 0.0
+		if not sprite.is_playing():
+			sprite.play("idle")
 
 
 ## Resta vidas salvo que el jugador esté en su ventana de invulnerabilidad.
