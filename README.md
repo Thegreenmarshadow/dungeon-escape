@@ -4,7 +4,7 @@ Juego de acción 2D con vista cenital, hecho en **Godot 4.7.2**. El jugador cont
 
 ![Captura del juego](docs/screenshot.png)
 
-> **Nota:** este repositorio **no incluye los sprites** (`assets/`), porque pertenecen a packs de pixel art de terceros y, por respeto a sus licencias, no se redistribuyen aquí. Por eso, al clonarlo y abrirlo en Godot, las escenas muestran dependencias faltantes. Para jugar, usar los ejecutables o el proyecto completo en `.zip` que forman parte de la entrega. Ver [Assets no incluidos](#assets-no-incluidos).
+**Descarga:** los ejecutables para Windows y Linux están en [Releases](https://github.com/Thegreenmarshadow/dungeon-escape/releases/latest).
 
 ## Cómo jugar
 
@@ -32,8 +32,10 @@ Juego de acción 2D con vista cenital, hecho en **Godot 4.7.2**. El jugador cont
 
 ### Opción 1: ejecutable (sin instalar Godot)
 
-- **Windows:** `windows/dungeon-escape.exe`
-- **Linux:** `linux/dungeon-escape.x86_64` (si no arranca, darle permiso de ejecución con `chmod +x dungeon-escape.x86_64`)
+Descargar el archivo de la plataforma desde [Releases](https://github.com/Thegreenmarshadow/dungeon-escape/releases/latest) y ejecutarlo:
+
+- **Windows:** descomprimir `dungeon-escape-windows.zip` y abrir `dungeon-escape.exe`. Si Windows SmartScreen muestra un aviso (el ejecutable no está firmado), elegir **Más información → Ejecutar de todas formas**.
+- **Linux:** descomprimir `dungeon-escape-linux.tar.gz` y ejecutar `./dungeon-escape.x86_64` (si no arranca, darle permiso con `chmod +x dungeon-escape.x86_64`).
 
 ### Opción 2: abrir el proyecto en Godot
 
@@ -51,7 +53,7 @@ scripts/         Lógica en GDScript, comentada en español
   chaser_enemy.gd  Persecución con regreso a su puesto (vampiro y parca)
   level.gd       Conecta jugador, puerta, enemigos e interfaz
 tilesets/        TileSet del calabozo con colisión en las paredes
-assets/          Sprites del calabozo y de los enemigos (no incluidos en este repo)
+assets/          Sprites del calabozo y de los enemigos
 addons/godot_ai/ Plugin usado durante el desarrollo (ver nota)
 ```
 
@@ -65,17 +67,8 @@ Decisiones de diseño principales:
 
 El proyecto se desarrolló con asistencia de IA mediante el plugin [godot-ai](https://github.com/hi-godot/godot-ai) (v4.1.0), que conecta el editor de Godot con un asistente por MCP. **No hace falta para jugar.** Si al abrir el proyecto el editor muestra avisos del plugin, se puede desactivar en **Proyecto → Configuración del proyecto → Plugins**.
 
-## Assets no incluidos
+## Créditos
 
-Los sprites de `assets/` provienen de packs de pixel art de terceros (el calabozo, los objetos y los enemigos) y se usan con fines educativos. Por respeto a las licencias de esos packs, los archivos no se redistribuyen en este repositorio público.
-
-El proyecto espera esta estructura:
-
-```text
-assets/
-  dungeon/
-    character_and_tileset/   Dungeon_Tileset.png y personajes
-    character_animation/     animaciones de reposo (priests_idle/)
-    items_and_traps/         llave, picos, antorchas, cofres, etc.
-  enemies/                   enemies-<enemigo>_<animación>.png (tiras de 32x32)
-```
+- **Sprites:** [2D Pixel Dungeon Asset Pack](https://pixel-poem.itch.io/dungeon-assetpuck) y su [set gratuito de animaciones de enemigos](https://pixel-poem.itch.io/dungeon-assetpuck/devlog/902754/new-animations-set-for-free) (vampiro, esqueleto espadachín y parca), de **Pixel_Poem**.
+- **Licencia de los sprites:** según el autor, se pueden usar en proyectos gratuitos y comerciales y modificarse, pero **no se pueden redistribuir ni revender por separado**. Se incluyen en este repositorio únicamente como parte del juego. Para usarlos en otro proyecto, deben descargarse desde la página del autor.
+- **Plugin de desarrollo:** [godot-ai](https://github.com/hi-godot/godot-ai), licencia MIT (ver `addons/godot_ai/LICENSE`).
