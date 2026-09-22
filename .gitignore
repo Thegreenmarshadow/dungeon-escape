@@ -4,3 +4,6 @@
 
 # Export output
 /build/
+
+# Third-party sprites are not redistributable
+/assets/

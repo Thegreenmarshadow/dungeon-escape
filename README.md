@@ -4,6 +4,8 @@ Juego de acción 2D con vista cenital, hecho en **Godot 4.7.2**. El jugador cont
 
 ![Captura del juego](docs/screenshot.png)
 
+> **Nota:** este repositorio **no incluye los sprites** (`assets/`), porque pertenecen a packs de pixel art de terceros y, por respeto a sus licencias, no se redistribuyen aquí. Por eso, al clonarlo y abrirlo en Godot, las escenas muestran dependencias faltantes. Para jugar, usar los ejecutables o el proyecto completo en `.zip` que forman parte de la entrega. Ver [Assets no incluidos](#assets-no-incluidos).
+
 ## Cómo jugar
 
 | Acción | Teclas |
@@ -49,7 +51,7 @@ scripts/         Lógica en GDScript, comentada en español
   chaser_enemy.gd  Persecución con regreso a su puesto (vampiro y parca)
   level.gd       Conecta jugador, puerta, enemigos e interfaz
 tilesets/        TileSet del calabozo con colisión en las paredes
-assets/          Sprites del calabozo y de los enemigos
+assets/          Sprites del calabozo y de los enemigos (no incluidos en este repo)
 addons/godot_ai/ Plugin usado durante el desarrollo (ver nota)
 ```
 
@@ -63,6 +65,17 @@ Decisiones de diseño principales:
 
 El proyecto se desarrolló con asistencia de IA mediante el plugin [godot-ai](https://github.com/hi-godot/godot-ai) (v4.1.0), que conecta el editor de Godot con un asistente por MCP. **No hace falta para jugar.** Si al abrir el proyecto el editor muestra avisos del plugin, se puede desactivar en **Proyecto → Configuración del proyecto → Plugins**.
 
-## Créditos de los assets
+## Assets no incluidos
 
-Los sprites incluidos en `assets/` provienen de packs de pixel art de terceros (el calabozo, los objetos y los enemigos). Su uso en este proyecto es con fines educativos.
+Los sprites de `assets/` provienen de packs de pixel art de terceros (el calabozo, los objetos y los enemigos) y se usan con fines educativos. Por respeto a las licencias de esos packs, los archivos no se redistribuyen en este repositorio público.
+
+El proyecto espera esta estructura:
+
+```text
+assets/
+  dungeon/
+    character_and_tileset/   Dungeon_Tileset.png y personajes
+    character_animation/     animaciones de reposo (priests_idle/)
+    items_and_traps/         llave, picos, antorchas, cofres, etc.
+  enemies/                   enemies-<enemigo>_<animación>.png (tiras de 32x32)
+```
