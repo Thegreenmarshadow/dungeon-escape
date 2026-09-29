@@ -1,27 +1,15 @@
-[gd_scene format=3]
+[gd_scene format=4 uid="uid://b3dmy5eahg0vd"]
 
-[ext_resource type="Script" path="res://scripts/main_menu.gd" id="1_script"]
+[ext_resource type="Script" uid="uid://b83tkeeilarex" path="res://scripts/main_menu.gd" id="1_script"]
 [ext_resource type="TileSet" uid="uid://kw3l5ccu66c7" path="res://tilesets/dungeon_tileset.tres" id="2_tileset"]
 [ext_resource type="PackedScene" path="res://scenes/props/Torch.tscn" id="3_torch"]
-[ext_resource type="Texture2D" path="res://assets/enemies/enemies-skeleton1_idle.png" id="sheet_skeleton"]
-[ext_resource type="Texture2D" path="res://assets/enemies/enemies-vampire_idle.png" id="sheet_vampire"]
-[ext_resource type="Texture2D" path="res://assets/enemies/enemies-skeleton2_idle.png" id="sheet_reaper"]
-[ext_resource type="Texture2D" path="res://assets/dungeon/character_animation/priests_idle/priest3/v1/priest3_v1_1.png" id="knight_1"]
-[ext_resource type="Texture2D" path="res://assets/dungeon/character_animation/priests_idle/priest3/v1/priest3_v1_2.png" id="knight_2"]
-[ext_resource type="Texture2D" path="res://assets/dungeon/character_animation/priests_idle/priest3/v1/priest3_v1_3.png" id="knight_3"]
-[ext_resource type="Texture2D" path="res://assets/dungeon/character_animation/priests_idle/priest3/v1/priest3_v1_4.png" id="knight_4"]
-
-[sub_resource type="Gradient" id="Gradient_glow"]
-offsets = PackedFloat32Array(0, 1)
-colors = PackedColorArray(1, 0.62, 0.22, 0.55, 1, 0.45, 0.1, 0)
-
-[sub_resource type="GradientTexture2D" id="GradientTexture2D_glow"]
-gradient = SubResource("Gradient_glow")
-width = 128
-height = 128
-fill = 1
-fill_from = Vector2(0.5, 0.5)
-fill_to = Vector2(1, 0.5)
+[ext_resource type="Texture2D" uid="uid://b4s48fwwbw0gc" path="res://assets/dungeon/character_animation/priests_idle/priest3/v1/priest3_v1_1.png" id="knight_1"]
+[ext_resource type="Texture2D" uid="uid://bnuyl66c8ft2r" path="res://assets/dungeon/character_animation/priests_idle/priest3/v1/priest3_v1_2.png" id="knight_2"]
+[ext_resource type="Texture2D" uid="uid://qobnvs7awg7t" path="res://assets/dungeon/character_animation/priests_idle/priest3/v1/priest3_v1_3.png" id="knight_3"]
+[ext_resource type="Texture2D" uid="uid://dh4y2cffhonmd" path="res://assets/dungeon/character_animation/priests_idle/priest3/v1/priest3_v1_4.png" id="knight_4"]
+[ext_resource type="Texture2D" uid="uid://bbeq2dpin430m" path="res://assets/enemies/enemies-skeleton2_idle.png" id="sheet_reaper"]
+[ext_resource type="Texture2D" uid="uid://cs2ft2anpum74" path="res://assets/enemies/enemies-skeleton1_idle.png" id="sheet_skeleton"]
+[ext_resource type="Texture2D" uid="uid://dhvchceb60v0l" path="res://assets/enemies/enemies-vampire_idle.png" id="sheet_vampire"]
 
 [sub_resource type="Gradient" id="Gradient_vignette"]
 offsets = PackedFloat32Array(0.45, 1)
@@ -38,68 +26,16 @@ fill_to = Vector2(1, 0.5)
 [sub_resource type="CanvasItemMaterial" id="CanvasItemMaterial_add"]
 blend_mode = 1
 
-[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_normal"]
-bg_color = Color(0.1, 0.07, 0.14, 0.9)
-border_width_left = 3
-border_width_top = 3
-border_width_right = 3
-border_width_bottom = 3
-border_color = Color(0.5, 0.36, 0.18, 1)
-corner_radius_top_left = 4
-corner_radius_top_right = 4
-corner_radius_bottom_right = 4
-corner_radius_bottom_left = 4
-content_margin_left = 16.0
-content_margin_right = 16.0
-shadow_color = Color(0, 0, 0, 0.5)
-shadow_size = 6
-shadow_offset = Vector2(0, 3)
+[sub_resource type="Gradient" id="Gradient_glow"]
+colors = PackedColorArray(1, 0.62, 0.22, 0.55, 1, 0.45, 0.1, 0)
 
-[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_hover"]
-bg_color = Color(0.32, 0.2, 0.1, 0.95)
-border_width_left = 3
-border_width_top = 3
-border_width_right = 3
-border_width_bottom = 3
-border_color = Color(1, 0.78, 0.32, 1)
-corner_radius_top_left = 4
-corner_radius_top_right = 4
-corner_radius_bottom_right = 4
-corner_radius_bottom_left = 4
-content_margin_left = 16.0
-content_margin_right = 16.0
-shadow_color = Color(1, 0.55, 0.15, 0.35)
-shadow_size = 10
-
-[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_pressed"]
-bg_color = Color(0.06, 0.04, 0.08, 0.95)
-border_width_left = 3
-border_width_top = 3
-border_width_right = 3
-border_width_bottom = 3
-border_color = Color(0.8, 0.55, 0.2, 1)
-corner_radius_top_left = 4
-corner_radius_top_right = 4
-corner_radius_bottom_right = 4
-corner_radius_bottom_left = 4
-content_margin_left = 16.0
-content_margin_right = 16.0
-
-[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_focus"]
-draw_center = false
-border_width_left = 3
-border_width_top = 3
-border_width_right = 3
-border_width_bottom = 3
-border_color = Color(1, 0.85, 0.45, 1)
-corner_radius_top_left = 4
-corner_radius_top_right = 4
-corner_radius_bottom_right = 4
-corner_radius_bottom_left = 4
-expand_margin_left = 3.0
-expand_margin_top = 3.0
-expand_margin_right = 3.0
-expand_margin_bottom = 3.0
+[sub_resource type="GradientTexture2D" id="GradientTexture2D_glow"]
+gradient = SubResource("Gradient_glow")
+width = 128
+height = 128
+fill = 1
+fill_from = Vector2(0.5, 0.5)
+fill_to = Vector2(1, 0.5)
 
 [sub_resource type="SpriteFrames" id="SpriteFrames_knight"]
 animations = [{
@@ -116,7 +52,7 @@ animations = [{
 "duration": 1.0,
 "texture": ExtResource("knight_4")
 }],
-"loop": true,
+"loop": 1,
 "name": &"idle",
 "speed": 6.0
 }]
@@ -166,7 +102,7 @@ animations = [{
 "duration": 1.0,
 "texture": SubResource("Atlas_skeleton_5")
 }],
-"loop": true,
+"loop": 1,
 "name": &"idle",
 "speed": 8.0
 }]
@@ -216,7 +152,7 @@ animations = [{
 "duration": 1.0,
 "texture": SubResource("Atlas_vampire_5")
 }],
-"loop": true,
+"loop": 1,
 "name": &"idle",
 "speed": 8.0
 }]
@@ -266,12 +202,75 @@ animations = [{
 "duration": 1.0,
 "texture": SubResource("Atlas_reaper_5")
 }],
-"loop": true,
+"loop": 1,
 "name": &"idle",
 "speed": 8.0
 }]
 
-[node name="MainMenu" type="Control"]
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_normal"]
+content_margin_left = 16.0
+content_margin_right = 16.0
+bg_color = Color(0.1, 0.07, 0.14, 0.9)
+border_width_left = 3
+border_width_top = 3
+border_width_right = 3
+border_width_bottom = 3
+border_color = Color(0.5, 0.36, 0.18, 1)
+corner_radius_top_left = 4
+corner_radius_top_right = 4
+corner_radius_bottom_right = 4
+corner_radius_bottom_left = 4
+shadow_color = Color(0, 0, 0, 0.5)
+shadow_size = 6
+shadow_offset = Vector2(0, 3)
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_pressed"]
+content_margin_left = 16.0
+content_margin_right = 16.0
+bg_color = Color(0.06, 0.04, 0.08, 0.95)
+border_width_left = 3
+border_width_top = 3
+border_width_right = 3
+border_width_bottom = 3
+border_color = Color(0.8, 0.55, 0.2, 1)
+corner_radius_top_left = 4
+corner_radius_top_right = 4
+corner_radius_bottom_right = 4
+corner_radius_bottom_left = 4
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_hover"]
+content_margin_left = 16.0
+content_margin_right = 16.0
+bg_color = Color(0.32, 0.2, 0.1, 0.95)
+border_width_left = 3
+border_width_top = 3
+border_width_right = 3
+border_width_bottom = 3
+border_color = Color(1, 0.78, 0.32, 1)
+corner_radius_top_left = 4
+corner_radius_top_right = 4
+corner_radius_bottom_right = 4
+corner_radius_bottom_left = 4
+shadow_color = Color(1, 0.55, 0.15, 0.35)
+shadow_size = 10
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_focus"]
+draw_center = false
+border_width_left = 3
+border_width_top = 3
+border_width_right = 3
+border_width_bottom = 3
+border_color = Color(1, 0.85, 0.45, 1)
+corner_radius_top_left = 4
+corner_radius_top_right = 4
+corner_radius_bottom_right = 4
+corner_radius_bottom_left = 4
+expand_margin_left = 3.0
+expand_margin_top = 3.0
+expand_margin_right = 3.0
+expand_margin_bottom = 3.0
+
+[node name="MainMenu" type="Control" unique_id=1508971504]
 texture_filter = 1
 layout_mode = 3
 anchors_preset = 15
@@ -281,13 +280,13 @@ grow_horizontal = 2
 grow_vertical = 2
 script = ExtResource("1_script")
 
-[node name="Background" type="TileMapLayer" parent="."]
+[node name="Background" type="TileMapLayer" parent="." unique_id=20429226]
 modulate = Color(0.62, 0.56, 0.72, 1)
 scale = Vector2(4, 4)
 tile_map_data = PackedByteArray("AAAAAAAAAAABAAAAAAABAAAAAAACAAAAAAACAAAAAAADAAAAAAADAAAAAAAEAAAAAAAEAAAAAAABAAAAAAAFAAAAAAACAAAAAAAGAAAAAAADAAAAAAAHAAAAAAAEAAAAAAAIAAAAAAABAAAAAAAJAAAAAAACAAAAAAAKAAAAAAADAAAAAAALAAAAAAAEAAAAAAAMAAAAAAABAAAAAAANAAAAAAACAAAAAAAOAAAAAAADAAAAAAAPAAAAAAAEAAAAAAAQAAAAAAABAAAAAAARAAAAAAACAAAAAAASAAAAAAADAAAAAAATAAAAAAAEAAAAAAAUAAAAAAABAAAAAAAVAAAAAAACAAAAAAAWAAAAAAADAAAAAAAXAAAAAAAEAAAAAAAYAAAAAAABAAAAAAAZAAAAAAACAAAAAAAaAAAAAAADAAAAAAAbAAAAAAAEAAAAAAAcAAAAAAABAAAAAAAdAAAAAAACAAAAAAAeAAAAAAADAAAAAAAfAAAAAAAEAAAAAAAAAAEAAAABAAEAAAABAAEAAAABAAEAAAACAAEAAAABAAEAAAADAAEAAAABAAEAAAAEAAEAAAABAAEAAAAFAAEAAAABAAEAAAAGAAEAAAABAAEAAAAHAAEAAAABAAEAAAAIAAEAAAABAAEAAAAJAAEAAAABAAEAAAAKAAEAAAABAAEAAAALAAEAAAABAAEAAAAMAAEAAAABAAEAAAANAAEAAAABAAEAAAAOAAEAAAABAAEAAAAPAAEAAAABAAEAAAAQAAEAAAABAAEAAAARAAEAAAABAAEAAAASAAEAAAABAAEAAAATAAEAAAABAAEAAAAUAAEAAAABAAEAAAAVAAEAAAABAAEAAAAWAAEAAAABAAEAAAAXAAEAAAABAAEAAAAYAAEAAAABAAEAAAAZAAEAAAABAAEAAAAaAAEAAAABAAEAAAAbAAEAAAABAAEAAAAcAAEAAAABAAEAAAAdAAEAAAABAAEAAAAeAAEAAAABAAEAAAAfAAEAAAABAAEAAAAAAAIAAAABAAEAAAABAAIAAAABAAEAAAACAAIAAAABAAEAAAADAAIAAAABAAEAAAAEAAIAAAABAAEAAAAFAAIAAAABAAEAAAAGAAIAAAABAAEAAAAHAAIAAAABAAEAAAAIAAIAAAABAAEAAAAJAAIAAAABAAEAAAAKAAIAAAABAAEAAAALAAIAAAABAAEAAAAMAAIAAAABAAEAAAANAAIAAAABAAEAAAAOAAIAAAABAAEAAAAPAAIAAAABAAEAAAAQAAIAAAABAAEAAAARAAIAAAABAAEAAAASAAIAAAABAAEAAAATAAIAAAABAAEAAAAUAAIAAAABAAEAAAAVAAIAAAABAAEAAAAWAAIAAAABAAEAAAAXAAIAAAABAAEAAAAYAAIAAAABAAEAAAAZAAIAAAABAAEAAAAaAAIAAAABAAEAAAAbAAIAAAABAAEAAAAcAAIAAAABAAEAAAAdAAIAAAABAAEAAAAeAAIAAAABAAEAAAAfAAIAAAABAAEAAAAAAAMAAAABAAEAAAABAAMAAAABAAEAAAACAAMAAAABAAEAAAADAAMAAAABAAEAAAAEAAMAAAABAAEAAAAFAAMAAAABAAEAAAAGAAMAAAABAAEAAAAHAAMAAAABAAEAAAAIAAMAAAABAAEAAAAJAAMAAAABAAEAAAAKAAMAAAABAAEAAAALAAMAAAABAAEAAAAMAAMAAAABAAEAAAANAAMAAAABAAEAAAAOAAMAAAABAAEAAAAPAAMAAAABAAEAAAAQAAMAAAABAAEAAAARAAMAAAABAAEAAAASAAMAAAABAAEAAAATAAMAAAABAAEAAAAUAAMAAAABAAEAAAAVAAMAAAABAAEAAAAWAAMAAAABAAEAAAAXAAMAAAABAAEAAAAYAAMAAAABAAEAAAAZAAMAAAABAAEAAAAaAAMAAAABAAEAAAAbAAMAAAABAAEAAAAcAAMAAAABAAEAAAAdAAMAAAABAAEAAAAeAAMAAAABAAEAAAAfAAMAAAABAAEAAAAAAAQAAAABAAEAAAABAAQAAAABAAEAAAACAAQAAAABAAEAAAADAAQAAAABAAEAAAAEAAQAAAABAAEAAAAFAAQAAAABAAEAAAAGAAQAAAABAAEAAAAHAAQAAAABAAEAAAAIAAQAAAABAAEAAAAJAAQAAAABAAEAAAAKAAQAAAABAAEAAAALAAQAAAABAAEAAAAMAAQAAAABAAEAAAANAAQAAAABAAEAAAAOAAQAAAABAAEAAAAPAAQAAAABAAEAAAAQAAQAAAABAAEAAAARAAQAAAABAAEAAAASAAQAAAABAAEAAAATAAQAAAABAAEAAAAUAAQAAAABAAEAAAAVAAQAAAABAAEAAAAWAAQAAAABAAEAAAAXAAQAAAABAAEAAAAYAAQAAAABAAEAAAAZAAQAAAABAAEAAAAaAAQAAAABAAEAAAAbAAQAAAABAAEAAAAcAAQAAAABAAEAAAAdAAQAAAABAAEAAAAeAAQAAAABAAEAAAAfAAQAAAABAAEAAAAAAAUAAAABAAEAAAABAAUAAAABAAEAAAACAAUAAAABAAEAAAADAAUAAAABAAEAAAAEAAUAAAABAAEAAAAFAAUAAAABAAEAAAAGAAUAAAABAAEAAAAHAAUAAAABAAEAAAAIAAUAAAABAAEAAAAJAAUAAAABAAEAAAAKAAUAAAABAAEAAAALAAUAAAABAAEAAAAMAAUAAAABAAEAAAANAAUAAAABAAEAAAAOAAUAAAABAAEAAAAPAAUAAAABAAEAAAAQAAUAAAABAAEAAAARAAUAAAABAAEAAAASAAUAAAABAAEAAAATAAUAAAABAAEAAAAUAAUAAAABAAEAAAAVAAUAAAABAAEAAAAWAAUAAAABAAEAAAAXAAUAAAABAAEAAAAYAAUAAAABAAEAAAAZAAUAAAABAAEAAAAaAAUAAAABAAEAAAAbAAUAAAABAAEAAAAcAAUAAAABAAEAAAAdAAUAAAABAAEAAAAeAAUAAAABAAEAAAAfAAUAAAABAAEAAAAAAAYAAAABAAEAAAABAAYAAAABAAEAAAACAAYAAAABAAEAAAADAAYAAAABAAEAAAAEAAYAAAABAAEAAAAFAAYAAAABAAEAAAAGAAYAAAABAAEAAAAHAAYAAAABAAEAAAAIAAYAAAABAAEAAAAJAAYAAAABAAEAAAAKAAYAAAABAAEAAAALAAYAAAABAAEAAAAMAAYAAAABAAEAAAANAAYAAAABAAEAAAAOAAYAAAABAAEAAAAPAAYAAAABAAEAAAAQAAYAAAABAAEAAAARAAYAAAABAAEAAAASAAYAAAABAAEAAAATAAYAAAABAAEAAAAUAAYAAAABAAEAAAAVAAYAAAABAAEAAAAWAAYAAAABAAEAAAAXAAYAAAABAAEAAAAYAAYAAAABAAEAAAAZAAYAAAABAAEAAAAaAAYAAAABAAEAAAAbAAYAAAABAAEAAAAcAAYAAAABAAEAAAAdAAYAAAABAAEAAAAeAAYAAAABAAEAAAAfAAYAAAABAAEAAAAAAAcAAAABAAEAAAABAAcAAAABAAEAAAACAAcAAAABAAEAAAADAAcAAAABAAEAAAAEAAcAAAABAAEAAAAFAAcAAAABAAEAAAAGAAcAAAABAAEAAAAHAAcAAAABAAEAAAAIAAcAAAABAAEAAAAJAAcAAAABAAEAAAAKAAcAAAABAAEAAAALAAcAAAABAAEAAAAMAAcAAAABAAEAAAANAAcAAAABAAEAAAAOAAcAAAABAAEAAAAPAAcAAAABAAEAAAAQAAcAAAABAAEAAAARAAcAAAABAAEAAAASAAcAAAABAAEAAAATAAcAAAABAAEAAAAUAAcAAAABAAEAAAAVAAcAAAABAAEAAAAWAAcAAAABAAEAAAAXAAcAAAABAAEAAAAYAAcAAAABAAEAAAAZAAcAAAABAAEAAAAaAAcAAAABAAEAAAAbAAcAAAABAAEAAAAcAAcAAAABAAEAAAAdAAcAAAABAAEAAAAeAAcAAAABAAEAAAAfAAcAAAABAAEAAAAAAAgAAAABAAEAAAABAAgAAAABAAEAAAACAAgAAAABAAEAAAADAAgAAAABAAEAAAAEAAgAAAABAAEAAAAFAAgAAAABAAEAAAAGAAgAAAABAAEAAAAHAAgAAAABAAEAAAAIAAgAAAABAAEAAAAJAAgAAAABAAEAAAAKAAgAAAABAAEAAAALAAgAAAABAAEAAAAMAAgAAAABAAEAAAANAAgAAAABAAEAAAAOAAgAAAABAAEAAAAPAAgAAAABAAEAAAAQAAgAAAABAAEAAAARAAgAAAABAAEAAAASAAgAAAABAAEAAAATAAgAAAABAAEAAAAUAAgAAAABAAEAAAAVAAgAAAABAAEAAAAWAAgAAAABAAEAAAAXAAgAAAABAAEAAAAYAAgAAAABAAEAAAAZAAgAAAABAAEAAAAaAAgAAAABAAEAAAAbAAgAAAABAAEAAAAcAAgAAAABAAEAAAAdAAgAAAABAAEAAAAeAAgAAAABAAEAAAAfAAgAAAABAAEAAAAAAAkAAAABAAEAAAABAAkAAAABAAEAAAACAAkAAAABAAEAAAADAAkAAAABAAEAAAAEAAkAAAABAAEAAAAFAAkAAAABAAEAAAAGAAkAAAABAAEAAAAHAAkAAAABAAEAAAAIAAkAAAABAAEAAAAJAAkAAAABAAEAAAAKAAkAAAABAAEAAAALAAkAAAABAAEAAAAMAAkAAAABAAEAAAANAAkAAAABAAEAAAAOAAkAAAABAAEAAAAPAAkAAAABAAEAAAAQAAkAAAABAAEAAAARAAkAAAABAAEAAAASAAkAAAABAAEAAAATAAkAAAABAAEAAAAUAAkAAAABAAEAAAAVAAkAAAABAAEAAAAWAAkAAAABAAEAAAAXAAkAAAABAAEAAAAYAAkAAAABAAEAAAAZAAkAAAABAAEAAAAaAAkAAAABAAEAAAAbAAkAAAABAAEAAAAcAAkAAAABAAEAAAAdAAkAAAABAAEAAAAeAAkAAAABAAEAAAAfAAkAAAABAAEAAAAAAAoAAAABAAEAAAABAAoAAAABAAEAAAACAAoAAAABAAEAAAADAAoAAAABAAEAAAAEAAoAAAABAAEAAAAFAAoAAAABAAEAAAAGAAoAAAABAAEAAAAHAAoAAAABAAEAAAAIAAoAAAABAAEAAAAJAAoAAAABAAEAAAAKAAoAAAABAAEAAAALAAoAAAABAAEAAAAMAAoAAAABAAEAAAANAAoAAAABAAEAAAAOAAoAAAABAAEAAAAPAAoAAAABAAEAAAAQAAoAAAABAAEAAAARAAoAAAABAAEAAAASAAoAAAABAAEAAAATAAoAAAABAAEAAAAUAAoAAAABAAEAAAAVAAoAAAABAAEAAAAWAAoAAAABAAEAAAAXAAoAAAABAAEAAAAYAAoAAAABAAEAAAAZAAoAAAABAAEAAAAaAAoAAAABAAEAAAAbAAoAAAABAAEAAAAcAAoAAAABAAEAAAAdAAoAAAABAAEAAAAeAAoAAAABAAEAAAAfAAoAAAABAAEAAAAAAAsAAAABAAEAAAABAAsAAAABAAEAAAACAAsAAAABAAEAAAADAAsAAAABAAEAAAAEAAsAAAABAAEAAAAFAAsAAAABAAEAAAAGAAsAAAABAAEAAAAHAAsAAAABAAEAAAAIAAsAAAABAAEAAAAJAAsAAAABAAEAAAAKAAsAAAABAAEAAAALAAsAAAABAAEAAAAMAAsAAAABAAEAAAANAAsAAAABAAEAAAAOAAsAAAABAAEAAAAPAAsAAAABAAEAAAAQAAsAAAABAAEAAAARAAsAAAABAAEAAAASAAsAAAABAAEAAAATAAsAAAABAAEAAAAUAAsAAAABAAEAAAAVAAsAAAABAAEAAAAWAAsAAAABAAEAAAAXAAsAAAABAAEAAAAYAAsAAAABAAEAAAAZAAsAAAABAAEAAAAaAAsAAAABAAEAAAAbAAsAAAABAAEAAAAcAAsAAAABAAEAAAAdAAsAAAABAAEAAAAeAAsAAAABAAEAAAAfAAsAAAABAAEAAAAAAAwAAAABAAEAAAABAAwAAAABAAEAAAACAAwAAAABAAEAAAADAAwAAAABAAEAAAAEAAwAAAABAAEAAAAFAAwAAAABAAEAAAAGAAwAAAABAAEAAAAHAAwAAAABAAEAAAAIAAwAAAABAAEAAAAJAAwAAAABAAEAAAAKAAwAAAABAAEAAAALAAwAAAABAAEAAAAMAAwAAAABAAEAAAANAAwAAAABAAEAAAAOAAwAAAABAAEAAAAPAAwAAAABAAEAAAAQAAwAAAABAAEAAAARAAwAAAABAAEAAAASAAwAAAABAAEAAAATAAwAAAABAAEAAAAUAAwAAAABAAEAAAAVAAwAAAABAAEAAAAWAAwAAAABAAEAAAAXAAwAAAABAAEAAAAYAAwAAAABAAEAAAAZAAwAAAABAAEAAAAaAAwAAAABAAEAAAAbAAwAAAABAAEAAAAcAAwAAAABAAEAAAAdAAwAAAABAAEAAAAeAAwAAAABAAEAAAAfAAwAAAABAAEAAAAAAA0AAAABAAEAAAABAA0AAAABAAEAAAACAA0AAAABAAEAAAADAA0AAAABAAEAAAAEAA0AAAABAAEAAAAFAA0AAAABAAEAAAAGAA0AAAABAAEAAAAHAA0AAAABAAEAAAAIAA0AAAABAAEAAAAJAA0AAAABAAEAAAAKAA0AAAABAAEAAAALAA0AAAABAAEAAAAMAA0AAAABAAEAAAANAA0AAAABAAEAAAAOAA0AAAABAAEAAAAPAA0AAAABAAEAAAAQAA0AAAABAAEAAAARAA0AAAABAAEAAAASAA0AAAABAAEAAAATAA0AAAABAAEAAAAUAA0AAAABAAEAAAAVAA0AAAABAAEAAAAWAA0AAAABAAEAAAAXAA0AAAABAAEAAAAYAA0AAAABAAEAAAAZAA0AAAABAAEAAAAaAA0AAAABAAEAAAAbAA0AAAABAAEAAAAcAA0AAAABAAEAAAAdAA0AAAABAAEAAAAeAA0AAAABAAEAAAAfAA0AAAABAAEAAAAAAA4AAAABAAEAAAABAA4AAAABAAEAAAACAA4AAAABAAEAAAADAA4AAAABAAEAAAAEAA4AAAABAAEAAAAFAA4AAAABAAEAAAAGAA4AAAABAAEAAAAHAA4AAAABAAEAAAAIAA4AAAABAAEAAAAJAA4AAAABAAEAAAAKAA4AAAABAAEAAAALAA4AAAABAAEAAAAMAA4AAAABAAEAAAANAA4AAAABAAEAAAAOAA4AAAABAAEAAAAPAA4AAAABAAEAAAAQAA4AAAABAAEAAAARAA4AAAABAAEAAAASAA4AAAABAAEAAAATAA4AAAABAAEAAAAUAA4AAAABAAEAAAAVAA4AAAABAAEAAAAWAA4AAAABAAEAAAAXAA4AAAABAAEAAAAYAA4AAAABAAEAAAAZAA4AAAABAAEAAAAaAA4AAAABAAEAAAAbAA4AAAABAAEAAAAcAA4AAAABAAEAAAAdAA4AAAABAAEAAAAeAA4AAAABAAEAAAAfAA4AAAABAAEAAAAAAA8AAAABAAEAAAABAA8AAAABAAEAAAACAA8AAAABAAEAAAADAA8AAAABAAEAAAAEAA8AAAABAAEAAAAFAA8AAAABAAEAAAAGAA8AAAABAAEAAAAHAA8AAAABAAEAAAAIAA8AAAABAAEAAAAJAA8AAAABAAEAAAAKAA8AAAABAAEAAAALAA8AAAABAAEAAAAMAA8AAAABAAEAAAANAA8AAAABAAEAAAAOAA8AAAABAAEAAAAPAA8AAAABAAEAAAAQAA8AAAABAAEAAAARAA8AAAABAAEAAAASAA8AAAABAAEAAAATAA8AAAABAAEAAAAUAA8AAAABAAEAAAAVAA8AAAABAAEAAAAWAA8AAAABAAEAAAAXAA8AAAABAAEAAAAYAA8AAAABAAEAAAAZAA8AAAABAAEAAAAaAA8AAAABAAEAAAAbAA8AAAABAAEAAAAcAA8AAAABAAEAAAAdAA8AAAABAAEAAAAeAA8AAAABAAEAAAAfAA8AAAABAAEAAAAAABAAAAABAAEAAAABABAAAAABAAEAAAACABAAAAABAAEAAAADABAAAAABAAEAAAAEABAAAAABAAEAAAAFABAAAAABAAEAAAAGABAAAAABAAEAAAAHABAAAAABAAEAAAAIABAAAAABAAEAAAAJABAAAAABAAEAAAAKABAAAAABAAEAAAALABAAAAABAAEAAAAMABAAAAABAAEAAAANABAAAAABAAEAAAAOABAAAAABAAEAAAAPABAAAAABAAEAAAAQABAAAAABAAEAAAARABAAAAABAAEAAAASABAAAAABAAEAAAATABAAAAABAAEAAAAUABAAAAABAAEAAAAVABAAAAABAAEAAAAWABAAAAABAAEAAAAXABAAAAABAAEAAAAYABAAAAABAAEAAAAZABAAAAABAAEAAAAaABAAAAABAAEAAAAbABAAAAABAAEAAAAcABAAAAABAAEAAAAdABAAAAABAAEAAAAeABAAAAABAAEAAAAfABAAAAABAAEAAAAAABEAAAABAAEAAAABABEAAAABAAEAAAACABEAAAABAAEAAAADABEAAAABAAEAAAAEABEAAAABAAEAAAAFABEAAAABAAEAAAAGABEAAAABAAEAAAAHABEAAAABAAEAAAAIABEAAAABAAEAAAAJABEAAAABAAEAAAAKABEAAAABAAEAAAALABEAAAABAAEAAAAMABEAAAABAAEAAAANABEAAAABAAEAAAAOABEAAAABAAEAAAAPABEAAAABAAEAAAAQABEAAAABAAEAAAARABEAAAABAAEAAAASABEAAAABAAEAAAATABEAAAABAAEAAAAUABEAAAABAAEAAAAVABEAAAABAAEAAAAWABEAAAABAAEAAAAXABEAAAABAAEAAAAYABEAAAABAAEAAAAZABEAAAABAAEAAAAaABEAAAABAAEAAAAbABEAAAABAAEAAAAcABEAAAABAAEAAAAdABEAAAABAAEAAAAeABEAAAABAAEAAAAfABEAAAABAAEAAAAAABIAAAABAAEAAAABABIAAAABAAEAAAACABIAAAABAAEAAAADABIAAAABAAEAAAAEABIAAAABAAEAAAAFABIAAAABAAEAAAAGABIAAAABAAEAAAAHABIAAAABAAEAAAAIABIAAAABAAEAAAAJABIAAAABAAEAAAAKABIAAAABAAEAAAALABIAAAABAAEAAAAMABIAAAABAAEAAAANABIAAAABAAEAAAAOABIAAAABAAEAAAAPABIAAAABAAEAAAAQABIAAAABAAEAAAARABIAAAABAAEAAAASABIAAAABAAEAAAATABIAAAABAAEAAAAUABIAAAABAAEAAAAVABIAAAABAAEAAAAWABIAAAABAAEAAAAXABIAAAABAAEAAAAYABIAAAABAAEAAAAZABIAAAABAAEAAAAaABIAAAABAAEAAAAbABIAAAABAAEAAAAcABIAAAABAAEAAAAdABIAAAABAAEAAAAeABIAAAABAAEAAAAfABIAAAABAAEAAAAAABMAAAABAAEAAAABABMAAAABAAEAAAACABMAAAABAAEAAAADABMAAAABAAEAAAAEABMAAAABAAEAAAAFABMAAAABAAEAAAAGABMAAAABAAEAAAAHABMAAAABAAEAAAAIABMAAAABAAEAAAAJABMAAAABAAEAAAAKABMAAAABAAEAAAALABMAAAABAAEAAAAMABMAAAABAAEAAAANABMAAAABAAEAAAAOABMAAAABAAEAAAAPABMAAAABAAEAAAAQABMAAAABAAEAAAARABMAAAABAAEAAAASABMAAAABAAEAAAATABMAAAABAAEAAAAUABMAAAABAAEAAAAVABMAAAABAAEAAAAWABMAAAABAAEAAAAXABMAAAABAAEAAAAYABMAAAABAAEAAAAZABMAAAABAAEAAAAaABMAAAABAAEAAAAbABMAAAABAAEAAAAcABMAAAABAAEAAAAdABMAAAABAAEAAAAeABMAAAABAAEAAAAfABMAAAABAAEAAAA=")
 tile_set = ExtResource("2_tileset")
 
-[node name="Vignette" type="TextureRect" parent="."]
+[node name="Vignette" type="TextureRect" parent="." unique_id=1060437142]
 texture_filter = 2
 layout_mode = 1
 anchors_preset = 15
@@ -299,61 +298,59 @@ mouse_filter = 2
 texture = SubResource("GradientTexture2D_vignette")
 expand_mode = 1
 
-[node name="TopDecor" type="Control" parent="."]
+[node name="TopDecor" type="Control" parent="." unique_id=1145152462]
 layout_mode = 1
 anchors_preset = 5
 anchor_left = 0.5
 anchor_right = 0.5
-offset_left = 0.0
-offset_right = 0.0
 grow_horizontal = 2
 mouse_filter = 2
 
-[node name="Glow1" type="Sprite2D" parent="TopDecor" groups=["flame_glow"]]
+[node name="Glow1" type="Sprite2D" parent="TopDecor" unique_id=1420611316 groups=["flame_glow"]]
 texture_filter = 2
 material = SubResource("CanvasItemMaterial_add")
 position = Vector2(-420, 60)
 scale = Vector2(2.6, 2.6)
 texture = SubResource("GradientTexture2D_glow")
 
-[node name="Glow2" type="Sprite2D" parent="TopDecor" groups=["flame_glow"]]
+[node name="Glow2" type="Sprite2D" parent="TopDecor" unique_id=2100449795 groups=["flame_glow"]]
 texture_filter = 2
 material = SubResource("CanvasItemMaterial_add")
 position = Vector2(-200, 60)
 scale = Vector2(2.6, 2.6)
 texture = SubResource("GradientTexture2D_glow")
 
-[node name="Glow3" type="Sprite2D" parent="TopDecor" groups=["flame_glow"]]
+[node name="Glow3" type="Sprite2D" parent="TopDecor" unique_id=1794050446 groups=["flame_glow"]]
 texture_filter = 2
 material = SubResource("CanvasItemMaterial_add")
 position = Vector2(200, 60)
 scale = Vector2(2.6, 2.6)
 texture = SubResource("GradientTexture2D_glow")
 
-[node name="Glow4" type="Sprite2D" parent="TopDecor" groups=["flame_glow"]]
+[node name="Glow4" type="Sprite2D" parent="TopDecor" unique_id=918376287 groups=["flame_glow"]]
 texture_filter = 2
 material = SubResource("CanvasItemMaterial_add")
 position = Vector2(420, 60)
 scale = Vector2(2.6, 2.6)
 texture = SubResource("GradientTexture2D_glow")
 
-[node name="Torch1" parent="TopDecor" instance=ExtResource("3_torch")]
-position = Vector2(-420, 36)
+[node name="Torch1" parent="TopDecor" unique_id=1967701177 instance=ExtResource("3_torch")]
+position = Vector2(-421, 53)
 scale = Vector2(4, 4)
 
-[node name="Torch2" parent="TopDecor" instance=ExtResource("3_torch")]
+[node name="Torch2" parent="TopDecor" unique_id=670909325 instance=ExtResource("3_torch")]
 position = Vector2(-200, 36)
 scale = Vector2(4, 4)
 
-[node name="Torch3" parent="TopDecor" instance=ExtResource("3_torch")]
+[node name="Torch3" parent="TopDecor" unique_id=396005366 instance=ExtResource("3_torch")]
 position = Vector2(200, 36)
 scale = Vector2(4, 4)
 
-[node name="Torch4" parent="TopDecor" instance=ExtResource("3_torch")]
+[node name="Torch4" parent="TopDecor" unique_id=1111384207 instance=ExtResource("3_torch")]
 position = Vector2(420, 36)
 scale = Vector2(4, 4)
 
-[node name="Lineup" type="Control" parent="."]
+[node name="Lineup" type="Control" parent="." unique_id=1447497151]
 layout_mode = 1
 anchors_preset = 7
 anchor_left = 0.5
@@ -364,70 +361,69 @@ grow_horizontal = 2
 grow_vertical = 0
 mouse_filter = 2
 
-[node name="KnightShadow" type="Sprite2D" parent="Lineup"]
-texture_filter = 2
+[node name="KnightShadow" type="Sprite2D" parent="Lineup" unique_id=1447192180]
 modulate = Color(0, 0, 0, 1)
+texture_filter = 2
 position = Vector2(-330, -52)
 scale = Vector2(0.8, 0.2)
 texture = SubResource("GradientTexture2D_glow")
 
-[node name="SkeletonShadow" type="Sprite2D" parent="Lineup"]
-texture_filter = 2
+[node name="SkeletonShadow" type="Sprite2D" parent="Lineup" unique_id=1964032076]
 modulate = Color(0, 0, 0, 1)
+texture_filter = 2
 position = Vector2(-110, -52)
 scale = Vector2(0.9, 0.22)
 texture = SubResource("GradientTexture2D_glow")
 
-[node name="VampireShadow" type="Sprite2D" parent="Lineup"]
-texture_filter = 2
+[node name="VampireShadow" type="Sprite2D" parent="Lineup" unique_id=1810733022]
 modulate = Color(0, 0, 0, 1)
+texture_filter = 2
 position = Vector2(90, -52)
 scale = Vector2(0.9, 0.22)
 texture = SubResource("GradientTexture2D_glow")
 
-[node name="ReaperShadow" type="Sprite2D" parent="Lineup"]
-texture_filter = 2
+[node name="ReaperShadow" type="Sprite2D" parent="Lineup" unique_id=958919882]
 modulate = Color(0, 0, 0, 1)
+texture_filter = 2
 position = Vector2(320, -52)
 scale = Vector2(1.3, 0.3)
 texture = SubResource("GradientTexture2D_glow")
 
-[node name="Knight" type="AnimatedSprite2D" parent="Lineup"]
+[node name="Knight" type="AnimatedSprite2D" parent="Lineup" unique_id=453387641]
 position = Vector2(-330, -93)
-scale = Vector2(7.0, 7.0)
+scale = Vector2(7, 7)
 sprite_frames = SubResource("SpriteFrames_knight")
 animation = &"idle"
 autoplay = "idle"
-frame_progress = 0.0
 
-[node name="Skeleton" type="AnimatedSprite2D" parent="Lineup"]
+[node name="Skeleton" type="AnimatedSprite2D" parent="Lineup" unique_id=610596013]
 position = Vector2(-110, -127)
 scale = Vector2(5.5, 5.5)
-flip_h = true
 sprite_frames = SubResource("SpriteFrames_skeleton")
 animation = &"idle"
 autoplay = "idle"
 frame_progress = 0.3
+flip_h = true
 
-[node name="Vampire" type="AnimatedSprite2D" parent="Lineup"]
+[node name="Vampire" type="AnimatedSprite2D" parent="Lineup" unique_id=1639237146]
 position = Vector2(90, -127)
 scale = Vector2(5.5, 5.5)
-flip_h = true
 sprite_frames = SubResource("SpriteFrames_vampire")
 animation = &"idle"
 autoplay = "idle"
 frame_progress = 0.6
+flip_h = true
 
-[node name="Reaper" type="AnimatedSprite2D" parent="Lineup"]
+[node name="Reaper" type="AnimatedSprite2D" parent="Lineup" unique_id=274847335]
 position = Vector2(320, -154)
 scale = Vector2(7.4, 7.4)
-flip_h = true
 sprite_frames = SubResource("SpriteFrames_reaper")
 animation = &"idle"
 autoplay = "idle"
 frame_progress = 0.1
+flip_h = true
 
-[node name="VBox" type="VBoxContainer" parent="."]
+[node name="VBox" type="VBoxContainer" parent="." unique_id=1383584062]
 layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
@@ -439,7 +435,7 @@ grow_vertical = 2
 theme_override_constants/separation = 16
 alignment = 1
 
-[node name="Title" type="Label" parent="VBox"]
+[node name="Title" type="Label" parent="VBox" unique_id=547532672]
 unique_name_in_owner = true
 layout_mode = 2
 theme_override_colors/font_color = Color(1, 0.86, 0.5, 1)
@@ -452,7 +448,7 @@ theme_override_font_sizes/font_size = 88
 text = "Dungeon Escape"
 horizontal_alignment = 1
 
-[node name="Subtitle" type="Label" parent="VBox"]
+[node name="Subtitle" type="Label" parent="VBox" unique_id=432658956]
 layout_mode = 2
 theme_override_colors/font_color = Color(0.8, 0.72, 0.85, 0.85)
 theme_override_colors/font_shadow_color = Color(0, 0, 0, 0.7)
@@ -462,44 +458,44 @@ theme_override_font_sizes/font_size = 22
 text = "Encuentra la llave y escapa del calabozo"
 horizontal_alignment = 1
 
-[node name="Spacer" type="Control" parent="VBox"]
+[node name="Spacer" type="Control" parent="VBox" unique_id=2052164535]
 custom_minimum_size = Vector2(0, 20)
 layout_mode = 2
 mouse_filter = 2
 
-[node name="PlayButton" type="Button" parent="VBox"]
+[node name="PlayButton" type="Button" parent="VBox" unique_id=423525666]
 unique_name_in_owner = true
 custom_minimum_size = Vector2(260, 56)
 layout_mode = 2
 size_flags_horizontal = 4
 theme_override_colors/font_color = Color(0.95, 0.88, 0.7, 1)
-theme_override_colors/font_hover_color = Color(1, 0.95, 0.75, 1)
-theme_override_colors/font_pressed_color = Color(0.8, 0.7, 0.5, 1)
 theme_override_colors/font_focus_color = Color(1, 0.95, 0.75, 1)
+theme_override_colors/font_pressed_color = Color(0.8, 0.7, 0.5, 1)
+theme_override_colors/font_hover_color = Color(1, 0.95, 0.75, 1)
 theme_override_font_sizes/font_size = 26
 theme_override_styles/normal = SubResource("StyleBoxFlat_normal")
-theme_override_styles/hover = SubResource("StyleBoxFlat_hover")
 theme_override_styles/pressed = SubResource("StyleBoxFlat_pressed")
+theme_override_styles/hover = SubResource("StyleBoxFlat_hover")
 theme_override_styles/focus = SubResource("StyleBoxFlat_focus")
 text = "Jugar"
 
-[node name="QuitButton" type="Button" parent="VBox"]
+[node name="QuitButton" type="Button" parent="VBox" unique_id=316050796]
 unique_name_in_owner = true
 custom_minimum_size = Vector2(260, 56)
 layout_mode = 2
 size_flags_horizontal = 4
 theme_override_colors/font_color = Color(0.95, 0.88, 0.7, 1)
-theme_override_colors/font_hover_color = Color(1, 0.95, 0.75, 1)
-theme_override_colors/font_pressed_color = Color(0.8, 0.7, 0.5, 1)
 theme_override_colors/font_focus_color = Color(1, 0.95, 0.75, 1)
+theme_override_colors/font_pressed_color = Color(0.8, 0.7, 0.5, 1)
+theme_override_colors/font_hover_color = Color(1, 0.95, 0.75, 1)
 theme_override_font_sizes/font_size = 26
 theme_override_styles/normal = SubResource("StyleBoxFlat_normal")
-theme_override_styles/hover = SubResource("StyleBoxFlat_hover")
 theme_override_styles/pressed = SubResource("StyleBoxFlat_pressed")
+theme_override_styles/hover = SubResource("StyleBoxFlat_hover")
 theme_override_styles/focus = SubResource("StyleBoxFlat_focus")
 text = "Salir"
 
-[node name="Hint" type="Label" parent="."]
+[node name="Hint" type="Label" parent="." unique_id=1150550259]
 layout_mode = 1
 anchors_preset = 12
 anchor_top = 1.0
@@ -508,7 +504,6 @@ anchor_bottom = 1.0
 offset_top = -30.0
 grow_horizontal = 2
 grow_vertical = 0
-mouse_filter = 2
 theme_override_colors/font_color = Color(0.8, 0.75, 0.65, 0.55)
 theme_override_font_sizes/font_size = 14
 text = "WASD / flechas: mover   |   Espacio / J: atacar"
