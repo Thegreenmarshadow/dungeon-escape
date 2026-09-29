@@ -140,7 +140,7 @@ patrol_offset = Vector2(144, 0)
 
 [node name="Skeleton02" parent="Enemies" unique_id=1981267782 instance=ExtResource("5_4qegb")]
 position = Vector2(425, 322)
-patrol_offset = Vector2(0, 112)
+patrol_offset = Vector2(0, 64)
 
 [node name="ReaperBoss" parent="Enemies" unique_id=561186577 instance=ExtResource("12_m0xki")]
 position = Vector2(664, 408)
