@@ -1,0 +1,16 @@
+[gd_scene format=3 uid="uid://dx16xfv0mqe6p"]
+
+[ext_resource type="Script" uid="uid://doeab0iplnkqw" path="res://scripts/level_background.gd" id="1_isadl"]
+[ext_resource type="TileSet" uid="uid://kw3l5ccu66c7" path="res://tilesets/dungeon_tileset.tres" id="2_k75e8"]
+
+[node name="LevelBackground" type="Parallax2D" unique_id=1958959503]
+z_index = -100
+scroll_scale = Vector2(0.5, 0.5)
+repeat_times = 2
+script = ExtResource("1_isadl")
+
+[node name="Floor" type="TileMapLayer" parent="." unique_id=489447777]
+modulate = Color(0.42, 0.4, 0.52, 1)
+texture_filter = 1
+tile_set = ExtResource("2_k75e8")
+collision_enabled = false
