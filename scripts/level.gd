@@ -3,6 +3,9 @@ extends Node2D
 ## interfaz y maneja el fin del nivel (superado o derrota).
 
 const LEVEL_MUSIC := preload("res://assets/music/dungeon_ambient_jaggedstone.ogg")
+## Celdas de margen alrededor del mapa generado que la cámara puede mostrar,
+## para no ver el borde exacto de las paredes.
+const GENERATED_CAMERA_MARGIN := 3
 
 @onready var dungeon: TileMapLayer = $Dungeon
 @onready var player: CharacterBody2D = $Player
@@ -15,7 +18,14 @@ var _enemies_killed: int = 0
 
 func _ready() -> void:
 	Music.play_track(LEVEL_MUSIC)
-	_fit_camera_to_map()
+
+	# El nivel 1 es el mapa hecho a mano de esta escena; del 2 en adelante se
+	# reemplaza por uno generado. Debe ocurrir antes de contar a los enemigos.
+	var camera_margin := 0
+	if Game.current_level >= LevelGenerator.FIRST_GENERATED_LEVEL:
+		_build_generated_level()
+		camera_margin = GENERATED_CAMERA_MARGIN
+	_fit_camera_to_map(camera_margin)
 
 	# Las vidas vienen del estado global, así se conservan entre niveles.
 	# Se asignan acá porque el jugador ya ejecutó su _ready: Godot inicializa
@@ -38,6 +48,15 @@ func _ready() -> void:
 	player.died.connect(_on_player_died)
 	exit_door.player_escaped.connect(_on_player_escaped)
 	exit_door.locked_touched.connect(hud.show_message.bind("Necesitas la llave"))
+	hud.show_message("Nivel %d" % Game.current_level)
+
+
+## Genera el mapa de Game.current_level (determinista con Game.run_seed) y lo
+## dibuja en esta escena.
+func _build_generated_level() -> void:
+	var layout := LevelGenerator.generate(Game.current_level, Game.run_seed)
+	LevelBuilder.new().build(self, layout)
+	print("Mapa generado, %s (semilla de partida %d)" % [layout.summary(), Game.run_seed])
 
 
 func _on_lives_changed(lives: int) -> void:
@@ -74,9 +93,9 @@ func _end_level(title: String, details: String, action_text: String, action: Cal
 
 ## Limita la cámara del jugador al área ocupada por el mapa, para que no muestre
 ## el vacío fuera de los bordes. Se calcula desde los tiles, así se adapta
-## automáticamente si el mapa cambia de tamaño.
-func _fit_camera_to_map() -> void:
-	var used := dungeon.get_used_rect()
+## automáticamente si el mapa cambia de tamaño. margin_tiles agranda esa área.
+func _fit_camera_to_map(margin_tiles: int = 0) -> void:
+	var used := dungeon.get_used_rect().grow(margin_tiles)
 	var tile_size := dungeon.tile_set.tile_size
 	var camera: Camera2D = player.get_node("Camera2D")
 	camera.limit_left = used.position.x * tile_size.x

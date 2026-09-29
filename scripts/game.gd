@@ -20,6 +20,9 @@ var lives: int = STARTING_LIVES
 ## Enemigos eliminados en toda la partida.
 var enemies_killed: int = 0
 var score: int = 0
+## Semilla de la partida. Junto con el número de nivel determina el mapa que
+## se genera del nivel 2 en adelante, así un nivel se puede reproducir.
+var run_seed: int = 0
 
 
 ## Reinicia todo el estado para empezar una partida desde el nivel 1.
@@ -28,6 +31,7 @@ func new_game() -> void:
 	lives = STARTING_LIVES
 	enemies_killed = 0
 	score = 0
+	run_seed = randi()
 
 
 func register_kill() -> void:
@@ -47,7 +51,9 @@ func start_new_game() -> void:
 	start_level()
 
 
-## Carga el nivel actual. Por ahora todos los niveles usan el mismo mapa.
+## Carga el nivel actual. Siempre es la escena Level: el nivel 1 usa el mapa
+## hecho a mano y del 2 en adelante Level genera el mapa con current_level y
+## run_seed.
 func start_level() -> void:
 	_change_scene(LEVEL_SCENE)
 
