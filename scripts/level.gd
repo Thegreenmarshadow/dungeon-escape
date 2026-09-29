@@ -2,6 +2,8 @@ extends Node2D
 ## Coordina el nivel: conecta al jugador, la puerta y los enemigos con la
 ## interfaz y maneja el fin del nivel (superado o derrota).
 
+const LEVEL_MUSIC := preload("res://assets/music/dungeon_ambient_jaggedstone.ogg")
+
 @onready var dungeon: TileMapLayer = $Dungeon
 @onready var player: CharacterBody2D = $Player
 @onready var exit_door: Area2D = $ExitDoor
@@ -12,6 +14,7 @@ var _enemies_killed: int = 0
 
 
 func _ready() -> void:
+	Music.play_track(LEVEL_MUSIC)
 	_fit_camera_to_map()
 
 	# Las vidas vienen del estado global, así se conservan entre niveles.

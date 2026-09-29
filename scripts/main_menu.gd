@@ -1,11 +1,14 @@
 extends Control
 ## Pantalla de inicio: primera escena del juego.
 
+const MENU_MUSIC := preload("res://assets/music/dungeon_yd.ogg")
+
 @onready var play_button: Button = %PlayButton
 @onready var quit_button: Button = %QuitButton
 
 
 func _ready() -> void:
+	Music.play_track(MENU_MUSIC)
 	play_button.pressed.connect(Game.start_new_game)
 	quit_button.pressed.connect(get_tree().quit)
 	# Con el foco en "Jugar" el menú también se maneja con el teclado.

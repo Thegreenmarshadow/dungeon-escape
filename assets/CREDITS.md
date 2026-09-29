@@ -1,4 +1,13 @@
-# Créditos de los sprites
+# Créditos
+
+## Música
+
+Ambas pistas son de dominio público (CC0) y están en `music/`:
+
+- "Dungeon Ambience" de **yd** (CC0): [opengameart.org/content/dungeon-ambience](https://opengameart.org/content/dungeon-ambience). Música del menú principal.
+- "Loopable Dungeon Ambience" de **JaggedStone** (CC0): [opengameart.org/content/loopable-dungeon-ambience](https://opengameart.org/content/loopable-dungeon-ambience). Música de los niveles.
+
+## Sprites
 
 Los sprites de esta carpeta son de **Pixel_Poem**:
 
