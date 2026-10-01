@@ -25,6 +25,9 @@ signal died(enemy: EnemyBase)
 @export var contact_damage: int = 1
 ## Distancia en píxeles que retrocede al recibir un golpe.
 @export var knockback_distance: float = 10.0
+## Probabilidad (de 0 a 1) de soltar un corazón al morir. El nivel la consulta
+## y crea el corazón; los jefes la tienen en 1 para soltarlo siempre.
+@export_range(0.0, 1.0, 0.01) var heart_drop_chance: float = 0.18
 
 @export_group("Animaciones")
 @export var idle_animation: StringName = &"idle"

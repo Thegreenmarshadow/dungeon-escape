@@ -130,6 +130,16 @@ func take_damage(amount: int) -> void:
 	sprite.modulate.a = 0.5
 
 
+## Suma vidas sin superar max_lives. Devuelve true si recuperó al menos una;
+## false si ya tenía todas sus vidas o está muerto. La llaman los corazones.
+func heal(amount: int = 1) -> bool:
+	if amount <= 0 or lives <= 0 or lives >= max_lives:
+		return false
+	lives = mini(lives + amount, max_lives)
+	lives_changed.emit(lives)
+	return true
+
+
 ## Marca que el jugador tiene la llave. La llama la llave al ser tocada.
 func collect_key() -> void:
 	has_key = true

@@ -6,6 +6,7 @@ const LEVEL_MUSIC := preload("res://assets/music/dungeon_ambient_jaggedstone.ogg
 ## Celdas de margen alrededor del mapa generado que la cámara puede mostrar,
 ## para no ver el borde exacto de las paredes.
 const GENERATED_CAMERA_MARGIN := 3
+const HEART_SCENE := preload("res://scenes/Heart.tscn")
 
 @onready var dungeon: TileMapLayer = $Dungeon
 @onready var player: CharacterBody2D = $Player
@@ -41,6 +42,7 @@ func _ready() -> void:
 	_enemies_total = enemies.size()
 	for enemy in enemies:
 		enemy.died.connect(_on_enemy_died)
+		enemy.died.connect(_try_drop_heart)
 	hud.set_kills(_enemies_killed, _enemies_total)
 
 	player.lives_changed.connect(_on_lives_changed)
@@ -69,6 +71,22 @@ func _on_enemy_died(_enemy: EnemyBase) -> void:
 	_enemies_killed += 1
 	Game.register_kill()
 	hud.set_kills(_enemies_killed, _enemies_total)
+
+
+## Según la probabilidad del enemigo, deja un corazón donde murió. El enemigo
+## no sabe nada de los corazones: solo expone heart_drop_chance.
+func _try_drop_heart(enemy: EnemyBase) -> void:
+	if not Heart.should_drop(enemy.heart_drop_chance, randf()):
+		return
+	# Diferido: la muerte ocurre durante un callback de física, donde no se
+	# pueden agregar áreas al mundo.
+	_spawn_heart.call_deferred(to_local(enemy.global_position))
+
+
+func _spawn_heart(at: Vector2) -> void:
+	var heart: Node2D = HEART_SCENE.instantiate()
+	heart.position = at
+	add_child(heart)
 
 
 func _on_player_died() -> void:

@@ -294,6 +294,7 @@ script = ExtResource("1_script")
 max_health = 5
 speed = 22.0
 knockback_distance = 4.0
+heart_drop_chance = 1.0
 detect_radius = 90.0
 lose_radius = 130.0
 leash_radius = 100.0
