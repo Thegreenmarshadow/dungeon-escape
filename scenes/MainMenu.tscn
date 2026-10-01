@@ -270,6 +270,32 @@ expand_margin_top = 3.0
 expand_margin_right = 3.0
 expand_margin_bottom = 3.0
 
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_scores"]
+content_margin_left = 16.0
+content_margin_top = 12.0
+content_margin_right = 16.0
+content_margin_bottom = 14.0
+bg_color = Color(0.06, 0.04, 0.09, 0.82)
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_width_bottom = 2
+border_color = Color(0.5, 0.36, 0.18, 1)
+corner_radius_top_left = 4
+corner_radius_top_right = 4
+corner_radius_bottom_right = 4
+corner_radius_bottom_left = 4
+shadow_color = Color(0, 0, 0, 0.5)
+shadow_size = 6
+shadow_offset = Vector2(0, 3)
+
+[sub_resource type="Theme" id="Theme_scores"]
+default_font_size = 16
+Label/colors/font_color = Color(0.95, 0.88, 0.7, 1)
+Label/colors/font_shadow_color = Color(0, 0, 0, 0.7)
+Label/constants/shadow_offset_x = 0
+Label/constants/shadow_offset_y = 2
+
 [node name="MainMenu" type="Control" unique_id=1508971504]
 texture_filter = 1
 layout_mode = 3
@@ -494,6 +520,75 @@ theme_override_styles/pressed = SubResource("StyleBoxFlat_pressed")
 theme_override_styles/hover = SubResource("StyleBoxFlat_hover")
 theme_override_styles/focus = SubResource("StyleBoxFlat_focus")
 text = "Salir"
+
+[node name="ScoresPanel" type="PanelContainer" parent="." unique_id=1730245517]
+layout_mode = 1
+offset_left = 24.0
+offset_top = 210.0
+offset_right = 24.0
+offset_bottom = 210.0
+mouse_filter = 2
+theme = SubResource("Theme_scores")
+theme_override_styles/panel = SubResource("StyleBoxFlat_scores")
+
+[node name="ScoresBox" type="VBoxContainer" parent="ScoresPanel" unique_id=1102938475]
+layout_mode = 2
+mouse_filter = 2
+theme_override_constants/separation = 6
+
+[node name="ScoresTitle" type="Label" parent="ScoresPanel/ScoresBox" unique_id=1287364510]
+layout_mode = 2
+theme_override_colors/font_color = Color(1, 0.86, 0.5, 1)
+theme_override_font_sizes/font_size = 20
+text = "Mejores puntajes"
+horizontal_alignment = 1
+
+[node name="BestLevelLabel" type="Label" parent="ScoresPanel/ScoresBox" unique_id=1904857362]
+unique_name_in_owner = true
+layout_mode = 2
+text = "Nivel máximo: 0"
+horizontal_alignment = 1
+
+[node name="ScoresGrid" type="GridContainer" parent="ScoresPanel/ScoresBox" unique_id=1563748291]
+unique_name_in_owner = true
+layout_mode = 2
+mouse_filter = 2
+theme_override_constants/h_separation = 14
+theme_override_constants/v_separation = 2
+columns = 4
+
+[node name="RankHeader" type="Label" parent="ScoresPanel/ScoresBox/ScoresGrid" unique_id=1376452819]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.8, 0.72, 0.85, 0.85)
+theme_override_font_sizes/font_size = 14
+text = "#"
+
+[node name="ScoreHeader" type="Label" parent="ScoresPanel/ScoresBox/ScoresGrid" unique_id=1648203957]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.8, 0.72, 0.85, 0.85)
+theme_override_font_sizes/font_size = 14
+text = "Puntos"
+horizontal_alignment = 2
+
+[node name="LevelHeader" type="Label" parent="ScoresPanel/ScoresBox/ScoresGrid" unique_id=1829374650]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.8, 0.72, 0.85, 0.85)
+theme_override_font_sizes/font_size = 14
+text = "Nivel"
+horizontal_alignment = 2
+
+[node name="DateHeader" type="Label" parent="ScoresPanel/ScoresBox/ScoresGrid" unique_id=1093847561]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.8, 0.72, 0.85, 0.85)
+theme_override_font_sizes/font_size = 14
+text = "Fecha"
+
+[node name="NoScoresLabel" type="Label" parent="ScoresPanel/ScoresBox" unique_id=1456273819]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_colors/font_color = Color(0.8, 0.72, 0.85, 0.85)
+text = "Todavía no hay puntajes"
+horizontal_alignment = 1
 
 [node name="Hint" type="Label" parent="." unique_id=1150550259]
 layout_mode = 1

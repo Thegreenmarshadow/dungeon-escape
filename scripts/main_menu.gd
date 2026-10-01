@@ -4,10 +4,15 @@ extends Control
 const MENU_MUSIC := preload("res://assets/music/dungeon_yd.ogg")
 ## Segundos que tarda en aparecer el menú.
 const FADE_IN_TIME := 0.8
+## Cuántos puntajes de la tabla se muestran en el menú.
+const SHOWN_SCORES := 5
 
 @onready var play_button: Button = %PlayButton
 @onready var quit_button: Button = %QuitButton
 @onready var title: Label = %Title
+@onready var best_level_label: Label = %BestLevelLabel
+@onready var scores_grid: GridContainer = %ScoresGrid
+@onready var no_scores_label: Label = %NoScoresLabel
 
 
 func _ready() -> void:
@@ -16,9 +21,37 @@ func _ready() -> void:
 	quit_button.pressed.connect(get_tree().quit)
 	# Con el foco en "Jugar" el menú también se maneja con el teclado.
 	play_button.grab_focus()
+	_show_scores()
 	_fade_in()
 	_pulse_title()
 	_flicker_flames()
+
+
+## Llena el panel de puntajes con el nivel máximo y los mejores puntajes
+## guardados. Sin puntajes muestra un mensaje en lugar de la tabla.
+func _show_scores() -> void:
+	var board := ScoreBoard.load_board()
+	var best_level: int = board["best_level"]
+	best_level_label.text = "Nivel máximo: %d" % best_level
+	best_level_label.visible = best_level > 0
+
+	var entries: Array = board["entries"]
+	scores_grid.visible = not entries.is_empty()
+	no_scores_label.visible = entries.is_empty()
+	# La grilla ya trae la fila de encabezados; acá se agregan las filas.
+	for i in mini(entries.size(), SHOWN_SCORES):
+		var entry: Dictionary = entries[i]
+		_add_score_cell("#%d" % (i + 1))
+		_add_score_cell(str(entry["score"]), HORIZONTAL_ALIGNMENT_RIGHT)
+		_add_score_cell(str(entry["level"]), HORIZONTAL_ALIGNMENT_RIGHT)
+		_add_score_cell(ScoreBoard.display_date(entry))
+
+
+func _add_score_cell(text: String, alignment: HorizontalAlignment = HORIZONTAL_ALIGNMENT_LEFT) -> void:
+	var cell := Label.new()
+	cell.text = text
+	cell.horizontal_alignment = alignment
+	scores_grid.add_child(cell)
 
 
 func _fade_in() -> void:
