@@ -34,7 +34,7 @@ func _ready() -> void:
 	player.lives = Game.lives
 
 	# Estado inicial de la interfaz.
-	hud.set_lives(player.lives)
+	hud.set_lives(player.lives, player.max_lives)
 	hud.set_has_key(player.has_key)
 
 	# Cada enemigo se agrega al grupo "enemies" en EnemyBase._ready.
@@ -63,7 +63,7 @@ func _build_generated_level() -> void:
 
 func _on_lives_changed(lives: int) -> void:
 	Game.lives = lives
-	hud.set_lives(lives)
+	hud.set_lives(lives, player.max_lives)
 
 
 func _on_enemy_died(_enemy: EnemyBase) -> void:

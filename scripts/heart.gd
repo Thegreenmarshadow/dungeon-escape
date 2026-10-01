@@ -47,7 +47,7 @@ static func should_drop(chance: float, roll: float) -> bool:
 
 
 func _ready() -> void:
-	sprite.texture = _get_texture()
+	sprite.texture = get_texture()
 	_start_bob()
 
 
@@ -81,7 +81,9 @@ func _start_bob() -> void:
 	tween.tween_property(sprite, "position:y", 0.0, bob_time)
 
 
-static func _get_texture() -> Texture2D:
+## Dibujo del corazón; lo comparten los corazones del suelo y las vidas de la
+## HUD.
+static func get_texture() -> Texture2D:
 	if _texture == null:
 		var image := Image.create_empty(PIXELS[0].length(), PIXELS.size(), false, Image.FORMAT_RGBA8)
 		for y in PIXELS.size():

@@ -12,8 +12,10 @@ signal menu_pressed
 
 ## Duración del fundido de entrada de la pantalla de Game Over, en segundos.
 const GAME_OVER_FADE_TIME := 0.5
+## Tamaño de cada corazón de vida: el dibujo de 9x8 escalado x3.
+const LIFE_ICON_SIZE := Vector2(27, 24)
 
-@onready var lives_label: Label = %LivesLabel
+@onready var lives_hearts: HBoxContainer = %LivesHearts
 @onready var key_icon: TextureRect = %KeyIcon
 @onready var kills_label: Label = %KillsLabel
 @onready var message_label: Label = %MessageLabel
@@ -43,8 +45,28 @@ func _ready() -> void:
 	set_has_key(false)
 
 
-func set_lives(lives: int) -> void:
-	lives_label.text = "Vidas: %d" % lives
+## Muestra un corazón por cada vida máxima: llenos los que quedan y apagados
+## los perdidos, igual que la llave.
+func set_lives(lives: int, max_lives: int) -> void:
+	var count := maxi(lives, max_lives)
+	while lives_hearts.get_child_count() < count:
+		lives_hearts.add_child(_make_life_icon())
+	while lives_hearts.get_child_count() > count:
+		var extra := lives_hearts.get_child(lives_hearts.get_child_count() - 1)
+		lives_hearts.remove_child(extra)
+		extra.queue_free()
+	for i in count:
+		var icon: TextureRect = lives_hearts.get_child(i)
+		icon.modulate = Color.WHITE if i < lives else Color(1, 1, 1, 0.25)
+
+
+func _make_life_icon() -> TextureRect:
+	var icon := TextureRect.new()
+	icon.texture = Heart.get_texture()
+	icon.custom_minimum_size = LIFE_ICON_SIZE
+	icon.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	icon.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+	return icon
 
 
 ## Muestra la llave opaca si el jugador la tiene y apagada si no.
