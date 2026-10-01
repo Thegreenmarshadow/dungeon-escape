@@ -76,18 +76,28 @@ func _on_player_died() -> void:
 	# así que acá se registra en la tabla de puntajes. El jugador emite died
 	# una sola vez (take_damage se ignora con 0 vidas).
 	var run := ScoreBoard.record_run(Game.score, Game.current_level, Game.enemies_killed)
-	_end_level("Game Over", "Puntos: %d%s" % [Game.score, _run_result_text(run)],
-			"Volver al menú", Game.go_to_menu)
+	# Conexiones normales (no de un solo uso): la HUD emite una sola de las dos
+	# señales y desactiva los botones, y el cambio de escena libera la HUD.
+	hud.retry_pressed.connect(Game.start_new_game)
+	hud.menu_pressed.connect(Game.go_to_menu)
+	hud.show_game_over(Game.current_level, Game.enemies_killed, Game.score,
+			run["is_new_record"], _record_text(run))
+	get_tree().paused = true
 
 
-## Texto que acompaña los puntos en Game Over según cómo quedó la partida en
-## la tabla de puntajes: récord nuevo, puesto alcanzado o nada.
-func _run_result_text(run: Dictionary) -> String:
-	if run["is_new_record"]:
-		return " — ¡Nuevo récord!"
+## Línea de récord de Game Over cuando la partida no superó el récord: el
+## puesto alcanzado (si entró en la tabla) y el mejor puntaje. Vacía si todavía
+## no hay ningún récord, para no mostrar "Récord: 0".
+func _record_text(run: Dictionary) -> String:
+	var best: int = run["previous_best"]
+	if best <= 0:
+		best = ScoreBoard.best_score(run["board"])
+	if best <= 0:
+		return ""
+	var record := "Récord: %d" % best
 	if run["recorded"]:
-		return " — Puesto #%d" % run["rank"]
-	return ""
+		return "Puesto #%d · %s" % [run["rank"], record]
+	return record
 
 
 func _on_player_escaped() -> void:
@@ -98,8 +108,8 @@ func _on_player_escaped() -> void:
 	_end_level("¡Nivel superado!", stats, "Siguiente nivel", Game.start_level)
 
 
-## Pausa el juego y muestra la pantalla final. El botón de la pantalla
-## ejecuta action. La interfaz sigue funcionando en pausa.
+## Pausa el juego y muestra la pantalla de nivel superado. El botón de la
+## pantalla ejecuta action. La interfaz sigue funcionando en pausa.
 func _end_level(title: String, details: String, action_text: String, action: Callable) -> void:
 	hud.show_end_screen(title, details, action_text)
 	hud.action_pressed.connect(action, CONNECT_ONE_SHOT)

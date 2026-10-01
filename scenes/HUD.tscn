@@ -98,3 +98,72 @@ custom_minimum_size = Vector2(240, 48)
 layout_mode = 2
 size_flags_horizontal = 4
 theme_override_font_sizes/font_size = 24
+
+[node name="GameOverScreen" type="ColorRect" parent="."]
+unique_name_in_owner = true
+visible = false
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+color = Color(0.22, 0.02, 0.03, 0.82)
+
+[node name="VBox" type="VBoxContainer" parent="GameOverScreen"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+alignment = 1
+theme_override_constants/separation = 16
+
+[node name="GameOverTitle" type="Label" parent="GameOverScreen/VBox"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.95, 0.35, 0.3, 1)
+theme_override_font_sizes/font_size = 56
+text = "Game Over"
+horizontal_alignment = 1
+
+[node name="NewRecordLabel" type="Label" parent="GameOverScreen/VBox"]
+unique_name_in_owner = true
+visible = false
+layout_mode = 2
+theme_override_colors/font_color = Color(1, 0.82, 0.25, 1)
+theme_override_font_sizes/font_size = 40
+text = "¡Nuevo récord!"
+horizontal_alignment = 1
+
+[node name="RecordLabel" type="Label" parent="GameOverScreen/VBox"]
+unique_name_in_owner = true
+visible = false
+layout_mode = 2
+theme_override_colors/font_color = Color(0.85, 0.85, 0.85, 1)
+theme_override_font_sizes/font_size = 24
+horizontal_alignment = 1
+
+[node name="BreakdownLabel" type="Label" parent="GameOverScreen/VBox"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_font_sizes/font_size = 26
+horizontal_alignment = 1
+
+[node name="Buttons" type="HBoxContainer" parent="GameOverScreen/VBox"]
+layout_mode = 2
+alignment = 1
+theme_override_constants/separation = 24
+
+[node name="RetryButton" type="Button" parent="GameOverScreen/VBox/Buttons"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(200, 48)
+layout_mode = 2
+theme_override_font_sizes/font_size = 24
+text = "Reintentar"
+
+[node name="BackToMenuButton" type="Button" parent="GameOverScreen/VBox/Buttons"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(200, 48)
+layout_mode = 2
+theme_override_font_sizes/font_size = 24
+text = "Menú"
