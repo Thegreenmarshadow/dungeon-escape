@@ -72,7 +72,22 @@ func _on_enemy_died(_enemy: EnemyBase) -> void:
 
 
 func _on_player_died() -> void:
-	_end_level("Game Over", "Puntos: %d" % Game.score, "Volver al menú", Game.go_to_menu)
+	# Los niveles no terminan nunca: la derrota es el único fin de una partida,
+	# así que acá se registra en la tabla de puntajes. El jugador emite died
+	# una sola vez (take_damage se ignora con 0 vidas).
+	var run := ScoreBoard.record_run(Game.score, Game.current_level, Game.enemies_killed)
+	_end_level("Game Over", "Puntos: %d%s" % [Game.score, _run_result_text(run)],
+			"Volver al menú", Game.go_to_menu)
+
+
+## Texto que acompaña los puntos en Game Over según cómo quedó la partida en
+## la tabla de puntajes: récord nuevo, puesto alcanzado o nada.
+func _run_result_text(run: Dictionary) -> String:
+	if run["is_new_record"]:
+		return " — ¡Nuevo récord!"
+	if run["recorded"]:
+		return " — Puesto #%d" % run["rank"]
+	return ""
 
 
 func _on_player_escaped() -> void:
