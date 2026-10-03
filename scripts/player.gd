@@ -14,7 +14,9 @@ signal died
 ## Vidas con las que empieza el jugador.
 @export var max_lives: int = 3
 ## Segundos de invulnerabilidad después de recibir daño.
-@export var invulnerability_time: float = 0.5
+@export var invulnerability_time: float = 1.5
+## Parpadeos por segundo mientras dura la invulnerabilidad.
+@export var blink_rate: float = 10.0
 
 @export_group("Ataque")
 ## Daño que hace cada golpe de espada.
@@ -201,6 +203,10 @@ func _update_invulnerability(delta: float) -> void:
 	# Al terminar la invulnerabilidad el sprite vuelve a ser opaco.
 	if _invulnerable_left <= 0.0:
 		sprite.modulate.a = 1.0
+		return
+	# Parpadea para que se note que el jugador es invulnerable y por cuánto.
+	var blink_on := int(_invulnerable_left * blink_rate * 2.0) % 2 == 0
+	sprite.modulate.a = 0.3 if blink_on else 0.8
 
 
 func _die() -> void:
