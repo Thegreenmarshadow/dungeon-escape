@@ -2,7 +2,14 @@ extends Node2D
 ## Coordina el nivel: conecta al jugador, la puerta y los enemigos con la
 ## interfaz y maneja el fin del nivel (superado o derrota).
 
-const LEVEL_MUSIC := preload("res://assets/music/dungeon_ambient_jaggedstone.ogg")
+## Música base del nivel y la que la reemplaza mientras hay enemigos en alerta.
+const EXPLORATION_MUSIC := preload("res://assets/music/dungeon_exploration.ogg")
+const DANGER_MUSIC := preload("res://assets/music/dungeon_danger.ogg")
+## Segundos que sigue la música de peligro después de que el último enemigo
+## deja de estar en alerta, para que no cambie de pista a cada rato.
+const DANGER_HOLD_TIME := 4.0
+## Duración del fundido entre las dos pistas, en segundos.
+const MUSIC_FADE_TIME := 1.5
 ## Celdas de margen alrededor del mapa generado que la cámara puede mostrar,
 ## para no ver el borde exacto de las paredes.
 const GENERATED_CAMERA_MARGIN := 3
@@ -15,10 +22,11 @@ const HEART_SCENE := preload("res://scenes/Heart.tscn")
 
 var _enemies_total: int = 0
 var _enemies_killed: int = 0
+var _danger_left: float = 0.0
 
 
 func _ready() -> void:
-	Music.play_track(LEVEL_MUSIC)
+	Music.play_track(EXPLORATION_MUSIC)
 
 	# El nivel 1 es el mapa hecho a mano de esta escena; del 2 en adelante se
 	# reemplaza por uno generado. Debe ocurrir antes de contar a los enemigos.
@@ -51,6 +59,23 @@ func _ready() -> void:
 	exit_door.player_escaped.connect(_on_player_escaped)
 	exit_door.locked_touched.connect(hud.show_message.bind("Necesitas la llave"))
 	hud.show_message("Nivel %d" % Game.current_level)
+
+
+## Cambia a la música de peligro mientras algún enemigo esté en alerta y vuelve
+## a la de exploración cuando pasa un rato sin ninguno. No corre con el árbol
+## pausado, así que las pantallas finales conservan la pista que sonaba.
+func _process(delta: float) -> void:
+	_danger_left = maxf(_danger_left - delta, 0.0)
+	if _any_enemy_alerted():
+		_danger_left = DANGER_HOLD_TIME
+	Music.play_track(DANGER_MUSIC if _danger_left > 0.0 else EXPLORATION_MUSIC, MUSIC_FADE_TIME)
+
+
+func _any_enemy_alerted() -> bool:
+	for enemy in get_tree().get_nodes_in_group("enemies"):
+		if is_instance_valid(enemy) and enemy.is_alerted():
+			return true
+	return false
 
 
 ## Genera el mapa de Game.current_level (determinista con Game.run_seed) y lo
