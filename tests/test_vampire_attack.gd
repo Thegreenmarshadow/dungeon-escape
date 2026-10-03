@@ -7,13 +7,15 @@ extends McpTestSuite
 const CHASER_SCRIPT := preload("res://scripts/chaser_enemy.gd")
 
 
-## Jugador falso: solo cuenta el daño recibido.
+## Jugador falso: cuenta el daño recibido y desde dónde llegó.
 class TargetStub:
 	extends Node2D
 	var damage_taken := 0
+	var last_source := Vector2.INF
 
-	func take_damage(amount: int) -> void:
+	func take_damage(amount: int, from_position: Vector2 = Vector2.INF) -> void:
 		damage_taken += amount
+		last_source = from_position
 
 
 func suite_name() -> String:
@@ -50,6 +52,7 @@ func test_bite_hurts_only_on_strike_frames_and_once() -> void:
 
 	vampire.sprite.frame = vampire.attack_hit_frames.x
 	assert_eq(target.damage_taken, vampire.attack_damage, "el primer frame de impacto lastima")
+	assert_eq(target.last_source, vampire.global_position, "el golpe informa desde dónde vino")
 	vampire.sprite.frame = vampire.attack_hit_frames.y
 	assert_eq(target.damage_taken, vampire.attack_damage, "una sola vez por ataque")
 

@@ -17,6 +17,8 @@ signal died
 @export var invulnerability_time: float = 1.5
 ## Parpadeos por segundo mientras dura la invulnerabilidad.
 @export var blink_rate: float = 10.0
+## Píxeles que retrocede al recibir un golpe de un enemigo.
+@export var knockback_distance: float = 14.0
 
 @export_group("Ataque")
 ## Daño que hace cada golpe de espada.
@@ -36,6 +38,9 @@ signal died
 ## Pasos por segundo.
 @export var walk_step_rate: float = 8.0
 
+# Duración del retroceso en segundos.
+const KNOCKBACK_TIME := 0.15
+
 var lives: int
 var has_key: bool = false
 ## Última dirección de movimiento; hacia ella se lanza el golpe.
@@ -50,6 +55,10 @@ var _cooldown_left: float = 0.0
 var _hit_this_swing: Array[Node] = []
 # Fase del ciclo de caminata; cada paso avanza PI radianes.
 var _walk_phase: float = 0.0
+# Velocidad inicial del retroceso y tiempo que le queda; mientras dura, el
+# jugador no controla su movimiento.
+var _knockback: Vector2 = Vector2.ZERO
+var _knockback_left: float = 0.0
 
 @onready var sprite: AnimatedSprite2D = $AnimatedSprite2D
 @onready var attack_pivot: Node2D = $AttackPivot
@@ -74,7 +83,10 @@ func _physics_process(delta: float) -> void:
 	# Combina las cuatro acciones de movimiento en un solo vector.
 	# get_vector lo normaliza, por lo que en diagonal no se avanza más rápido.
 	var direction := Input.get_vector("move_left", "move_right", "move_up", "move_down")
-	velocity = direction * speed
+	if _knockback_left > 0.0:
+		velocity = _knockback_step(delta)
+	else:
+		velocity = direction * speed
 
 	if direction != Vector2.ZERO:
 		facing = direction.normalized()
@@ -115,8 +127,10 @@ func _update_walk_animation(delta: float, moving: bool) -> void:
 
 
 ## Resta vidas salvo que el jugador esté en su ventana de invulnerabilidad.
-## Lo llaman las trampas y los enemigos.
-func take_damage(amount: int) -> void:
+## Lo llaman las trampas y los enemigos. Si se pasa from_position (de dónde
+## vino el golpe), el jugador retrocede en la dirección contraria; sin ella,
+## como en los picos, solo pierde vidas.
+func take_damage(amount: int, from_position: Vector2 = Vector2.INF) -> void:
 	if _invulnerable_left > 0.0 or lives <= 0:
 		return
 
@@ -131,6 +145,23 @@ func take_damage(amount: int) -> void:
 	# Activa la invulnerabilidad y marca al jugador semitransparente.
 	_invulnerable_left = invulnerability_time
 	sprite.modulate.a = 0.5
+	_apply_knockback(from_position)
+
+
+## Empuja al jugador lejos de from_position. Vector2.INF significa "sin origen".
+func _apply_knockback(from_position: Vector2) -> void:
+	if from_position == Vector2.INF:
+		return
+	# Velocidad inicial para recorrer knockback_distance mientras decae a cero.
+	var push_speed := 2.0 * knockback_distance / KNOCKBACK_TIME
+	_knockback = (global_position - from_position).normalized() * push_speed
+	_knockback_left = KNOCKBACK_TIME
+
+
+## Avanza el retroceso y devuelve su velocidad actual, que decae hasta cero.
+func _knockback_step(delta: float) -> Vector2:
+	_knockback_left -= delta
+	return _knockback * maxf(_knockback_left, 0.0) / KNOCKBACK_TIME
 
 
 ## Suma vidas sin superar max_lives. Devuelve true si recuperó al menos una;

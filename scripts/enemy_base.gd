@@ -134,7 +134,7 @@ func _damage_touching_bodies() -> void:
 	# jugador se queda pegado. La invulnerabilidad del jugador evita daño repetido.
 	for body in contact_area.get_overlapping_bodies():
 		if body.has_method("take_damage"):
-			body.take_damage(contact_damage)
+			body.take_damage(contact_damage, global_position)
 
 
 func _flash_red() -> void:
