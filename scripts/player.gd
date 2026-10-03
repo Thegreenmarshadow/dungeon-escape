@@ -120,6 +120,7 @@ func take_damage(amount: int) -> void:
 
 	lives = max(lives - amount, 0)
 	lives_changed.emit(lives)
+	Sfx.play(&"player_hurt")
 
 	if lives == 0:
 		_die()
@@ -152,6 +153,7 @@ func _try_attack() -> void:
 	_cooldown_left = attack_cooldown
 	_attack_left = attack_active_time
 	_hit_this_swing.clear()
+	Sfx.play(&"sword_swing")
 
 	# Orienta la hitbox y el efecto hacia donde mira el jugador.
 	attack_pivot.rotation = facing.angle()

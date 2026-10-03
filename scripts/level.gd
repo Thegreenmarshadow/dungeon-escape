@@ -100,6 +100,7 @@ func _on_player_died() -> void:
 	hud.menu_pressed.connect(Game.go_to_menu)
 	hud.show_game_over(Game.current_level, Game.enemies_killed, Game.score,
 			run["is_new_record"], _record_text(run))
+	Sfx.play(&"game_over")
 	get_tree().paused = true
 
 
@@ -123,6 +124,7 @@ func _on_player_escaped() -> void:
 	Game.complete_level()
 	var stats := "Nivel %d · Enemigos eliminados: %d/%d\nPuntos: %d" % [
 		completed_level, _enemies_killed, _enemies_total, Game.score]
+	Sfx.play(&"level_complete")
 	_end_level("¡Nivel superado!", stats, "Siguiente nivel", Game.start_level)
 
 

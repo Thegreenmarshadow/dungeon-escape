@@ -12,4 +12,5 @@ func _on_body_entered(body: Node2D) -> void:
 	if not body.has_method("collect_key"):
 		return
 	body.collect_key()
+	Sfx.play(&"key_pickup")
 	queue_free()

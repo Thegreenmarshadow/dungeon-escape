@@ -16,6 +16,7 @@ func _on_body_entered(body: Node2D) -> void:
 	if not "has_key" in body:
 		return
 	if body.has_key:
+		Sfx.play(&"door_open")
 		player_escaped.emit()
 	else:
 		locked_touched.emit()

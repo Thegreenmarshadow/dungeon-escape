@@ -56,6 +56,8 @@ func _physics_process(_delta: float) -> void:
 	# parado encima con todas sus vidas y luego recibe daño, igual lo recoge.
 	for body in get_overlapping_bodies():
 		if try_collect(body):
+			# El sonido va acá y no en try_collect, que queda como lógica pura.
+			Sfx.play(&"heart_pickup")
 			return
 
 

@@ -93,6 +93,7 @@ func take_hit(amount: int, from_position: Vector2) -> void:
 
 	health -= amount
 	_flash_red()
+	Sfx.play(&"enemy_hit")
 
 	if health <= 0:
 		_die()
@@ -140,6 +141,7 @@ func _die() -> void:
 	body_shape.set_deferred("disabled", true)
 	contact_area.set_deferred("monitoring", false)
 	sprite.play(death_animation)
+	Sfx.play(&"enemy_death")
 	died.emit(self)
 
 
