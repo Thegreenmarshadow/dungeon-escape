@@ -30,6 +30,12 @@ const CORNER_TOP_LEFT := Vector2i(0, 0)
 const CORNER_TOP_RIGHT := Vector2i(5, 0)
 const CORNER_BOTTOM_LEFT := Vector2i(0, 4)
 const CORNER_BOTTOM_RIGHT := Vector2i(5, 4)
+## Esquinas interiores (fila 5 del atlas): borde inferior que se une con una
+## pared lateral que sigue hacia abajo. Nombradas por los lados con suelo.
+## Suelo arriba y a la derecha: lo oscuro queda abajo a la izquierda.
+const INNER_NORTH_EAST := Vector2i(5, 5)
+## Suelo arriba y a la izquierda: lo oscuro queda abajo a la derecha.
+const INNER_NORTH_WEST := Vector2i(0, 5)
 
 const ENEMY_SCENES := {
 	LevelGenerator.SKELETON: preload("res://scenes/Skeleton.tscn"),
@@ -70,24 +76,29 @@ func build(root: Node2D, layout: LevelGenerator.Layout) -> void:
 
 ## Tile de una celda de pared, o NO_TILE si la celda no es pared.
 ##
-## Las celdas del borde de una sala conservan el tile de ese borde aunque un
-## corredor las toque (como en el mapa hecho a mano); el resto se resuelve por
-## los vecinos, dando prioridad a la pared frontal.
+## Se resuelve solo por los vecinos, igual en salas y corredores: la mitad
+## oscura de cada tile (el vacío de afuera) nunca puede quedar mirando al suelo.
+## Así las uniones entre corredor y sala y los codos de los corredores siguen
+## la pared sin cortes. Como ya no quedan paredes finas, una celda tiene suelo
+## a lo sumo en dos lados contiguos.
 static func wall_tile_for(layout: LevelGenerator.Layout, cell: Vector2i) -> Vector2i:
 	if not layout.is_wall(cell):
 		return NO_TILE
-	for room in layout.rooms:
-		var ring_tile := _room_ring_tile(room, cell)
-		if ring_tile != NO_TILE:
-			return ring_tile
-
 	var n := layout.is_floor(cell + Vector2i(0, -1))
 	var s := layout.is_floor(cell + Vector2i(0, 1))
 	var w := layout.is_floor(cell + Vector2i(-1, 0))
 	var e := layout.is_floor(cell + Vector2i(1, 0))
+	# La pared frontal no tiene mitad oscura: sirve también cuando además hay
+	# suelo a un lado (la celda sobre la boca de un corredor).
 	if s:
 		return WALL_TOP
 	if n:
+		# Suelo arriba y a un lado: el borde inferior gira y sigue como pared
+		# lateral hacia abajo (la celda bajo la boca de un corredor).
+		if e:
+			return INNER_NORTH_EAST
+		if w:
+			return INNER_NORTH_WEST
 		return WALL_BOTTOM
 	if w:
 		return WALL_RIGHT
@@ -107,38 +118,6 @@ static func wall_tile_for(layout: LevelGenerator.Layout, cell: Vector2i) -> Vect
 ## quedan sobre las celdas de suelo de layout.door_cell.
 static func door_position(layout: LevelGenerator.Layout, tile_size: Vector2) -> Vector2:
 	return Vector2((layout.door_cell.x + 1) * tile_size.x, layout.door_cell.y * tile_size.y - tile_size.y / 2.0)
-
-
-## Tile del anillo de pared que rodea a la sala en esa celda, o NO_TILE si la
-## celda no está en el anillo.
-static func _room_ring_tile(room: Rect2i, cell: Vector2i) -> Vector2i:
-	var left := room.position.x - 1
-	var right := room.end.x
-	var top := room.position.y - 1
-	var bottom := room.end.y
-	if cell.x < left or cell.x > right or cell.y < top or cell.y > bottom:
-		return NO_TILE
-	var on_left := cell.x == left
-	var on_right := cell.x == right
-	var on_top := cell.y == top
-	var on_bottom := cell.y == bottom
-	if on_top and on_left:
-		return CORNER_TOP_LEFT
-	if on_top and on_right:
-		return CORNER_TOP_RIGHT
-	if on_bottom and on_left:
-		return CORNER_BOTTOM_LEFT
-	if on_bottom and on_right:
-		return CORNER_BOTTOM_RIGHT
-	if on_top:
-		return WALL_TOP
-	if on_bottom:
-		return WALL_BOTTOM
-	if on_left:
-		return WALL_LEFT
-	if on_right:
-		return WALL_RIGHT
-	return NO_TILE
 
 
 ## Quita todo lo que el mapa hecho a mano dejó en la escena. Los nodos se

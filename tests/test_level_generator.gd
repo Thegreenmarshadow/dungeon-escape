@@ -12,7 +12,26 @@ const COLLIDING_TILES := [
 	Vector2i(0, 0), Vector2i(1, 0), Vector2i(2, 0), Vector2i(3, 0), Vector2i(4, 0), Vector2i(5, 0),
 	Vector2i(0, 1), Vector2i(5, 1), Vector2i(0, 2), Vector2i(5, 2), Vector2i(0, 3), Vector2i(5, 3),
 	Vector2i(0, 4), Vector2i(1, 4), Vector2i(2, 4), Vector2i(3, 4), Vector2i(4, 4), Vector2i(5, 4),
+	Vector2i(0, 5), Vector2i(1, 5), Vector2i(2, 5), Vector2i(3, 5), Vector2i(4, 5), Vector2i(5, 5),
 ]
+const N := Vector2i(0, -1)
+const S := Vector2i(0, 1)
+const W := Vector2i(-1, 0)
+const E := Vector2i(1, 0)
+## Lados de cada tile de pared con la mitad oscura (el vacío de afuera) ya
+## dibujada en el atlas: ahí nunca puede haber suelo.
+const DARK_SIDES := {
+	LevelBuilder.WALL_TOP: [],
+	LevelBuilder.WALL_BOTTOM: [S, S + W, S + E],
+	LevelBuilder.WALL_LEFT: [W, W + N, W + S],
+	LevelBuilder.WALL_RIGHT: [E, E + N, E + S],
+	LevelBuilder.CORNER_TOP_LEFT: [W, W + N, W + S],
+	LevelBuilder.CORNER_TOP_RIGHT: [E, E + N, E + S],
+	LevelBuilder.CORNER_BOTTOM_LEFT: [W, W + N, W + S, S, S + E],
+	LevelBuilder.CORNER_BOTTOM_RIGHT: [E, E + N, E + S, S, S + W],
+	LevelBuilder.INNER_NORTH_EAST: [W, S, S + W],
+	LevelBuilder.INNER_NORTH_WEST: [E, S, S + E],
+}
 
 
 var _cache := {}
@@ -196,6 +215,79 @@ func test_every_wall_cell_gets_a_colliding_tile() -> void:
 			assert_eq(LevelBuilder.wall_tile_for(layout, layout.player_cell), LevelBuilder.NO_TILE)
 
 
+func test_dark_side_of_wall_tiles_never_faces_floor() -> void:
+	for level in [2, 4, 8, 12]:
+		for run_seed in 10:
+			var layout := _gen(level, run_seed)
+			for cell in layout.wall_cells():
+				var tile := LevelBuilder.wall_tile_for(layout, cell)
+				for side in DARK_SIDES[tile]:
+					assert_false(layout.is_floor(cell + side),
+							"el tile %s de %s tiene suelo en su lado oscuro %s, nivel %d semilla %d"
+							% [str(tile), str(cell), str(side), level, run_seed])
+
+
+# Los mapas de prueba pasan por la misma limpieza de paredes finas que el
+# generador: por eso cada boca de corredor termina en un escalón diagonal.
+
+func test_corridor_entering_a_room_side_joins_the_room_wall() -> void:
+	# Sala a la derecha (x 6..9), corredor de 2 de alto que entra por la izquierda.
+	var left := _hand_layout(Vector2i(12, 10), [Rect2i(6, 2, 4, 6), Rect2i(1, 4, 5, 2)])
+	_assert_tile(left, Vector2i(5, 2), LevelBuilder.WALL_TOP, "anillo de la sala sobre la boca")
+	_assert_tile(left, Vector2i(4, 3), LevelBuilder.WALL_TOP, "pared de arriba del corredor")
+	_assert_tile(left, Vector2i(4, 6), LevelBuilder.INNER_NORTH_EAST, "pared de abajo del corredor")
+	_assert_tile(left, Vector2i(5, 7), LevelBuilder.INNER_NORTH_EAST, "anillo de la sala bajo la boca")
+	_assert_tile(left, Vector2i(4, 7), LevelBuilder.CORNER_BOTTOM_LEFT, "escalón")
+	_assert_tile(left, Vector2i(3, 6), LevelBuilder.WALL_BOTTOM)
+	# Lo mismo en espejo: el corredor entra por la derecha de la sala.
+	var right := _hand_layout(Vector2i(12, 10), [Rect2i(2, 2, 4, 6), Rect2i(6, 4, 5, 2)])
+	_assert_tile(right, Vector2i(6, 2), LevelBuilder.WALL_TOP, "anillo de la sala sobre la boca")
+	_assert_tile(right, Vector2i(7, 3), LevelBuilder.WALL_TOP, "pared de arriba del corredor")
+	_assert_tile(right, Vector2i(7, 6), LevelBuilder.INNER_NORTH_WEST, "pared de abajo del corredor")
+	_assert_tile(right, Vector2i(6, 7), LevelBuilder.INNER_NORTH_WEST, "anillo de la sala bajo la boca")
+	_assert_tile(right, Vector2i(7, 7), LevelBuilder.CORNER_BOTTOM_RIGHT, "escalón")
+
+
+func test_corridor_leaving_the_top_of_a_room() -> void:
+	# Sala abajo (y 5..8), corredor de 2 de ancho que sube por x 4..5.
+	var layout := _hand_layout(Vector2i(10, 10), [Rect2i(2, 5, 6, 4), Rect2i(4, 1, 2, 4)])
+	_assert_tile(layout, Vector2i(2, 4), LevelBuilder.WALL_TOP, "anillo de la sala, izquierda")
+	_assert_tile(layout, Vector2i(7, 4), LevelBuilder.WALL_TOP, "anillo de la sala, derecha")
+	_assert_tile(layout, Vector2i(3, 3), LevelBuilder.WALL_TOP, "pie de la pared izquierda del corredor")
+	_assert_tile(layout, Vector2i(6, 3), LevelBuilder.WALL_TOP, "pie de la pared derecha del corredor")
+	_assert_tile(layout, Vector2i(3, 2), LevelBuilder.WALL_LEFT)
+	_assert_tile(layout, Vector2i(6, 2), LevelBuilder.WALL_RIGHT)
+
+
+func test_corridor_leaving_the_bottom_of_a_room() -> void:
+	# Sala arriba (y 1..4), corredor de 2 de ancho que baja por x 4..5.
+	var layout := _hand_layout(Vector2i(10, 10), [Rect2i(2, 1, 6, 4), Rect2i(4, 5, 2, 4)])
+	_assert_tile(layout, Vector2i(2, 5), LevelBuilder.INNER_NORTH_EAST, "anillo de la sala, izquierda")
+	_assert_tile(layout, Vector2i(7, 5), LevelBuilder.INNER_NORTH_WEST, "anillo de la sala, derecha")
+	_assert_tile(layout, Vector2i(3, 6), LevelBuilder.INNER_NORTH_EAST, "cabeza de la pared izquierda del corredor")
+	_assert_tile(layout, Vector2i(6, 6), LevelBuilder.INNER_NORTH_WEST, "cabeza de la pared derecha del corredor")
+	_assert_tile(layout, Vector2i(3, 7), LevelBuilder.WALL_LEFT)
+	_assert_tile(layout, Vector2i(6, 7), LevelBuilder.WALL_RIGHT)
+
+
+func test_corridor_bends() -> void:
+	# Tramo horizontal (y 2..3) que gira hacia abajo por x 5..6.
+	var down := _hand_layout(Vector2i(10, 10), [Rect2i(1, 2, 6, 2), Rect2i(5, 2, 2, 7)])
+	_assert_tile(down, Vector2i(7, 1), LevelBuilder.CORNER_TOP_RIGHT, "esquina exterior")
+	_assert_tile(down, Vector2i(3, 4), LevelBuilder.INNER_NORTH_EAST, "esquina interior")
+	_assert_tile(down, Vector2i(4, 5), LevelBuilder.INNER_NORTH_EAST, "esquina interior")
+	_assert_tile(down, Vector2i(3, 5), LevelBuilder.CORNER_BOTTOM_LEFT, "escalón")
+	_assert_tile(down, Vector2i(4, 6), LevelBuilder.WALL_LEFT)
+	_assert_tile(down, Vector2i(7, 4), LevelBuilder.WALL_RIGHT)
+	# Tramo horizontal (y 6..7) que gira hacia arriba por x 5..6.
+	var up := _hand_layout(Vector2i(10, 10), [Rect2i(1, 6, 6, 2), Rect2i(5, 1, 2, 7)])
+	_assert_tile(up, Vector2i(7, 8), LevelBuilder.CORNER_BOTTOM_RIGHT, "esquina exterior")
+	_assert_tile(up, Vector2i(3, 5), LevelBuilder.WALL_TOP, "esquina interior")
+	_assert_tile(up, Vector2i(4, 4), LevelBuilder.WALL_TOP, "esquina interior")
+	_assert_tile(up, Vector2i(3, 4), LevelBuilder.CORNER_TOP_LEFT, "escalón")
+	_assert_tile(up, Vector2i(4, 3), LevelBuilder.WALL_LEFT)
+
+
 func test_seed_derivation_is_stable_and_distinct() -> void:
 	assert_eq(LevelGenerator.derive_seed(1, 2, 3), LevelGenerator.derive_seed(1, 2, 3))
 	var seen := {}
@@ -214,6 +306,21 @@ func _gen(level: int, run_seed: int) -> LevelGenerator.Layout:
 	if not _cache.has(key):
 		_cache[key] = LevelGenerator.generate(level, run_seed)
 	return _cache[key]
+
+
+## Mapa armado a mano con rectángulos de suelo, limpiado de paredes finas
+## igual que lo hace el generador.
+func _hand_layout(size: Vector2i, floors: Array[Rect2i]) -> LevelGenerator.Layout:
+	var layout := LevelGenerator.Layout.new(size)
+	for rect in floors:
+		layout.carve_rect(rect)
+	while layout.process_thin_walls(true) > 0:
+		pass
+	return layout
+
+
+func _assert_tile(layout: LevelGenerator.Layout, cell: Vector2i, expected: Vector2i, what: String = "") -> void:
+	assert_eq(LevelBuilder.wall_tile_for(layout, cell), expected, "%s %s" % [str(cell), what])
 
 
 ## Firma completa de un mapa para comparar dos generaciones.
