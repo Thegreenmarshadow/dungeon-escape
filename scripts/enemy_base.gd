@@ -79,6 +79,13 @@ func _physics_process(delta: float) -> void:
 		_damage_touching_bodies()
 
 
+## true mientras el enemigo va tras el jugador o prepara un ataque. El nivel lo
+## usa para cambiar la música. Las subclases con ese comportamiento lo
+## sobrescriben; por defecto un enemigo nunca está en alerta.
+func is_alerted() -> bool:
+	return false
+
+
 ## Velocidad deseada según el comportamiento de cada enemigo.
 ## Las subclases la sobrescriben; por defecto se queda quieto.
 func _get_move_velocity(_delta: float) -> Vector2:
@@ -119,6 +126,10 @@ func _update_animation() -> void:
 
 
 func _damage_touching_bodies() -> void:
+	# Un enemigo con contact_damage en 0 solo daña con su ataque; llamar a
+	# take_damage(0) igualmente activaría la invulnerabilidad del jugador.
+	if contact_damage <= 0:
+		return
 	# Revisa cada frame en lugar de usar body_entered, así también lastima si el
 	# jugador se queda pegado. La invulnerabilidad del jugador evita daño repetido.
 	for body in contact_area.get_overlapping_bodies():

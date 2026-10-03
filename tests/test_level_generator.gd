@@ -194,6 +194,34 @@ func test_bosses_appear_from_the_configured_level() -> void:
 				"sin jefe en el nivel 3, semilla %d" % run_seed)
 
 
+func test_skulls_appear_from_the_configured_level() -> void:
+	var first := LevelGenerator.SKULL_FIRST_LEVEL
+	assert_eq(LevelGenerator.params_for_level(first - 1).skull_count, 0)
+	assert_gt(LevelGenerator.params_for_level(first).skull_count, 0)
+	var skulls_before := 0
+	var skulls_after := 0
+	for run_seed in SEEDS_PER_LEVEL:
+		skulls_before += _count_kind(_gen(first - 1, run_seed), LevelGenerator.SKULL)
+		skulls_after += _count_kind(_gen(first + 2, run_seed), LevelGenerator.SKULL)
+	assert_eq(skulls_before, 0, "no debe haber calaveras antes del nivel configurado")
+	assert_gt(skulls_after, 0, "debe haber calaveras desde el nivel configurado")
+
+
+func test_builder_has_a_scene_for_every_generated_enemy_kind() -> void:
+	for kind in [LevelGenerator.SKELETON, LevelGenerator.VAMPIRE, LevelGenerator.REAPER, LevelGenerator.SKULL]:
+		assert_true(LevelBuilder.ENEMY_SCENES.has(kind), "sin escena para %s" % kind)
+	for run_seed in SEEDS_PER_LEVEL:
+		for enemy in _gen(LevelGenerator.SKULL_FIRST_LEVEL + 2, run_seed).enemies:
+			assert_true(LevelBuilder.ENEMY_SCENES.has(enemy.kind), "el generador pidió %s" % enemy.kind)
+
+
+func test_skull_count_never_exceeds_the_chasers() -> void:
+	for level in [4, 8, 14]:
+		var p := LevelGenerator.params_for_level(level)
+		assert_true(p.skull_count <= LevelGenerator.chaser_count(p),
+				"nivel %d: más calaveras que perseguidores" % level)
+
+
 func test_higher_levels_have_more_enemies() -> void:
 	var low := 0
 	var high := 0

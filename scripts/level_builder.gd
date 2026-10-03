@@ -41,6 +41,7 @@ const ENEMY_SCENES := {
 	LevelGenerator.SKELETON: preload("res://scenes/Skeleton.tscn"),
 	LevelGenerator.VAMPIRE: preload("res://scenes/Vampire.tscn"),
 	LevelGenerator.REAPER: preload("res://scenes/Reaper.tscn"),
+	LevelGenerator.SKULL: preload("res://scenes/Skull.tscn"),
 }
 const SPIKE_TRAP_SCENE := preload("res://scenes/SpikeTrap.tscn")
 const TORCH_SCENE := preload("res://scenes/props/Torch.tscn")

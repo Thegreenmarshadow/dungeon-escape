@@ -54,6 +54,10 @@ const ENEMIES_MAX := 24
 const CHASER_SHARE_BASE := 0.3
 const CHASER_SHARE_PER_LEVEL := 0.07
 const CHASER_SHARE_MAX := 0.7
+## Nivel desde el que parte de los perseguidores son calaveras embestidoras.
+const SKULL_FIRST_LEVEL := 3
+## Proporción de los perseguidores que son calaveras (el resto son vampiros).
+const SKULL_CHASER_SHARE := 0.4
 ## Trampas de picos.
 const HAZARDS_BASE := 5
 const HAZARDS_PER_LEVEL := 1
@@ -99,6 +103,7 @@ const FALLBACK_ROOMS: Array[Rect2i] = [
 const SKELETON := &"skeleton"
 const VAMPIRE := &"vampire"
 const REAPER := &"reaper"
+const SKULL := &"skull"
 const SPIKES := &"spikes"
 
 const DIRS4: Array[Vector2i] = [
@@ -117,6 +122,8 @@ class Params extends RefCounted:
 	## Enemigos comunes, sin jefes.
 	var enemy_count := 0
 	var chaser_share := 0.0
+	## De los perseguidores, cuántos son calaveras en vez de vampiros.
+	var skull_count := 0
 	var boss_count := 0
 	var hazard_count := 0
 
@@ -304,6 +311,8 @@ static func params_for_level(level: int) -> Params:
 	p.extra_links = mini(1 + floori(step / 3.0), EXTRA_LINKS_MAX)
 	p.enemy_count = mini(ENEMIES_BASE + ENEMIES_PER_LEVEL * step, ENEMIES_MAX)
 	p.chaser_share = minf(CHASER_SHARE_BASE + CHASER_SHARE_PER_LEVEL * step, CHASER_SHARE_MAX)
+	if level >= SKULL_FIRST_LEVEL:
+		p.skull_count = roundi(chaser_count(p) * SKULL_CHASER_SHARE)
 	if level >= SECOND_BOSS_LEVEL:
 		p.boss_count = 2
 	elif level >= BOSS_FIRST_LEVEL:
@@ -692,12 +701,18 @@ static func _place_guard(layout: Layout, rng: RandomNumberGenerator, taken: Arra
 		taken.append(fallback)
 
 
-## Enemigos comunes: esqueletos con patrulla y vampiros perseguidores.
+## Perseguidores (vampiros y calaveras) entre los enemigos comunes del nivel.
+static func chaser_count(params: Params) -> int:
+	return roundi(params.enemy_count * params.chaser_share)
+
+
+## Enemigos comunes: esqueletos con patrulla, y perseguidores que son vampiros
+## o, desde SKULL_FIRST_LEVEL, calaveras embestidoras.
 static func _place_enemies(layout: Layout, params: Params, rng: RandomNumberGenerator,
 		taken: Array[Vector2i]) -> void:
 	var cells := _all_spawnable_cells(layout)
 	_shuffle(cells, rng)
-	var chasers := roundi(params.enemy_count * params.chaser_share)
+	var chasers := chaser_count(params)
 	var skeletons := params.enemy_count - chasers
 	var skeletons_placed := 0
 	var chasers_placed := 0
@@ -725,7 +740,9 @@ static func _place_enemies(layout: Layout, params: Params, rng: RandomNumberGene
 			break
 		if not _is_spaced(cell, taken, ENEMY_SPACING):
 			continue
-		layout.enemies.append(Spawn.new(VAMPIRE, cell))
+		# Las primeras calaveras salen de los perseguidores; el resto, vampiros.
+		var kind := SKULL if chasers_placed < params.skull_count else VAMPIRE
+		layout.enemies.append(Spawn.new(kind, cell))
 		taken.append(cell)
 		chasers_placed += 1
 
