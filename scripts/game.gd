@@ -12,6 +12,7 @@ const POINTS_PER_LEVEL := 100
 
 const MENU_SCENE := "res://scenes/MainMenu.tscn"
 const LEVEL_SCENE := "res://scenes/Level.tscn"
+const DIFFICULTY_REPORT_SCENE := "res://scenes/DifficultyReport.tscn"
 
 ## Nivel que se está jugando, empezando en 1.
 var current_level: int = 1
@@ -23,6 +24,9 @@ var score: int = 0
 ## Semilla de la partida. Junto con el número de nivel determina el mapa que
 ## se genera del nivel 2 en adelante, así un nivel se puede reproducir.
 var run_seed: int = 0
+## true en las partidas iniciadas desde el modo prueba. Solo hace que el nivel
+## agregue la sonda de dificultad (DifficultyProbe); el juego no cambia.
+var test_mode := false
 
 
 ## Reinicia todo el estado para empezar una partida desde el nivel 1.
@@ -32,6 +36,7 @@ func new_game() -> void:
 	enemies_killed = 0
 	score = 0
 	run_seed = randi()
+	test_mode = false
 
 
 func register_kill() -> void:
@@ -51,6 +56,15 @@ func start_new_game() -> void:
 	start_level()
 
 
+## Empieza una partida de prueba directamente en el nivel dado, con la sonda
+## de dificultad activa. Los niveles siguientes también son de prueba.
+func start_test_run(level: int) -> void:
+	new_game()
+	current_level = maxi(level, 1)
+	test_mode = true
+	start_level()
+
+
 ## Carga el nivel actual. Siempre es la escena Level: el nivel 1 usa el mapa
 ## hecho a mano y del 2 en adelante Level genera el mapa con current_level y
 ## run_seed.
@@ -60,6 +74,11 @@ func start_level() -> void:
 
 func go_to_menu() -> void:
 	_change_scene(MENU_SCENE)
+
+
+## Abre la pantalla del modo prueba con el informe de la curva de dificultad.
+func go_to_difficulty_report() -> void:
+	_change_scene(DIFFICULTY_REPORT_SCENE)
 
 
 func _change_scene(path: String) -> void:

@@ -8,6 +8,7 @@ const FADE_IN_TIME := 0.8
 const SHOWN_SCORES := 5
 
 @onready var play_button: Button = %PlayButton
+@onready var test_mode_button: Button = %TestModeButton
 @onready var quit_button: Button = %QuitButton
 @onready var title: Label = %Title
 @onready var best_level_label: Label = %BestLevelLabel
@@ -18,6 +19,7 @@ const SHOWN_SCORES := 5
 func _ready() -> void:
 	Music.play_track(MENU_MUSIC)
 	play_button.pressed.connect(Game.start_new_game)
+	test_mode_button.pressed.connect(Game.go_to_difficulty_report)
 	quit_button.pressed.connect(get_tree().quit)
 	# Con el foco en "Jugar" el menú también se maneja con el teclado.
 	play_button.grab_focus()

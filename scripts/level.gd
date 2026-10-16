@@ -59,6 +59,8 @@ func _ready() -> void:
 	exit_door.player_escaped.connect(_on_player_escaped)
 	exit_door.locked_touched.connect(hud.show_message.bind("Necesitas la llave"))
 	hud.show_message("Nivel %d" % Game.current_level)
+	# Modo prueba: la sonda solo observa señales; el nivel no cambia.
+	if Game.test_mode: add_child(DifficultyProbe.new())
 
 
 ## Cambia a la música de peligro mientras algún enemigo esté en alerta y vuelve

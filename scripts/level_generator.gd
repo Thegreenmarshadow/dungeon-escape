@@ -859,6 +859,13 @@ static func _spawnable_cells(layout: Layout, room_index: int) -> Array[Vector2i]
 	return out
 
 
+## Todas las celdas del mapa donde podría ir un enemigo o una trampa, sin
+## tener en cuenta las entidades ya colocadas. Es pública para el análisis de
+## capacidad del modo prueba (ver DifficultyCurve.capacity_report).
+static func spawnable_cells(layout: Layout) -> Array[Vector2i]:
+	return _all_spawnable_cells(layout)
+
+
 static func _all_spawnable_cells(layout: Layout) -> Array[Vector2i]:
 	var out: Array[Vector2i] = []
 	for i in layout.rooms.size():
