@@ -125,7 +125,7 @@ func _on_player_died() -> void:
 			else ScoreBoard.record_run(Game.score, Game.current_level, Game.enemies_killed)
 	# Conexiones normales (no de un solo uso): la HUD emite una sola de las dos
 	# señales y desactiva los botones, y el cambio de escena libera la HUD.
-	hud.retry_pressed.connect(Game.start_new_game)
+	hud.retry_pressed.connect(Game.retry)
 	hud.menu_pressed.connect(Game.go_to_menu)
 	hud.show_game_over(Game.current_level, Game.enemies_killed, Game.score,
 			run["is_new_record"], _record_text(run))

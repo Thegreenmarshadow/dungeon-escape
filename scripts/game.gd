@@ -31,6 +31,9 @@ var run_seed: int = 0
 ## true en las partidas iniciadas desde el modo prueba. Solo hace que el nivel
 ## agregue la sonda de dificultad (DifficultyProbe); el juego no cambia.
 var test_mode := false
+## Nivel en el que empezó la partida de prueba actual. "Reintentar" vuelve a
+## empezar desde acá.
+var test_start_level: int = 1
 
 
 ## Reinicia todo el estado para empezar una partida desde el nivel 1.
@@ -67,8 +70,18 @@ func start_test_run(level: int) -> void:
 	new_game()
 	current_level = maxi(level, 1)
 	test_mode = true
+	test_start_level = current_level
 	run_started.emit()
 	start_level()
+
+
+## "Reintentar" tras perder: repite la misma clase de partida. Una partida de
+## prueba vuelve a empezar en su nivel inicial; una normal, desde el nivel 1.
+func retry() -> void:
+	if test_mode:
+		start_test_run(test_start_level)
+	else:
+		start_new_game()
 
 
 ## Carga el nivel actual. Siempre es la escena Level: el nivel 1 usa el mapa
