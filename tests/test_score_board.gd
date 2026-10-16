@@ -123,6 +123,19 @@ func test_record_run_with_zero_points_is_not_recorded() -> void:
 	assert_false(FileAccess.file_exists(_path), "una partida sin puntos no debe escribir el archivo")
 
 
+func test_unrecorded_run_keeps_the_board_untouched() -> void:
+	ScoreBoard.record_run(100, 3, 10, _path, DATE)
+	var before := FileAccess.get_file_as_string(_path)
+	var result := ScoreBoard.unrecorded_run(_path)
+	assert_false(result["recorded"])
+	assert_false(result["is_new_record"])
+	assert_false(result["saved"])
+	assert_eq(result["rank"], 0)
+	assert_eq(result["previous_best"], 100)
+	assert_eq(result["board"]["entries"].size(), 1)
+	assert_eq(FileAccess.get_file_as_string(_path), before, "no debe modificar el archivo")
+
+
 func test_record_run_reports_new_records() -> void:
 	var first := ScoreBoard.record_run(100, 1, 10, _path, DATE)
 	assert_true(first["recorded"])

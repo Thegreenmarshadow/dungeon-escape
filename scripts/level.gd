@@ -119,8 +119,10 @@ func _spawn_heart(at: Vector2) -> void:
 func _on_player_died() -> void:
 	# Los niveles no terminan nunca: la derrota es el único fin de una partida,
 	# así que acá se registra en la tabla de puntajes. El jugador emite died
-	# una sola vez (take_damage se ignora con 0 vidas).
-	var run := ScoreBoard.record_run(Game.score, Game.current_level, Game.enemies_killed)
+	# una sola vez (take_damage se ignora con 0 vidas). Las partidas del modo
+	# prueba no se registran: empiezan en cualquier nivel y darían récords falsos.
+	var run := ScoreBoard.unrecorded_run() if Game.test_mode \
+			else ScoreBoard.record_run(Game.score, Game.current_level, Game.enemies_killed)
 	# Conexiones normales (no de un solo uso): la HUD emite una sola de las dos
 	# señales y desactiva los botones, y el cambio de escena libera la HUD.
 	hud.retry_pressed.connect(Game.start_new_game)

@@ -148,16 +148,9 @@ static func with_entry(board: Dictionary, entry: Dictionary) -> Dictionary:
 ##   saved:         true si el archivo se escribió bien.
 ##   board:         la tabla resultante.
 static func record_run(score: int, level: int, kills: int, path: String = DEFAULT_PATH, date: String = "") -> Dictionary:
-	var board := load_board(path)
-	var previous_best := best_score(board)
-	var result := {
-		"recorded": false,
-		"is_new_record": false,
-		"rank": 0,
-		"previous_best": previous_best,
-		"saved": false,
-		"board": board,
-	}
+	var result := unrecorded_run(path)
+	var board: Dictionary = result["board"]
+	var previous_best: int = result["previous_best"]
 	if score <= 0:
 		return result
 	var added := with_entry(board, make_entry(score, level, kills, date))
@@ -167,6 +160,21 @@ static func record_run(score: int, level: int, kills: int, path: String = DEFAUL
 	result["is_new_record"] = score > previous_best
 	result["saved"] = save_board(added["board"], path)
 	return result
+
+
+## Resultado con la misma forma que record_run para una partida que no se
+## registra (por ejemplo, del modo prueba): la tabla actual sin cambios y sin
+## escribir el archivo.
+static func unrecorded_run(path: String = DEFAULT_PATH) -> Dictionary:
+	var board := load_board(path)
+	return {
+		"recorded": false,
+		"is_new_record": false,
+		"rank": 0,
+		"previous_best": best_score(board),
+		"saved": false,
+		"board": board,
+	}
 
 
 ## Fecha para mostrar en la interfaz ("29/09/2026"), o "--" si la entrada no
