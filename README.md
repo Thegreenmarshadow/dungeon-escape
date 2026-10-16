@@ -43,6 +43,48 @@ Descargar el archivo de la plataforma desde [Releases](https://github.com/Thegre
 2. En el gestor de proyectos: **Importar** → seleccionar el archivo `project.godot`.
 3. Presionar **F5** (o el botón ▶) para jugar. La escena principal es `scenes/Level.tscn`.
 
+## Estadísticas, ranking y servidor local
+
+El juego registra cada partida (tiempo, niveles, enemigos eliminados, daño recibido, llaves y corazones recogidos, muerte o abandono) y la envía a un servidor local que la guarda en SQLite. El mismo servidor tiene una interfaz web para consultar los datos.
+
+```text
+Godot --HTTP/JSON--> FastAPI (127.0.0.1:8765) --> SQLite (server/data/game.db)
+                      └── interfaz web en http://127.0.0.1:8765/
+```
+
+**El servidor es opcional.** Si no está encendido el juego funciona igual: guarda lo pendiente en `user://stats_queue.json` (hasta 1000 pedidos; pasado ese tope descarta los más viejos) y lo envía cuando el servidor vuelve a responder, con reintentos cada 2 s que se duplican hasta 60 s. El menú muestra el ranking del servidor ("Fuente: en línea") o, si no responde, la tabla local de siempre ("Fuente: local").
+
+### Encender el servidor
+
+Requiere [uv](https://docs.astral.sh/uv/) (instala Python 3.13 y las dependencias la primera vez):
+
+```bash
+cd server
+uv run game-stats            # http://127.0.0.1:8765  (--port, --db, --reload)
+```
+
+Luego abrir <http://127.0.0.1:8765/> para ver el ranking, el historial de partidas (filtrable por jugador y modo), el detalle de cada partida con sus eventos y las estadísticas globales. La base se crea sola al arrancar con `server/schema.sql`.
+
+Otros comandos (desde `server/`):
+
+| Comando | Qué hace |
+|---|---|
+| `uv run pytest` | Pruebas del servidor (usan una base temporal) |
+| `uv run game-stats-seed` | Agrega partidas de ejemplo (ids `seed-…`) |
+| `uv run game-stats-seed --remove` | Quita las partidas de ejemplo |
+
+Para empezar de cero basta con borrar `server/data/`.
+
+### Qué se guarda
+
+- `players`: nombre del jugador (se escribe en el menú principal; por defecto "Jugador").
+- `runs`: una fila por partida, con modo (`normal` o `test`), semilla, nivel inicial y alcanzado, puntos, enemigos, duración y resultado (`died`, `quit` o `in_progress`).
+- `events`: la línea de tiempo de cada partida. Acepta cualquier tipo de evento, así se pueden sumar otros (por ejemplo, monedas) sin cambiar la base. Tipos actuales: `level_started`, `enemy_killed`, `damage_taken`, `heart_picked`, `key_picked`, `level_completed`, `player_died` y `run_quit`.
+
+El ranking solo incluye partidas terminadas en modo normal; las del modo prueba se guardan pero no compiten.
+
+API principal: `POST /api/players`, `POST /api/runs`, `POST /api/runs/{id}/events`, `PATCH /api/runs/{id}`, `GET /api/leaderboard?limit=10`, `GET /api/runs?player=&mode=&limit=`, `GET /api/runs/{id}`, `GET /api/stats` y `GET /api/health`. La documentación interactiva está en <http://127.0.0.1:8765/docs>.
+
 ## Estructura del proyecto
 
 ```text
@@ -52,6 +94,8 @@ scripts/         Lógica en GDScript, comentada en español
   enemy_base.gd  Clase base de enemigos (vida, daño, golpe recibido, muerte)
   chaser_enemy.gd  Persecución con regreso a su puesto (vampiro y parca)
   level.gd       Conecta jugador, puerta, enemigos e interfaz
+  stats/         Registro de partidas: RunTracker (Autoload), cola en disco y envío HTTP
+server/          Servidor local de estadísticas (FastAPI + SQLite) e interfaz web
 tilesets/        TileSet del calabozo con colisión en las paredes
 assets/          Sprites del calabozo y de los enemigos
 addons/godot_ai/ Plugin usado durante el desarrollo (ver nota)

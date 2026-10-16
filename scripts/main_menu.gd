@@ -14,6 +14,9 @@ const SHOWN_SCORES := 5
 @onready var best_level_label: Label = %BestLevelLabel
 @onready var scores_grid: GridContainer = %ScoresGrid
 @onready var no_scores_label: Label = %NoScoresLabel
+@onready var last_column_header: Label = %DateHeader
+@onready var scores_source_label: Label = %ScoresSourceLabel
+@onready var player_name_edit: LineEdit = %PlayerNameEdit
 
 
 func _ready() -> void:
@@ -23,30 +26,78 @@ func _ready() -> void:
 	quit_button.pressed.connect(get_tree().quit)
 	# Con el foco en "Jugar" el menú también se maneja con el teclado.
 	play_button.grab_focus()
+	player_name_edit.text = PlayerProfile.load_name()
+	player_name_edit.text_changed.connect(func(text: String) -> void: PlayerProfile.save_name(text))
+	player_name_edit.text_submitted.connect(_on_player_name_submitted)
+	player_name_edit.focus_exited.connect(_normalize_player_name)
 	_show_scores()
+	_fetch_online_scores()
 	_fade_in()
 	_pulse_title()
 	_flicker_flames()
 
 
 ## Llena el panel de puntajes con el nivel máximo y los mejores puntajes
-## guardados. Sin puntajes muestra un mensaje en lugar de la tabla.
+## guardados en este equipo. Sin puntajes muestra un mensaje en lugar de la
+## tabla. Es lo que se ve mientras llega (o si no llega) la tabla en línea.
 func _show_scores() -> void:
 	var board := ScoreBoard.load_board()
-	var best_level: int = board["best_level"]
+	var rows: Array[PackedStringArray] = []
+	for entry: Dictionary in board["entries"]:
+		rows.append(PackedStringArray([str(entry["score"]), str(entry["level"]),
+				ScoreBoard.display_date(entry)]))
+	_fill_scores(rows, board["best_level"], "Fecha", "Fuente: local")
+
+
+## Pide la tabla al servidor de estadísticas. Si responde, reemplaza a la
+## local; si falla o tarda demasiado, queda la local.
+func _fetch_online_scores() -> void:
+	var online := OnlineLeaderboard.new()
+	add_child(online)
+	online.loaded.connect(_show_online_scores)
+	online.fetch(SHOWN_SCORES)
+
+
+func _show_online_scores(entries: Array, best_level: int) -> void:
+	var rows: Array[PackedStringArray] = []
+	for entry: Dictionary in entries:
+		rows.append(PackedStringArray([str(entry["score"]), str(entry["level"]), entry["name"]]))
+	_fill_scores(rows, best_level, "Jugador", "Fuente: en línea")
+
+
+## rows: puntos, nivel y el texto de la última columna (fecha o jugador), de
+## mejor a peor.
+func _fill_scores(rows: Array[PackedStringArray], best_level: int, last_column: String, source: String) -> void:
 	best_level_label.text = "Nivel máximo: %d" % best_level
 	best_level_label.visible = best_level > 0
+	last_column_header.text = last_column
+	scores_source_label.text = source
 
-	var entries: Array = board["entries"]
-	scores_grid.visible = not entries.is_empty()
-	no_scores_label.visible = entries.is_empty()
-	# La grilla ya trae la fila de encabezados; acá se agregan las filas.
-	for i in mini(entries.size(), SHOWN_SCORES):
-		var entry: Dictionary = entries[i]
+	# La grilla trae la fila de encabezados; se quitan las filas anteriores.
+	for i in range(scores_grid.get_child_count() - 1, scores_grid.columns - 1, -1):
+		var cell := scores_grid.get_child(i)
+		scores_grid.remove_child(cell)
+		cell.queue_free()
+	scores_grid.visible = not rows.is_empty()
+	no_scores_label.visible = rows.is_empty()
+	for i in mini(rows.size(), SHOWN_SCORES):
+		var row := rows[i]
 		_add_score_cell("#%d" % (i + 1))
-		_add_score_cell(str(entry["score"]), HORIZONTAL_ALIGNMENT_RIGHT)
-		_add_score_cell(str(entry["level"]), HORIZONTAL_ALIGNMENT_RIGHT)
-		_add_score_cell(ScoreBoard.display_date(entry))
+		_add_score_cell(row[0], HORIZONTAL_ALIGNMENT_RIGHT)
+		_add_score_cell(row[1], HORIZONTAL_ALIGNMENT_RIGHT)
+		_add_score_cell(row[2])
+
+
+## Con Enter se guarda el nombre y el foco vuelve a "Jugar".
+func _on_player_name_submitted(_text: String) -> void:
+	_normalize_player_name()
+	play_button.grab_focus()
+
+
+## Muestra el nombre tal como quedó guardado (sin espacios sobrantes; vacío
+## pasa a ser el nombre por defecto).
+func _normalize_player_name() -> void:
+	player_name_edit.text = PlayerProfile.save_name(player_name_edit.text)
 
 
 func _add_score_cell(text: String, alignment: HorizontalAlignment = HORIZONTAL_ALIGNMENT_LEFT) -> void:

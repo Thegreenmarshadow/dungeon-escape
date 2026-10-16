@@ -1,0 +1,73 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Dungeon Escape · Estadísticas</title>
+  <link rel="icon" href="data:,">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <header class="top">
+    <h1>Dungeon Escape <span class="muted">· estadísticas</span></h1>
+    <nav>
+      <a href="#/ranking" data-section="ranking">Ranking</a>
+      <a href="#/partidas" data-section="partidas">Partidas</a>
+      <a href="#/estadisticas" data-section="estadisticas">Estadísticas</a>
+    </nav>
+  </header>
+
+  <main>
+    <section id="ranking" hidden>
+      <h2>Mejores puntajes</h2>
+      <p class="muted">Partidas terminadas en modo normal. Las del modo prueba no participan.</p>
+      <div id="ranking-body"></div>
+    </section>
+
+    <section id="partidas" hidden>
+      <h2>Historial de partidas</h2>
+      <form id="runs-filter" class="filters">
+        <label>Jugador
+          <select name="player"><option value="">Todos</option></select>
+        </label>
+        <label>Modo
+          <select name="mode">
+            <option value="">Todos</option>
+            <option value="normal">Normal</option>
+            <option value="test">Prueba</option>
+          </select>
+        </label>
+        <label>Cantidad
+          <select name="limit">
+            <option>25</option><option selected>50</option><option>100</option><option>500</option>
+          </select>
+        </label>
+      </form>
+      <div id="runs-body"></div>
+    </section>
+
+    <section id="partida" hidden>
+      <p><a href="#/partidas">&larr; Volver al historial</a></p>
+      <div id="run-body"></div>
+    </section>
+
+    <section id="estadisticas" hidden>
+      <h2>Estadísticas globales</h2>
+      <form id="stats-filter" class="filters">
+        <label>Modo
+          <select name="mode">
+            <option value="">Todos</option>
+            <option value="normal">Normal</option>
+            <option value="test">Prueba</option>
+          </select>
+        </label>
+      </form>
+      <div id="stats-body"></div>
+    </section>
+
+    <p id="error" class="error" hidden></p>
+  </main>
+
+  <script src="app.js"></script>
+</body>
+</html>

@@ -3,6 +3,10 @@ extends Node
 ## sobreviva a los cambios de escena: el nivel, el menú y las pantallas finales
 ## leen y escriben acá en lugar de guardar estos datos ellos mismos.
 
+## Se emite al empezar una partida nueva (normal o de prueba), con el estado ya
+## reiniciado. Lo escucha RunTracker para registrar la partida.
+signal run_started
+
 ## Vidas con las que empieza cada partida nueva.
 const STARTING_LIVES := 3
 ## Puntos por cada enemigo eliminado.
@@ -53,6 +57,7 @@ func complete_level() -> void:
 ## Empieza una partida nueva desde el nivel 1.
 func start_new_game() -> void:
 	new_game()
+	run_started.emit()
 	start_level()
 
 
@@ -62,6 +67,7 @@ func start_test_run(level: int) -> void:
 	new_game()
 	current_level = maxi(level, 1)
 	test_mode = true
+	run_started.emit()
 	start_level()
 
 
