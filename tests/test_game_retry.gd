@@ -1,6 +1,7 @@
 @tool
 extends McpTestSuite
-## Pruebas de "Reintentar" (Game.retry). Usan una copia de Game cuya
+## Pruebas de "Reintentar" (Game.retry) y de qué estado de la partida se
+## conserva o se reinicia (monedas y mejoras). Usan una copia de Game cuya
 ## start_level solo cuenta las llamadas, así nunca se cambia de escena.
 
 const GAME_SCRIPT := "res://scripts/game.gd"
@@ -60,3 +61,33 @@ func test_playing_normally_after_a_test_run_leaves_test_mode() -> void:
 	_game.retry()
 	assert_false(_game.test_mode)
 	assert_eq(_game.current_level, 1)
+
+
+func test_retry_resets_coins_and_upgrades() -> void:
+	_game.start_new_game()
+	_game.add_coins(40)
+	assert_true(_game.buy(Shop.ITEM_DAMAGE, 3))
+	assert_eq(_game.damage_bonus, 1)
+	_game.retry()
+	assert_eq(_game.coins, 0)
+	assert_eq(_game.damage_bonus, 0)
+
+
+func test_retry_of_a_test_run_also_resets_the_wallet() -> void:
+	_game.start_test_run(12)
+	_game.add_coins(25)
+	assert_true(_game.buy(Shop.ITEM_DAMAGE, 3))
+	_game.retry()
+	assert_true(_game.test_mode)
+	assert_eq(_game.coins, 0)
+	assert_eq(_game.damage_bonus, 0)
+
+
+func test_coins_and_upgrades_survive_between_levels() -> void:
+	_game.start_new_game()
+	_game.add_coins(15)
+	assert_true(_game.buy(Shop.ITEM_DAMAGE, 3))
+	_game.complete_level()
+	_game.start_level()
+	assert_eq(_game.coins, 5)
+	assert_eq(_game.damage_bonus, 1)

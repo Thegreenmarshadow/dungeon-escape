@@ -2,7 +2,7 @@ class_name EnemyBase
 extends CharacterBody2D
 ## Base reutilizable para enemigos: vida, movimiento con colisión contra las
 ## paredes, daño por contacto, reacción al recibir golpes (animación, parpadeo
-## rojo y retroceso) y muerte.
+## rojo y retroceso), esquiva y muerte.
 ##
 ## Estructura esperada de la escena:
 ##   Enemigo (CharacterBody2D)   <- choca con las paredes
@@ -16,6 +16,8 @@ extends CharacterBody2D
 
 ## Se emite cuando el enemigo empieza a morir.
 signal died(enemy: EnemyBase)
+## Se emite cuando el enemigo esquiva un golpe del jugador.
+signal dodged(enemy: EnemyBase)
 
 ## Golpes que aguanta antes de morir.
 @export var max_health: int = 2
@@ -28,6 +30,19 @@ signal died(enemy: EnemyBase)
 ## Probabilidad (de 0 a 1) de soltar un corazón al morir. El nivel la consulta
 ## y crea el corazón; los jefes la tienen en 1 para soltarlo siempre.
 @export_range(0.0, 1.0, 0.01) var heart_drop_chance: float = 0.18
+## Probabilidad (de 0 a 1) de soltar una moneda al morir, y entre qué valores
+## (incluidos) se sortea cuánto vale. Igual que con los corazones, el nivel las
+## consulta y crea la moneda.
+@export_range(0.0, 1.0, 0.01) var coin_drop_chance: float = 0.25
+@export_range(1, 20) var coin_min_value: int = 1
+@export_range(1, 20) var coin_max_value: int = 2
+## Probabilidad (de 0 a 1) de esquivar un golpe del jugador: no recibe daño y
+## da un paso atrás. Tras esquivar no puede volver a hacerlo durante
+## DODGE_COOLDOWN, así que nunca esquiva dos golpes seguidos. DifficultyCurve
+## guarda una copia de los valores de cada escena (una prueba los compara).
+@export_range(0.0, 1.0, 0.01) var dodge_chance: float = 0.15
+## Distancia en píxeles del paso atrás al esquivar.
+@export var dodge_distance: float = 8.0
 
 @export_group("Animaciones")
 @export var idle_animation: StringName = &"idle"
@@ -39,14 +54,28 @@ signal died(enemy: EnemyBase)
 
 # Duración del retroceso en segundos.
 const KNOCKBACK_TIME := 0.15
+## Segundos después de esquivar en los que el enemigo no puede volver a esquivar.
+const DODGE_COOLDOWN := 1.0
+## Destello al esquivar: blanco y translúcido, para no confundirlo con el rojo
+## de un golpe recibido.
+const DODGE_TINT := Color(1.6, 1.6, 1.6, 0.35)
+const DODGE_FLASH_TIME := 0.3
+## Texto flotante que aparece sobre el enemigo al esquivar.
+const DODGE_TEXT := "¡Esquiva!"
+const DODGE_TEXT_SIZE := 7
+const DODGE_TEXT_TIME := 0.6
 
 var health: int
 var is_dying: bool = false
+
+# Vida de la escena antes de escalarla; -1 hasta la primera vez que se escala.
+var _base_health: int = -1
 
 # Mientras es true el enemigo está aturdido: no se mueve ni hace daño.
 var _is_hurt: bool = false
 var _knockback: Vector2 = Vector2.ZERO
 var _knockback_left: float = 0.0
+var _dodge_cooldown_left: float = 0.0
 
 @onready var sprite: AnimatedSprite2D = $AnimatedSprite2D
 @onready var body_shape: CollisionShape2D = $CollisionShape2D
@@ -61,6 +90,7 @@ func _ready() -> void:
 
 
 func _physics_process(delta: float) -> void:
+	_dodge_cooldown_left = maxf(_dodge_cooldown_left - delta, 0.0)
 	if _knockback_left > 0.0:
 		# El retroceso decae hasta cero y se aplica con move_and_slide,
 		# así el enemigo no atraviesa paredes al ser empujado.
@@ -79,6 +109,17 @@ func _physics_process(delta: float) -> void:
 		_damage_touching_bodies()
 
 
+## Multiplica la vida base (la de la escena) por multiplier, redondeando, y
+## nunca la deja por debajo de la base. El enemigo no sabe de niveles: el nivel
+## le pasa el multiplicador. Ajusta también la vida actual porque _ready ya la
+## igualó a la máxima. Llamarla otra vez parte de la base, no se acumula.
+func apply_health_scale(multiplier: float) -> void:
+	if _base_health < 0:
+		_base_health = max_health
+	max_health = maxi(roundi(_base_health * multiplier), _base_health)
+	health = max_health
+
+
 ## true mientras el enemigo va tras el jugador o prepara un ataque. El nivel lo
 ## usa para cambiar la música. Las subclases con ese comportamiento lo
 ## sobrescriben; por defecto un enemigo nunca está en alerta.
@@ -92,12 +133,53 @@ func _get_move_velocity(_delta: float) -> Vector2:
 	return Vector2.ZERO
 
 
+## Decide si un enemigo esquiva un golpe. chance es la probabilidad (0 a 1) y
+## roll un número aleatorio entre 0 y 1, igual que en Heart.should_drop: con
+## chance 1 esquiva siempre y con chance 0 nunca.
+static func should_dodge(chance: float, roll: float) -> bool:
+	if chance >= 1.0:
+		return true
+	return roll < chance
+
+
 ## Recibe un golpe del jugador. from_position es desde dónde vino el golpe,
-## y se usa para empujar al enemigo en la dirección contraria.
+## y se usa para empujar al enemigo en la dirección contraria. Antes de
+## recibirlo intenta esquivarlo.
 func take_hit(amount: int, from_position: Vector2) -> void:
 	if is_dying:
 		return
+	if try_dodge(from_position, randf()):
+		return
+	_receive_hit(amount, from_position)
 
+
+## Intenta esquivar un golpe que viene desde from_position con la tirada roll
+## (0 a 1). Si esquiva, no recibe daño: da un paso atrás, parpadea en blanco,
+## muestra DODGE_TEXT, avisa con dodged y empieza el enfriamiento de la esquiva.
+## Devuelve true si esquivó. Sin sonido propio: ya suena el tajo del jugador y
+## falta el de golpe recibido.
+func try_dodge(from_position: Vector2, roll: float) -> bool:
+	if not _can_dodge() or not should_dodge(dodge_chance, roll):
+		return false
+	_dodge_cooldown_left = DODGE_COOLDOWN
+	_push_away(from_position, dodge_distance)
+	_flash_dodge()
+	_show_dodge_text()
+	dodged.emit(self)
+	return true
+
+
+## Si en este momento puede esquivar: no esquiva muriendo, aturdido ni durante
+## el enfriamiento. Las subclases agregan sus propias ventanas de castigo (por
+## ejemplo, mientras atacan).
+func _can_dodge() -> bool:
+	return not is_dying and not _is_hurt and _dodge_cooldown_left <= 0.0
+
+
+## Aplica un golpe que no esquivó: resta vida, parpadea en rojo, retrocede y
+## queda aturdido, o muere. Las subclases que reaccionan al golpe sobrescriben
+## esta función y no take_hit, así la esquiva se decide antes.
+func _receive_hit(amount: int, from_position: Vector2) -> void:
 	health -= amount
 	_flash_red()
 	Sfx.play(&"enemy_hit")
@@ -106,9 +188,7 @@ func take_hit(amount: int, from_position: Vector2) -> void:
 		_die()
 		return
 
-	var push_speed := 2.0 * knockback_distance / KNOCKBACK_TIME
-	_knockback = (global_position - from_position).normalized() * push_speed
-	_knockback_left = KNOCKBACK_TIME
+	_push_away(from_position, knockback_distance)
 	_is_hurt = true
 	# Reinicia la animación aunque ya estuviera reproduciéndose por otro golpe.
 	sprite.play(hurt_animation)
@@ -135,6 +215,40 @@ func _damage_touching_bodies() -> void:
 	for body in contact_area.get_overlapping_bodies():
 		if body.has_method("take_damage"):
 			body.take_damage(contact_damage, global_position)
+
+
+## Empuja al enemigo distance píxeles en dirección contraria a from_position.
+## El empuje decae en KNOCKBACK_TIME y se aplica con move_and_slide, así no
+## atraviesa paredes.
+func _push_away(from_position: Vector2, distance: float) -> void:
+	var push_speed := 2.0 * distance / KNOCKBACK_TIME
+	_knockback = (global_position - from_position).normalized() * push_speed
+	_knockback_left = KNOCKBACK_TIME
+
+
+func _flash_dodge() -> void:
+	sprite.modulate = DODGE_TINT
+	var tween := create_tween()
+	tween.tween_property(sprite, "modulate", Color.WHITE, DODGE_FLASH_TIME)
+
+
+## Texto chico que sube y se desvanece sobre el enemigo.
+func _show_dodge_text() -> void:
+	var label := Label.new()
+	label.text = DODGE_TEXT
+	label.add_theme_font_size_override("font_size", DODGE_TEXT_SIZE)
+	label.add_theme_color_override("font_color", Color(0.9, 0.95, 1.0))
+	label.add_theme_color_override("font_outline_color", Color(0.05, 0.05, 0.1))
+	label.add_theme_constant_override("outline_size", 2)
+	label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	label.size = Vector2(48.0, 10.0)
+	label.position = Vector2(-24.0, -26.0)
+	label.z_index = 10
+	add_child(label)
+	var tween := label.create_tween().set_parallel()
+	tween.tween_property(label, "position:y", label.position.y - 8.0, DODGE_TEXT_TIME)
+	tween.tween_property(label, "modulate:a", 0.0, DODGE_TEXT_TIME)
+	tween.chain().tween_callback(label.queue_free)
 
 
 func _flash_red() -> void:

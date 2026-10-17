@@ -15,7 +15,7 @@ const HEADER_COLOR := Color(1.0, 0.86, 0.5)
 ## Columnas de la tabla: título y ancho mínimo. La última se estira.
 const COLUMNS := [
 	["Nivel", 44], ["Enemigos", 70], ["Esq/Vamp/Cal", 100], ["Jefes", 44],
-	["Trampas", 64], ["Índice", 56], ["Δ%", 64], ["Topes", 0],
+	["Trampas", 64], ["Vida", 52], ["Índice", 56], ["Δ%", 64], ["Topes", 0],
 ]
 ## Nombre abreviado de cada tope de LevelGenerator (la leyenda está en la
 ## línea de estado).
@@ -63,7 +63,7 @@ func _ready() -> void:
 	export_button.pressed.connect(_export_csv)
 	back_button.pressed.connect(Game.go_to_menu)
 	status_label.text = ("Las filas en rojo crecen menos del %d %% respecto del nivel anterior. "
-			+ "Topes: E enemigos, P proporción de perseguidores, T trampas, G grilla, S salas.") % roundi(
+			+ "Vida: multiplicador de la vida de los enemigos. Topes: E enemigos, P proporción de perseguidores, T trampas, G grilla, S salas.") % roundi(
 			DifficultyCurve.TARGET_GROWTH * 100.0)
 	play_level_button.grab_focus()
 
@@ -109,6 +109,7 @@ func _fill_table() -> void:
 			"%d/%d/%d" % [row["skeletons"], row["vampires"], row["skulls"]],
 			str(row["bosses"]),
 			str(row["hazards"]),
+			"×%.1f" % row["health_scale"],
 			"%.1f" % row["index"],
 			"—" if is_nan(level_growth) else "%+.1f%%" % (level_growth * 100.0),
 			" ".join(caps),

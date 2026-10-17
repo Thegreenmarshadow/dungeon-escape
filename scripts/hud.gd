@@ -1,7 +1,8 @@
 extends CanvasLayer
-## Interfaz del jugador: vidas, indicador de llave, enemigos eliminados, mensajes
-## y pantallas de fin de partida. Solo muestra información; el nivel decide
-## cuándo actualizarla.
+## Interfaz del jugador: vidas, indicador de llave, enemigos eliminados,
+## monedas, mensajes, pantallas de fin de partida y la tienda entre niveles.
+## Solo muestra información; el nivel decide cuándo actualizarla y qué pasa al
+## comprar.
 
 ## Se emite al pulsar el botón de la pantalla de fin de partida.
 signal action_pressed
@@ -9,21 +10,32 @@ signal action_pressed
 ## muestra la pantalla se emite como mucho una de las dos.
 signal retry_pressed
 signal menu_pressed
+## Se emite al pulsar un artículo de la tienda (un Shop.ITEM_*). El nivel hace
+## la compra y vuelve a llamar a show_shop.
+signal buy_pressed(item: StringName)
 
 ## Duración del fundido de entrada de la pantalla de Game Over, en segundos.
 const GAME_OVER_FADE_TIME := 0.5
 ## Tamaño de cada corazón de vida: el dibujo de 9x8 escalado x3.
 const LIFE_ICON_SIZE := Vector2(27, 24)
+## Nombre de cada artículo de la tienda y el texto que se muestra cuando no está
+## disponible.
+const ITEM_NAMES := {Shop.ITEM_DAMAGE: "+1 daño", Shop.ITEM_LIFE: "+1 vida"}
+const ITEM_UNAVAILABLE_TEXT := {Shop.ITEM_DAMAGE: "al máximo", Shop.ITEM_LIFE: "vidas completas"}
 
 @onready var lives_hearts: HBoxContainer = %LivesHearts
 @onready var key_icon: TextureRect = %KeyIcon
 @onready var kills_label: Label = %KillsLabel
+@onready var coins_label: Label = %CoinsLabel
 @onready var message_label: Label = %MessageLabel
 @onready var message_timer: Timer = %MessageTimer
 @onready var end_screen: Control = %EndScreen
 @onready var end_title: Label = %EndTitle
 @onready var end_stats: Label = %EndStats
 @onready var action_button: Button = %ActionButton
+@onready var shop: Control = %Shop
+@onready var shop_coins_label: Label = %ShopCoinsLabel
+@onready var shop_items: HBoxContainer = %ShopItems
 @onready var game_over_screen: Control = %GameOverScreen
 @onready var new_record_label: Label = %NewRecordLabel
 @onready var record_label: Label = %RecordLabel
@@ -32,10 +44,13 @@ const LIFE_ICON_SIZE := Vector2(27, 24)
 @onready var back_to_menu_button: Button = %BackToMenuButton
 
 var _game_over_tween: Tween
+# Botón de cada artículo de la tienda; se crean la primera vez que se muestra.
+var _shop_buttons: Dictionary[StringName, Button] = {}
 
 
 func _ready() -> void:
 	end_screen.hide()
+	shop.hide()
 	game_over_screen.hide()
 	message_label.hide()
 	message_timer.timeout.connect(message_label.hide)
@@ -78,6 +93,10 @@ func set_kills(killed: int, total: int) -> void:
 	kills_label.text = "Enemigos: %d/%d" % [killed, total]
 
 
+func set_coins(coins: int) -> void:
+	coins_label.text = str(coins)
+
+
 ## Muestra un mensaje temporal en la parte inferior de la pantalla.
 func show_message(text: String) -> void:
 	message_label.text = text
@@ -97,6 +116,39 @@ func show_end_screen(title: String, details: String, action_text: String) -> voi
 	end_screen.show()
 	# Con el foco en el botón se puede continuar con Enter o Espacio.
 	action_button.grab_focus()
+
+
+## Muestra la tienda dentro de la pantalla de fin de nivel, o la actualiza si ya
+## se ve. offers tiene un diccionario por artículo con item (un Shop.ITEM_*),
+## price, available (si se ofrece) y affordable (si se puede comprar ahora con
+## coins). Solo se pueden pulsar los artículos que se pueden comprar.
+func show_shop(coins: int, offers: Array[Dictionary]) -> void:
+	shop_coins_label.text = "Monedas: %d" % coins
+	for offer in offers:
+		var item: StringName = offer["item"]
+		var button: Button = _shop_buttons.get(item)
+		if button == null:
+			button = _make_shop_button(item)
+		var status: String = "%d monedas" % offer["price"] if offer["available"] \
+				else ITEM_UNAVAILABLE_TEXT.get(item, "no disponible")
+		button.text = "%s · %s" % [ITEM_NAMES.get(item, String(item)), status]
+		button.disabled = not offer["affordable"]
+	shop.show()
+	# Un botón recién desactivado (por ejemplo, tras comprar) no debe quedarse
+	# con el foco: se pasa al de continuar.
+	var focused := get_viewport().gui_get_focus_owner()
+	if focused is BaseButton and focused.disabled:
+		action_button.grab_focus()
+
+
+func _make_shop_button(item: StringName) -> Button:
+	var button := Button.new()
+	button.custom_minimum_size = Vector2(240, 44)
+	button.add_theme_font_size_override("font_size", 22)
+	button.pressed.connect(buy_pressed.emit.bind(item))
+	shop_items.add_child(button)
+	_shop_buttons[item] = button
+	return button
 
 
 ## Muestra la pantalla de Game Over con el resumen de la partida y un fundido

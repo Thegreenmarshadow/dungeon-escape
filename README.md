@@ -22,11 +22,16 @@ Juego de acción 2D con vista cenital, hecho en **Godot 4.7.2**. El jugador cont
 
 | Enemigo | Vida | Comportamiento |
 |---|---|---|
-| Esqueleto | 2 golpes | Patrulla entre dos puntos |
+| Esqueleto | 2 golpes | Patrulla entre dos puntos; si el jugador se acerca a su ruta, va hacia él y ataca con una estocada anunciada. Al recibir un golpe retrocede y tarda en volver a atacar |
 | Vampiro | 3 golpes | Persigue al jugador a menos de 80 px y vuelve a su puesto si lo pierde |
 | Parca (jefe) | 5 golpes | Lenta; protege la sala de la llave |
 
-- La interfaz muestra las vidas, si se tiene la llave y cuántos enemigos se eliminaron. La pantalla de victoria incluye ese contador.
+- **Esquiva:** cada enemigo puede esquivar un golpe (esqueleto 15 %, calavera 10 %, vampiro 20 %, parca 10 %): no recibe daño, da un paso atrás y aparece «¡Esquiva!». Nunca esquiva dos golpes seguidos (1 s de espera), ni mientras ataca o embiste.
+- La vida de la tabla es la del nivel 1. Cada nivel suma un **8 % de la vida base** (×1.08 en el nivel 2, ×1.72 en el 10, ×8.92 en el 100; se redondea): un esqueleto aguanta 3 golpes en el nivel 10 y 18 en el 100. El daño que hacen los enemigos no cambia.
+
+- **Monedas:** los enemigos pueden soltar monedas al morir (los más duros, más seguido y de más valor; la parca, casi siempre) y en cada mapa generado hay una suelta. Valen más cuanto más alto el nivel: se multiplican por la misma escala que la vida de los enemigos. Se conservan entre niveles y se reinician en cada partida.
+- **Tienda:** en la pantalla de nivel superado se pueden gastar las monedas en **+1 daño** (10, 20, 30... hasta 100 monedas; hasta 10 veces por partida) o **+1 vida** (6 monedas en el nivel 1, multiplicadas por la escala del nivel; solo si falta alguna). Así las mejoras de daño siguen el ritmo de la vida de los enemigos.
+- La interfaz muestra las vidas, si se tiene la llave, cuántos enemigos se eliminaron y las monedas. La pantalla de victoria incluye ese contador.
 
 ## Cómo ejecutarlo
 
@@ -79,7 +84,7 @@ Para empezar de cero basta con borrar `server/data/`.
 
 - `players`: nombre del jugador (se escribe en el menú principal; por defecto "Jugador").
 - `runs`: una fila por partida, con modo (`normal` o `test`), semilla, nivel inicial y alcanzado, puntos, enemigos, duración y resultado (`died`, `quit` o `in_progress`).
-- `events`: la línea de tiempo de cada partida. Acepta cualquier tipo de evento, así se pueden sumar otros (por ejemplo, monedas) sin cambiar la base. Tipos actuales: `level_started`, `enemy_killed`, `damage_taken`, `heart_picked`, `key_picked`, `level_completed`, `player_died` y `run_quit`.
+- `events`: la línea de tiempo de cada partida. Acepta cualquier tipo de evento, así se pueden sumar otros sin cambiar la base. Tipos actuales: `level_started`, `enemy_killed`, `damage_taken`, `heart_picked`, `key_picked`, `coin_picked`, `item_bought`, `level_completed`, `player_died` y `run_quit`.
 
 El ranking solo incluye partidas terminadas en modo normal; las del modo prueba se guardan pero no compiten.
 

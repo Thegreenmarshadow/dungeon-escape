@@ -1,15 +1,18 @@
 class_name ChaserEnemy
 extends EnemyBase
 ## Enemigo que persigue al jugador cuando se acerca y vuelve a su puesto si lo
-## pierde. Lo usan el vampiro y la parca con distintos parámetros.
+## pierde. Lo usan el vampiro y la parca con distintos parámetros, y el
+## esqueleto, que en lugar de esperar en su puesto patrulla (ver
+## _get_idle_velocity y _distance_to_zone).
 
 ## Distancia a la que detecta al jugador y empieza a perseguirlo.
 @export var detect_radius: float = 80.0
 ## Distancia a la que lo pierde. Es mayor que detect_radius para que no
 ## alterne entre perseguir y volver cuando el jugador está justo en el borde.
 @export var lose_radius: float = 120.0
-## Distancia máxima entre el jugador y el puesto del enemigo para perseguirlo.
-## Sirve para que un guardián no abandone la zona que protege.
+## Distancia máxima entre el jugador y la zona del enemigo (su puesto, salvo
+## que _distance_to_zone diga otra cosa) para perseguirlo. Sirve para que un
+## guardián no abandone la zona que protege.
 @export var leash_radius: float = 160.0
 
 @export_group("Ataque")
@@ -55,7 +58,7 @@ func _get_move_velocity(delta: float) -> Vector2:
 	if is_instance_valid(_player):
 		var player_pos := _player.global_position
 		var distance := global_position.distance_to(player_pos)
-		var player_in_zone := _home.distance_to(player_pos) <= leash_radius
+		var player_in_zone := _distance_to_zone(player_pos) <= leash_radius
 		if _chasing:
 			_chasing = player_in_zone and distance <= lose_radius
 		else:
@@ -66,19 +69,35 @@ func _get_move_velocity(delta: float) -> Vector2:
 				return Vector2.ZERO
 			return global_position.direction_to(player_pos) * speed
 
-	# Sin jugador a la vista, vuelve a su puesto y espera ahí.
-	if global_position.distance_to(_home) > 2.0:
-		return global_position.direction_to(_home) * speed
-	return Vector2.ZERO
+	return _get_idle_velocity(delta)
 
 
 func is_alerted() -> bool:
 	return not is_dying and (_chasing or _attacking)
 
 
+## Velocidad cuando no persigue a nadie: vuelve a su puesto y espera ahí. El
+## esqueleto la sobrescribe para patrullar.
+func _get_idle_velocity(_delta: float) -> Vector2:
+	if global_position.distance_to(_home) > 2.0:
+		return global_position.direction_to(_home) * speed
+	return Vector2.ZERO
+
+
+## Distancia de point a la zona que guarda el enemigo, comparada con
+## leash_radius. Por defecto la zona es su puesto.
+func _distance_to_zone(point: Vector2) -> float:
+	return _home.distance_to(point)
+
+
+## Comprometido con un ataque no esquiva: es la ventana para castigarlo.
+func _can_dodge() -> bool:
+	return not _attacking and super()
+
+
 ## Un ataque interrumpido por un golpe del jugador se cancela y empieza el
 ## enfriamiento; si no, _attacking quedaría activo sin animación que lo termine.
-func take_hit(amount: int, from_position: Vector2) -> void:
+func _receive_hit(amount: int, from_position: Vector2) -> void:
 	_attacking = false
 	_attack_cooldown_left = attack_cooldown
 	super(amount, from_position)

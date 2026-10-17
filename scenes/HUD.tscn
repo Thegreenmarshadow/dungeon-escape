@@ -2,6 +2,7 @@
 
 [ext_resource type="Script" path="res://scripts/hud.gd" id="1_script"]
 [ext_resource type="Texture2D" path="res://assets/dungeon/items_and_traps/keys/keys_1_1.png" id="2_key"]
+[ext_resource type="Texture2D" path="res://assets/dungeon/items_and_traps/coin/coin_1.png" id="3_coin"]
 
 [node name="HUD" type="CanvasLayer"]
 process_mode = 3
@@ -37,6 +38,23 @@ unique_name_in_owner = true
 layout_mode = 2
 theme_override_font_sizes/font_size = 24
 text = "Enemigos: 0/0"
+
+[node name="Coins" type="HBoxContainer" parent="TopBar/HBox"]
+layout_mode = 2
+theme_override_constants/separation = 4
+
+[node name="CoinIcon" type="TextureRect" parent="TopBar/HBox/Coins"]
+custom_minimum_size = Vector2(32, 32)
+layout_mode = 2
+texture = ExtResource("3_coin")
+expand_mode = 1
+stretch_mode = 5
+
+[node name="CoinsLabel" type="Label" parent="TopBar/HBox/Coins"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_font_sizes/font_size = 24
+text = "0"
 
 [node name="MessageLabel" type="Label" parent="."]
 unique_name_in_owner = true
@@ -90,6 +108,32 @@ visible = false
 layout_mode = 2
 theme_override_font_sizes/font_size = 28
 horizontal_alignment = 1
+
+[node name="Shop" type="VBoxContainer" parent="EndScreen/VBox"]
+unique_name_in_owner = true
+visible = false
+layout_mode = 2
+theme_override_constants/separation = 8
+
+[node name="ShopTitle" type="Label" parent="EndScreen/VBox/Shop"]
+layout_mode = 2
+theme_override_colors/font_color = Color(1, 0.82, 0.25, 1)
+theme_override_font_sizes/font_size = 28
+text = "Tienda"
+horizontal_alignment = 1
+
+[node name="ShopCoinsLabel" type="Label" parent="EndScreen/VBox/Shop"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_font_sizes/font_size = 22
+text = "Monedas: 0"
+horizontal_alignment = 1
+
+[node name="ShopItems" type="HBoxContainer" parent="EndScreen/VBox/Shop"]
+unique_name_in_owner = true
+layout_mode = 2
+alignment = 1
+theme_override_constants/separation = 16
 
 [node name="ActionButton" type="Button" parent="EndScreen/VBox"]
 unique_name_in_owner = true

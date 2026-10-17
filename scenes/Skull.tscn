@@ -65,6 +65,7 @@ collision_layer = 4
 motion_mode = 1
 script = ExtResource("1_script")
 max_health = 2
+dodge_chance = 0.1
 move_animation = &"idle"
 
 [node name="AnimatedSprite2D" type="AnimatedSprite2D" parent="."]

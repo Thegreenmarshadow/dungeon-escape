@@ -62,6 +62,9 @@ const SKULL_CHASER_SHARE := 0.4
 const HAZARDS_BASE := 5
 const HAZARDS_PER_LEVEL := 1
 const HAZARDS_MAX := 18
+## Vida de los enemigos: cada nivel suma esta fracción de la vida base de la
+## escena (+8 %). Crece sin tope; el daño que hacen no cambia.
+const ENEMY_HEALTH_GROWTH_PER_LEVEL := 0.08
 
 # ---------------------------------------------------------------------------
 # Reglas de forma y de colocación
@@ -126,6 +129,8 @@ class Params extends RefCounted:
 	var skull_count := 0
 	var boss_count := 0
 	var hazard_count := 0
+	## Multiplicador de la vida de todos los enemigos (ver enemy_health_scale).
+	var enemy_health_scale := 1.0
 
 
 ## Algo que el generador coloca en una celda: un enemigo o una trampa.
@@ -294,7 +299,8 @@ class Layout extends RefCounted:
 # ---------------------------------------------------------------------------
 
 ## Números de dificultad del nivel. Sube con el nivel: más y más grandes
-## salas, más enemigos y una mayor proporción de perseguidores.
+## salas, más enemigos, una mayor proporción de perseguidores y enemigos con
+## más vida.
 static func params_for_level(level: int) -> Params:
 	var p := Params.new()
 	p.level = level
@@ -318,7 +324,16 @@ static func params_for_level(level: int) -> Params:
 	elif level >= BOSS_FIRST_LEVEL:
 		p.boss_count = 1
 	p.hazard_count = mini(HAZARDS_BASE + HAZARDS_PER_LEVEL * step, HAZARDS_MAX)
+	p.enemy_health_scale = enemy_health_scale(level)
 	return p
+
+
+## Multiplicador de la vida de los enemigos en el nivel. Crece de forma lineal,
+## ENEMY_HEALTH_GROWTH_PER_LEVEL de la vida base por nivel: 1.0 en el nivel 1
+## (el mapa hecho a mano), 1.08 en el 2, 1.72 en el 10 y 8.92 en el 100. Nunca
+## baja de 1.0.
+static func enemy_health_scale(level: int) -> float:
+	return 1.0 + ENEMY_HEALTH_GROWTH_PER_LEVEL * maxi(level - 1, 0)
 
 
 ## Semilla del intento dado. Mezcla los tres valores para que niveles e

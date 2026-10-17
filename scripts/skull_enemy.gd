@@ -58,10 +58,16 @@ func is_alerted() -> bool:
 	return not is_dying and _state != State.IDLE
 
 
+## Embistiendo o aturdida tras embestir no esquiva: la recuperación es la
+## ventana para castigarla.
+func _can_dodge() -> bool:
+	return _state != State.CHARGE and _state != State.RECOVER and super()
+
+
 ## Un golpe del jugador cancela la carga o la embestida y empieza el
 ## enfriamiento. Se resetea antes de super() para que el destello rojo del
 ## golpe no se pise con el color de la carga.
-func take_hit(amount: int, from_position: Vector2) -> void:
+func _receive_hit(amount: int, from_position: Vector2) -> void:
 	_enter(State.IDLE, 0.0)
 	_cooldown_left = cooldown_time
 	super(amount, from_position)

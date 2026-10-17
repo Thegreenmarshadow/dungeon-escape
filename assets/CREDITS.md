@@ -11,7 +11,7 @@ Ambas pistas son de dominio público (CC0) y están en `music/`:
 
 Todos son de dominio público (CC0) y están en `sfx/`, renombrados según su uso:
 
-- [RPG Audio](https://kenney.nl/assets/rpg-audio) de **Kenney** (CC0): golpe de espada (`sword_swing`, original `knifeSlice`), llave (`key_pickup`, original `handleCoins2`) y puerta (`door_open`, original `doorOpen_1`).
+- [RPG Audio](https://kenney.nl/assets/rpg-audio) de **Kenney** (CC0): golpe de espada (`sword_swing`, original `knifeSlice`), llave y monedas (`key_pickup`, original `handleCoins2`) y puerta (`door_open`, original `doorOpen_1`).
 - [Impact Sounds](https://kenney.nl/assets/impact-sounds) de **Kenney** (CC0): golpe y muerte de enemigos (`enemy_hit` y `enemy_death`, originales `impactPunch_medium_000` e `impactPunch_heavy_000`) y daño al jugador (`player_hurt`, original `impactPlate_medium_000`).
 - [Interface Sounds](https://kenney.nl/assets/interface-sounds) de **Kenney** (CC0): corazón (`heart_pickup`, original `confirmation_001`) y clic de los botones (`ui_click`, original `click_001`).
 - "Win Jingle" de **Fupi** (CC0): [opengameart.org/content/win-jingle](https://opengameart.org/content/win-jingle). Nivel superado (`level_complete`).

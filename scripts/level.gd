@@ -14,6 +14,12 @@ const MUSIC_FADE_TIME := 1.5
 ## para no ver el borde exacto de las paredes.
 const GENERATED_CAMERA_MARGIN := 3
 const HEART_SCENE := preload("res://scenes/Heart.tscn")
+const COIN_SCENE := preload("res://scenes/Coin.tscn")
+## Monedas sueltas (de valor 1) que se reparten en cada mapa generado.
+const LOOSE_COINS_PER_LEVEL := 1
+## Desplazamiento de la moneda soltada respecto del enemigo, para que no quede
+## tapada por un corazón soltado en el mismo lugar.
+const COIN_DROP_OFFSET := Vector2(6, 2)
 
 @onready var dungeon: TileMapLayer = $Dungeon
 @onready var player: CharacterBody2D = $Player
@@ -40,21 +46,32 @@ func _ready() -> void:
 	# Se asignan acá porque el jugador ya ejecutó su _ready: Godot inicializa
 	# a los hijos antes que al padre.
 	player.lives = Game.lives
+	# Igual con las mejoras compradas en la tienda.
+	player.damage_bonus = Game.damage_bonus
 
 	# Estado inicial de la interfaz.
 	hud.set_lives(player.lives, player.max_lives)
 	hud.set_has_key(player.has_key)
+	hud.set_coins(Game.coins)
 
-	# Cada enemigo se agrega al grupo "enemies" en EnemyBase._ready.
+	# Cada enemigo se agrega al grupo "enemies" en EnemyBase._ready. La vida se
+	# escala acá, después de ese _ready, según el nivel (×1 en el nivel 1).
 	var enemies := get_tree().get_nodes_in_group("enemies")
 	_enemies_total = enemies.size()
+	var health_scale := LevelGenerator.enemy_health_scale(Game.current_level)
 	for enemy in enemies:
+		enemy.apply_health_scale(health_scale)
 		enemy.died.connect(_on_enemy_died)
 		enemy.died.connect(_try_drop_heart)
+		enemy.died.connect(_try_drop_coin)
 	hud.set_kills(_enemies_killed, _enemies_total)
 
 	player.lives_changed.connect(_on_lives_changed)
 	player.key_collected.connect(hud.set_has_key.bind(true))
+	player.coins_collected.connect(Game.add_coins)
+	# La conexión se borra sola cuando la HUD se libera al cambiar de escena.
+	Game.coins_changed.connect(hud.set_coins)
+	hud.buy_pressed.connect(_on_buy_pressed)
 	player.died.connect(_on_player_died)
 	exit_door.player_escaped.connect(_on_player_escaped)
 	exit_door.locked_touched.connect(hud.show_message.bind("Necesitas la llave"))
@@ -85,7 +102,18 @@ func _any_enemy_alerted() -> bool:
 func _build_generated_level() -> void:
 	var layout := LevelGenerator.generate(Game.current_level, Game.run_seed)
 	LevelBuilder.new().build(self, layout)
+	_scatter_loose_coins(layout)
 	print("Mapa generado, %s (semilla de partida %d)" % [layout.summary(), Game.run_seed])
+
+
+## Reparte monedas sueltas por las salas del mapa generado. Las celdas salen de
+## Game.run_seed y el nivel, así el mismo mapa tiene siempre las mismas monedas;
+## no cambian el mapa ni lo que coloca el generador.
+func _scatter_loose_coins(layout: LevelGenerator.Layout) -> void:
+	var seed_value := hash([Game.run_seed, Game.current_level, "monedas"])
+	for cell in Coin.scatter_cells(layout, seed_value, LOOSE_COINS_PER_LEVEL):
+		_spawn_coin(to_local(dungeon.to_global(dungeon.map_to_local(cell))),
+				Coin.scaled_value(1, Game.level_scale()))
 
 
 func _on_lives_changed(lives: int) -> void:
@@ -114,6 +142,26 @@ func _spawn_heart(at: Vector2) -> void:
 	var heart: Node2D = HEART_SCENE.instantiate()
 	heart.position = at
 	add_child(heart)
+
+
+## Según la probabilidad del enemigo, deja una moneda donde murió, con un valor
+## sorteado en su rango. Igual que con los corazones, el enemigo solo expone los
+## datos (coin_drop_chance, coin_min_value y coin_max_value). El valor sorteado
+## se multiplica por la escala del nivel, igual que la vida de los enemigos.
+func _try_drop_coin(enemy: EnemyBase) -> void:
+	if not Coin.should_drop(enemy.coin_drop_chance, randf()):
+		return
+	var value := Coin.value_for(enemy.coin_min_value, enemy.coin_max_value, randf())
+	value = Coin.scaled_value(value, Game.level_scale())
+	# Diferido por el mismo motivo que los corazones.
+	_spawn_coin.call_deferred(to_local(enemy.global_position) + COIN_DROP_OFFSET, value)
+
+
+func _spawn_coin(at: Vector2, value: int) -> void:
+	var coin: Coin = COIN_SCENE.instantiate()
+	coin.position = at
+	coin.value = value
+	add_child(coin)
 
 
 func _on_player_died() -> void:
@@ -155,6 +203,32 @@ func _on_player_escaped() -> void:
 		completed_level, _enemies_killed, _enemies_total, Game.score]
 	Sfx.play(&"level_complete")
 	_end_level("¡Nivel superado!", stats, "Siguiente nivel", Game.start_level)
+	# Antes de seguir se pueden gastar las monedas.
+	_refresh_shop()
+
+
+## Compra pedida desde la tienda de la HUD. Game aplica las reglas de Shop; acá
+## solo se actualiza lo que se ve. La vida comprada queda en Game.lives y el
+## próximo nivel se la da al jugador.
+func _on_buy_pressed(item: StringName) -> void:
+	if not Game.buy(item, player.max_lives):
+		return
+	hud.set_lives(Game.lives, player.max_lives)
+	_refresh_shop()
+
+
+## Muestra (o actualiza) la tienda con el precio y el estado de cada artículo.
+func _refresh_shop() -> void:
+	var offers: Array[Dictionary] = []
+	for item in Shop.ITEMS:
+		var times := Game.times_bought(item)
+		offers.append({
+			"item": item,
+			"price": Shop.price_for(item, times, Game.level_scale()),
+			"available": Shop.is_available(item, times, Game.lives, player.max_lives),
+			"affordable": Game.can_buy(item, player.max_lives),
+		})
+	hud.show_shop(Game.coins, offers)
 
 
 ## Pausa el juego y muestra la pantalla de nivel superado. El botón de la

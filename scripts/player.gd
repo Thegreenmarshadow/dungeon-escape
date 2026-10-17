@@ -6,6 +6,8 @@ extends CharacterBody2D
 signal lives_changed(lives: int)
 ## Se emite al recoger la llave.
 signal key_collected
+## Se emite al recoger monedas, con cuántas suma.
+signal coins_collected(amount: int)
 ## Se emite cuando el jugador se queda sin vidas.
 signal died
 
@@ -43,6 +45,9 @@ const KNOCKBACK_TIME := 0.15
 
 var lives: int
 var has_key: bool = false
+## Daño extra de cada golpe, comprado en la tienda. El nivel lo asigna desde
+## Game.damage_bonus; se suma a attack_damage.
+var damage_bonus: int = 0
 ## Última dirección de movimiento; hacia ella se lanza el golpe.
 var facing: Vector2 = Vector2.RIGHT
 
@@ -174,6 +179,18 @@ func heal(amount: int = 1) -> bool:
 	return true
 
 
+## Avisa que recogió amount monedas; el nivel las suma a Game.coins. La llaman
+## las monedas.
+func collect_coins(amount: int) -> void:
+	if amount > 0:
+		coins_collected.emit(amount)
+
+
+## Daño total de cada golpe de espada: el base más lo comprado en la tienda.
+func get_hit_damage() -> int:
+	return attack_damage + maxi(damage_bonus, 0)
+
+
 ## Marca que el jugador tiene la llave. La llama la llave al ser tocada.
 func collect_key() -> void:
 	has_key = true
@@ -210,7 +227,7 @@ func _on_hitbox_touched(target: Node) -> void:
 	if target in _hit_this_swing or not target.has_method("take_hit"):
 		return
 	_hit_this_swing.append(target)
-	target.take_hit(attack_damage, global_position)
+	target.take_hit(get_hit_damage(), global_position)
 
 
 ## Efecto visual del golpe: un arco blanco que se desvanece y un pequeño

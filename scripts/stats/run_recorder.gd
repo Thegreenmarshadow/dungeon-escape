@@ -7,16 +7,21 @@ extends RefCounted
 ##
 ## Ciclo de una partida: start_run -> (start_level -> eventos ->
 ## complete_level)* -> record_death o finish_run. Los eventos fuera de un nivel
-## activo se ignoran.
+## activo se ignoran, salvo las compras: la tienda está en la pantalla de nivel
+## superado, entre un nivel y el siguiente.
 ##
 ## Cada evento lleva seq (orden dentro de la partida, desde 0), type, level,
 ## t_run_s (segundos jugados desde el inicio, sin contar las pausas), payload y
 ## at (fecha UTC). Tipos que se envían hoy:
 ##   level_started   {lives, enemies_total}
 ##   enemy_killed    {enemy}            nombre de la escena: Skeleton, Vampire…
+##   enemy_dodged    {enemy}            un enemigo esquivó un golpe del jugador
 ##   damage_taken    {amount, lives}    vidas perdidas y las que quedan
 ##   heart_picked    {amount, lives}    vidas recuperadas (solo curan los corazones)
 ##   key_picked      {}
+##   coin_picked     {amount}           monedas recogidas
+##   item_bought     {item, price}      compra en la tienda (damage o life); lleva
+##                                      el nivel recién superado
 ##   level_completed {duration_s, kills, enemies_total, score}
 ##   player_died     {score}
 ##   run_quit        {score}            la partida terminó sin morir
@@ -29,9 +34,12 @@ const OUTCOME_QUIT := "quit"
 
 const EVENT_LEVEL_STARTED := "level_started"
 const EVENT_ENEMY_KILLED := "enemy_killed"
+const EVENT_ENEMY_DODGED := "enemy_dodged"
 const EVENT_DAMAGE_TAKEN := "damage_taken"
 const EVENT_HEART_PICKED := "heart_picked"
 const EVENT_KEY_PICKED := "key_picked"
+const EVENT_COIN_PICKED := "coin_picked"
+const EVENT_ITEM_BOUGHT := "item_bought"
 const EVENT_LEVEL_COMPLETED := "level_completed"
 const EVENT_PLAYER_DIED := "player_died"
 const EVENT_RUN_QUIT := "run_quit"
@@ -131,6 +139,12 @@ func record_kill(kind: String, total_kills: int, score: int) -> void:
 	_emit(EVENT_ENEMY_KILLED, {"enemy": kind})
 
 
+## Un enemigo de tipo kind esquivó un golpe del jugador.
+func record_dodge(kind: String) -> void:
+	if _level_active:
+		_emit(EVENT_ENEMY_DODGED, {"enemy": kind})
+
+
 ## Recibe cada cambio de vidas del jugador: una baja es daño y una suba es un
 ## corazón recogido (los corazones son lo único que cura).
 func record_lives(lives: int) -> void:
@@ -146,6 +160,18 @@ func record_lives(lives: int) -> void:
 func record_key() -> void:
 	if _level_active:
 		_emit(EVENT_KEY_PICKED, {})
+
+
+func record_coins(amount: int) -> void:
+	if _level_active and amount > 0:
+		_emit(EVENT_COIN_PICKED, {"amount": amount})
+
+
+## Compra en la tienda. Solo pide una partida en curso porque se compra con el
+## nivel ya superado; el evento lleva el número de ese nivel.
+func record_purchase(item: String, price: int) -> void:
+	if is_running():
+		_emit(EVENT_ITEM_BOUGHT, {"item": item, "price": price})
 
 
 ## score es el puntaje total ya con los puntos del nivel superado.

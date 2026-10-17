@@ -5,6 +5,7 @@
 [ext_resource type="Texture2D" path="res://assets/enemies/enemies-skeleton1_movement.png" id="sheet_walk"]
 [ext_resource type="Texture2D" path="res://assets/enemies/enemies-skeleton1_take_damage.png" id="sheet_hurt"]
 [ext_resource type="Texture2D" path="res://assets/enemies/enemies-skeleton1_death.png" id="sheet_death"]
+[ext_resource type="Texture2D" path="res://assets/enemies/enemies-skeleton1_attack.png" id="sheet_attack"]
 
 [sub_resource type="AtlasTexture" id="AtlasTexture_idle0"]
 atlas = ExtResource("sheet_idle")
@@ -158,6 +159,42 @@ region = Rect2(480, 0, 32, 32)
 atlas = ExtResource("sheet_death")
 region = Rect2(512, 0, 32, 32)
 
+[sub_resource type="AtlasTexture" id="AtlasTexture_attack0"]
+atlas = ExtResource("sheet_attack")
+region = Rect2(0, 0, 32, 32)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_attack1"]
+atlas = ExtResource("sheet_attack")
+region = Rect2(32, 0, 32, 32)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_attack2"]
+atlas = ExtResource("sheet_attack")
+region = Rect2(64, 0, 32, 32)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_attack3"]
+atlas = ExtResource("sheet_attack")
+region = Rect2(96, 0, 32, 32)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_attack4"]
+atlas = ExtResource("sheet_attack")
+region = Rect2(128, 0, 32, 32)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_attack5"]
+atlas = ExtResource("sheet_attack")
+region = Rect2(160, 0, 32, 32)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_attack6"]
+atlas = ExtResource("sheet_attack")
+region = Rect2(192, 0, 32, 32)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_attack7"]
+atlas = ExtResource("sheet_attack")
+region = Rect2(224, 0, 32, 32)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_attack8"]
+atlas = ExtResource("sheet_attack")
+region = Rect2(256, 0, 32, 32)
+
 [sub_resource type="SpriteFrames" id="SpriteFrames_skeleton"]
 animations = [{
 "frames": [{
@@ -293,6 +330,38 @@ animations = [{
 "loop": false,
 "name": &"death",
 "speed": 14.0
+}, {
+"frames": [{
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_attack0")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_attack1")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_attack2")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_attack3")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_attack4")
+}, {
+"duration": 1.5,
+"texture": SubResource("AtlasTexture_attack5")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_attack6")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_attack7")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_attack8")
+}],
+"loop": false,
+"name": &"attack",
+"speed": 10.0
 }]
 
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_body"]
@@ -307,6 +376,16 @@ motion_mode = 1
 script = ExtResource("1_script")
 max_health = 2
 speed = 35.0
+contact_damage = 0
+dodge_chance = 0.15
+detect_radius = 64.0
+lose_radius = 96.0
+leash_radius = 56.0
+attack_animation = &"attack"
+attack_range = 20.0
+attack_reach = 24.0
+attack_hit_frames = Vector2i(6, 7)
+attack_cooldown = 1.4
 
 [node name="AnimatedSprite2D" type="AnimatedSprite2D" parent="."]
 offset = Vector2(0, -5)

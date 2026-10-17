@@ -176,6 +176,50 @@ func test_unchanged_lives_produce_no_event() -> void:
 	assert_eq(_sink.types(), ["level_started"])
 
 
+func test_coins_picked_in_a_level_are_recorded() -> void:
+	_recorder.start_run(RUN_ID, "Ana", RunRecorder.MODE_NORMAL, 1, 1)
+	_recorder.start_level(1, 3, 2)
+	_recorder.record_coins(2)
+	_recorder.record_coins(0)
+	assert_eq(_sink.types(), ["level_started", "coin_picked"], "cero monedas no es un evento")
+	assert_eq(_sink.events[1]["payload"], {"amount": 2})
+	_recorder.complete_level(100)
+	_recorder.record_coins(1)
+	assert_eq(_sink.types()[-1], "level_completed", "fuera de un nivel no se registran monedas")
+
+
+func test_enemy_dodges_in_a_level_are_recorded() -> void:
+	_recorder.start_run(RUN_ID, "Ana", RunRecorder.MODE_NORMAL, 1, 1)
+	_recorder.record_dodge("Skeleton")
+	assert_true(_sink.events.is_empty(), "antes del nivel no se registran esquivas")
+	_recorder.start_level(1, 3, 2)
+	_recorder.record_dodge("Skeleton")
+	assert_eq(_sink.types(), ["level_started", "enemy_dodged"])
+	assert_eq(_sink.events[1]["type"], RunRecorder.EVENT_ENEMY_DODGED)
+	assert_eq(_sink.events[1]["payload"], {"enemy": "Skeleton"})
+	assert_eq(_sink.events[1]["level"], 1)
+	_recorder.complete_level(100)
+	_recorder.record_dodge("Vampire")
+	assert_eq(_sink.types()[-1], "level_completed", "fuera de un nivel no se registran esquivas")
+
+
+func test_purchases_between_levels_are_recorded_with_the_completed_level() -> void:
+	_recorder.start_run(RUN_ID, "Ana", RunRecorder.MODE_NORMAL, 1, 2)
+	_recorder.start_level(2, 3, 4)
+	_recorder.complete_level(100)
+	_recorder.record_purchase("damage", 10)
+	_recorder.record_purchase("life", 6)
+	assert_eq(_sink.types().slice(-2), ["item_bought", "item_bought"])
+	assert_eq(_sink.events[-2]["payload"], {"item": "damage", "price": 10})
+	assert_eq(_sink.events[-1]["payload"], {"item": "life", "price": 6})
+	assert_eq(_sink.events[-1]["level"], 2)
+
+
+func test_purchases_without_a_run_are_ignored() -> void:
+	_recorder.record_purchase("damage", 10)
+	assert_true(_sink.events.is_empty())
+
+
 func test_enemy_kind_comes_from_the_scene_file() -> void:
 	var from_scene: Node = track(load("res://scenes/Skeleton.tscn").instantiate())
 	assert_eq(RunRecorder.enemy_kind(from_scene), "Skeleton")

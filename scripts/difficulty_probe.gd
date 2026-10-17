@@ -5,6 +5,8 @@ extends Node
 ##   - Player.lives_changed: daño recibido (vidas perdidas) y curaciones.
 ##   - Player.died y Door.player_escaped: fin del nivel y resultado.
 ##   - EnemyBase.died: enemigos eliminados.
+##   - EnemyBase.dodged: golpes esquivados (solo en la superposición; el CSV
+##     conserva sus columnas para no romper los archivos ya acumulados).
 ## Muestra una superposición con los parámetros del nivel, su índice de
 ## dificultad y las métricas en vivo, y al terminar el nivel agrega una fila a
 ## PLAYTEST_CSV_PATH.
@@ -30,6 +32,7 @@ var _lives := 0
 var _lives_lost := 0
 var _hearts_healed := 0
 var _kills := 0
+var _dodges := 0
 var _enemies_total := 0
 var _finished := false
 var _label: Label
@@ -52,6 +55,7 @@ func _ready() -> void:
 	_enemies_total = enemies.size()
 	for enemy in enemies:
 		enemy.died.connect(_on_enemy_died)
+		enemy.dodged.connect(_on_enemy_dodged)
 
 	_build_overlay()
 	_update_overlay()
@@ -82,6 +86,11 @@ func _on_lives_changed(lives: int) -> void:
 
 func _on_enemy_died(_enemy: EnemyBase) -> void:
 	_kills += 1
+	_update_overlay()
+
+
+func _on_enemy_dodged(_enemy: EnemyBase) -> void:
+	_dodges += 1
 	_update_overlay()
 
 
@@ -141,11 +150,12 @@ func _update_overlay(outcome: String = "") -> void:
 	var p := _params
 	var lines := PackedStringArray([
 		"MODO PRUEBA · nivel %d · índice %.1f" % [_level, _index],
-		"Enemigos %d (perseguidores %d, calaveras %d) · jefes %d · trampas %d" % [
-			p.enemy_count, LevelGenerator.chaser_count(p), p.skull_count, p.boss_count, p.hazard_count],
+		"Enemigos %d (perseguidores %d, calaveras %d) · jefes %d · trampas %d · vida ×%.1f" % [
+			p.enemy_count, LevelGenerator.chaser_count(p), p.skull_count, p.boss_count, p.hazard_count,
+			p.enemy_health_scale],
 		"Grilla %dx%d · salas %d" % [p.grid_size.x, p.grid_size.y, p.room_count],
-		"Tiempo %.1f s · vidas perdidas %d · eliminados %d/%d" % [
-			_seconds, _lives_lost, _kills, _enemies_total],
+		"Tiempo %.1f s · vidas perdidas %d · eliminados %d/%d · esquivas %d" % [
+			_seconds, _lives_lost, _kills, _enemies_total, _dodges],
 	])
 	if not outcome.is_empty():
 		lines.append("Resultado: %s (guardado en %s)" % [outcome, PLAYTEST_CSV_PATH])

@@ -6,6 +6,11 @@ extends Node
 ## Se emite al empezar una partida nueva (normal o de prueba), con el estado ya
 ## reiniciado. Lo escucha RunTracker para registrar la partida.
 signal run_started
+## Se emite cada vez que cambian las monedas (al recoger o al comprar).
+signal coins_changed(coins: int)
+## Se emite al comprar un artículo de la tienda (ver Shop), con lo que se pagó.
+## Lo escucha RunTracker para registrar la compra.
+signal item_bought(item: StringName, price: int)
 
 ## Vidas con las que empieza cada partida nueva.
 const STARTING_LIVES := 3
@@ -25,6 +30,11 @@ var lives: int = STARTING_LIVES
 ## Enemigos eliminados en toda la partida.
 var enemies_killed: int = 0
 var score: int = 0
+## Monedas para gastar en la tienda; se conservan entre niveles.
+var coins: int = 0
+## Daño extra de cada golpe de espada, comprado en la tienda. El nivel se lo
+## asigna al jugador al empezar.
+var damage_bonus: int = 0
 ## Semilla de la partida. Junto con el número de nivel determina el mapa que
 ## se genera del nivel 2 en adelante, así un nivel se puede reproducir.
 var run_seed: int = 0
@@ -42,6 +52,8 @@ func new_game() -> void:
 	lives = STARTING_LIVES
 	enemies_killed = 0
 	score = 0
+	coins = 0
+	damage_bonus = 0
 	run_seed = randi()
 	test_mode = false
 
@@ -49,6 +61,50 @@ func new_game() -> void:
 func register_kill() -> void:
 	enemies_killed += 1
 	score += POINTS_PER_KILL
+
+
+## Suma monedas recogidas. Ignora cantidades no positivas.
+func add_coins(amount: int) -> void:
+	if amount <= 0:
+		return
+	coins += amount
+	coins_changed.emit(coins)
+
+
+## Multiplicador de la vida de los enemigos del nivel actual. Las monedas y el
+## precio de la vida de la tienda siguen esta misma escala.
+func level_scale() -> float:
+	return LevelGenerator.enemy_health_scale(current_level)
+
+
+## Veces que se compró item en esta partida. La vida no necesita contarse: su
+## precio no depende de cuántas se compraron.
+func times_bought(item: StringName) -> int:
+	return damage_bonus if item == Shop.ITEM_DAMAGE else 0
+
+
+## true si ahora se puede comprar item. max_lives es el tope de vidas del
+## jugador, que Game no conoce.
+func can_buy(item: StringName, max_lives: int) -> bool:
+	return Shop.can_buy(item, coins, times_bought(item), lives, max_lives, level_scale())
+
+
+## Compra item si las reglas de Shop lo permiten: descuenta el precio y aplica
+## la mejora (más daño o una vida más). Devuelve false sin cambiar nada si no
+## se puede comprar.
+func buy(item: StringName, max_lives: int) -> bool:
+	if not can_buy(item, max_lives):
+		return false
+	var price := Shop.price_for(item, times_bought(item), level_scale())
+	coins -= price
+	match item:
+		Shop.ITEM_DAMAGE:
+			damage_bonus += 1
+		Shop.ITEM_LIFE:
+			lives += 1
+	coins_changed.emit(coins)
+	item_bought.emit(item, price)
+	return true
 
 
 ## Suma los puntos del nivel superado y avanza al siguiente.

@@ -6,11 +6,13 @@ extends Node
 ##
 ## Señales que observa:
 ##   - Game.run_started: partida nueva (normal o de prueba, según Game.test_mode).
+##   - Game.item_bought: compra en la tienda entre niveles.
 ##   - SceneTree.node_added: carga de un nivel o de otra pantalla. Una pantalla
 ##     que no es un nivel (menú, modo prueba) con una partida en curso la cierra
 ##     como abandonada ("quit").
-##   - En cada nivel: Player.lives_changed, Player.key_collected, Player.died,
-##     Door.player_escaped y EnemyBase.died.
+##   - En cada nivel: Player.lives_changed, Player.key_collected,
+##     Player.coins_collected, Player.died, Door.player_escaped, EnemyBase.died
+##     y EnemyBase.dodged.
 ## Cerrar la ventana a mitad de partida también la cierra como abandonada.
 ##
 ## Sin class_name a propósito: chocaría con el nombre del Autoload.
@@ -25,6 +27,7 @@ func _ready() -> void:
 	add_child(sink)
 	recorder = RunRecorder.new(sink)
 	Game.run_started.connect(_on_run_started)
+	Game.item_bought.connect(_on_item_bought)
 	get_tree().node_added.connect(_on_node_added)
 
 
@@ -69,14 +72,24 @@ func _on_level_ready(level: Node) -> void:
 	# acá Game ya tiene el puntaje y las muertes actualizados.
 	player.lives_changed.connect(recorder.record_lives)
 	player.key_collected.connect(recorder.record_key)
+	player.coins_collected.connect(recorder.record_coins)
 	player.died.connect(func() -> void: recorder.record_death(Game.score, Game.enemies_killed))
 	level.get_node("ExitDoor").player_escaped.connect(func() -> void: recorder.complete_level(Game.score))
 	for enemy in enemies:
 		enemy.died.connect(_on_enemy_died)
+		enemy.dodged.connect(_on_enemy_dodged)
 
 
 func _on_enemy_died(enemy: EnemyBase) -> void:
 	recorder.record_kill(RunRecorder.enemy_kind(enemy), Game.enemies_killed, Game.score)
+
+
+func _on_enemy_dodged(enemy: EnemyBase) -> void:
+	recorder.record_dodge(RunRecorder.enemy_kind(enemy))
+
+
+func _on_item_bought(item: StringName, price: int) -> void:
+	recorder.record_purchase(String(item), price)
 
 
 func _quit_current_run() -> void:

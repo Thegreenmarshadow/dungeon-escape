@@ -19,8 +19,12 @@ extends RefCounted
 # revisarlos con los datos de las partidas de prueba (difficulty_playtest.csv).
 # ---------------------------------------------------------------------------
 
-## Esqueleto: patrulla un tramo recto, es la referencia (1.0).
-const WEIGHT_SKELETON := 1.0
+## Esqueleto soldado. La referencia (1.0) era el esqueleto original, que solo
+## patrullaba un tramo recto y lastimaba por contacto. Ahora además deja la
+## ruta para ir hacia el jugador y lo ataca con una estocada con aviso, y su
+## paso de guardia lo aleja al recibir un golpe: se sube a 1.5, por debajo del
+## vampiro, que lo persigue más lejos (sin ruta que lo ate) y es más rápido.
+const WEIGHT_SKELETON := 1.5
 ## Vampiro: persigue al jugador y muerde con aviso previo.
 const WEIGHT_VAMPIRE := 2.0
 ## Calavera: persigue y embiste.
@@ -29,6 +33,17 @@ const WEIGHT_SKULL := 2.5
 const WEIGHT_BOSS := 6.0
 ## Trampa de picos: estática y predecible.
 const WEIGHT_HAZARD := 0.5
+
+## Probabilidad de esquivar de cada tipo: copia de dodge_chance de sus escenas
+## (Skeleton, Vampire, Skull y Reaper.tscn); una prueba comprueba que coincidan.
+## La esquiva cuenta como vida extra: con probabilidad p de esquivar, hacen
+## falta en promedio 1 / (1 - p) golpes por cada golpe que llega. Es una cota
+## superior: el enfriamiento de la esquiva (EnemyBase.DODGE_COOLDOWN) y las
+## ventanas en que no puede esquivar la bajan en la práctica.
+const DODGE_SKELETON := 0.15
+const DODGE_VAMPIRE := 0.20
+const DODGE_SKULL := 0.10
+const DODGE_BOSS := 0.10
 
 ## Crecimiento mínimo del índice respecto del nivel anterior para considerar
 ## que el nivel sube la dificultad de forma significativa (+10 %).
@@ -52,15 +67,22 @@ const CAP_ROOMS := &"ROOM_COUNT_MAX"
 # Índice y crecimiento
 # ---------------------------------------------------------------------------
 
-## Índice de dificultad de un conjunto de parámetros: suma ponderada de
-## enemigos por tipo, jefes y trampas.
+## Índice de dificultad de un conjunto de parámetros: suma de enemigos por
+## tipo y jefes, cada uno con su peso efectivo (effective_weight, que suma la
+## esquiva), multiplicada por el multiplicador de vida de los enemigos (cuantos
+## más golpes aguantan, más peligrosos), más las trampas, que no se escalan.
 static func index_for(params: LevelGenerator.Params) -> float:
 	var counts := _enemy_counts(params)
-	return counts["skeletons"] * WEIGHT_SKELETON \
-			+ counts["vampires"] * WEIGHT_VAMPIRE \
-			+ counts["skulls"] * WEIGHT_SKULL \
-			+ params.boss_count * WEIGHT_BOSS \
-			+ params.hazard_count * WEIGHT_HAZARD
+	var enemies: float = counts["skeletons"] * effective_weight(WEIGHT_SKELETON, DODGE_SKELETON) \
+			+ counts["vampires"] * effective_weight(WEIGHT_VAMPIRE, DODGE_VAMPIRE) \
+			+ counts["skulls"] * effective_weight(WEIGHT_SKULL, DODGE_SKULL) \
+			+ params.boss_count * effective_weight(WEIGHT_BOSS, DODGE_BOSS)
+	return enemies * params.enemy_health_scale + params.hazard_count * WEIGHT_HAZARD
+
+
+## Peso de un enemigo contando su esquiva como vida extra: weight / (1 - dodge).
+static func effective_weight(weight: float, dodge: float) -> float:
+	return weight / (1.0 - dodge)
 
 
 static func index_for_level(level: int) -> float:
@@ -86,7 +108,7 @@ static func growth(level: int) -> float:
 ## Una fila por nivel entre first y last (incluidos) con la composición del
 ## nivel, su índice, su crecimiento y los topes que ya alcanzó. Claves:
 ## level, enemies, skeletons, vampires, skulls, bosses, hazards, grid, rooms,
-## index, growth (NAN si no hay nivel anterior), meets_target (true si no hay
+## health_scale (multiplicador de vida de los enemigos), index, growth (NAN si no hay nivel anterior), meets_target (true si no hay
 ## con qué comparar) y capped_params (Array[StringName]).
 static func report(first: int = LevelGenerator.FIRST_GENERATED_LEVEL, last: int = LAST_LEVEL) -> Array[Dictionary]:
 	var rows: Array[Dictionary] = []
@@ -104,6 +126,7 @@ static func report(first: int = LevelGenerator.FIRST_GENERATED_LEVEL, last: int 
 			"hazards": params.hazard_count,
 			"grid": params.grid_size,
 			"rooms": params.room_count,
+			"health_scale": params.enemy_health_scale,
 			"index": index_for(params),
 			"growth": level_growth,
 			"meets_target": is_nan(level_growth) or level_growth >= TARGET_GROWTH,
@@ -177,7 +200,8 @@ static func save_csv(rows: Array[Dictionary], path: String = CSV_PATH) -> Error:
 		return FileAccess.get_open_error()
 	file.store_csv_line(PackedStringArray([
 		"level", "enemies", "skeletons", "vampires", "skulls", "bosses", "hazards",
-		"grid_x", "grid_y", "rooms", "index", "growth", "meets_target", "capped_params"]))
+		"grid_x", "grid_y", "rooms", "health_scale", "index", "growth", "meets_target",
+		"capped_params"]))
 	for row in rows:
 		var grid: Vector2i = row["grid"]
 		var level_growth: float = row["growth"]
@@ -188,6 +212,7 @@ static func save_csv(rows: Array[Dictionary], path: String = CSV_PATH) -> Error:
 			str(row["level"]), str(row["enemies"]), str(row["skeletons"]), str(row["vampires"]),
 			str(row["skulls"]), str(row["bosses"]), str(row["hazards"]),
 			str(grid.x), str(grid.y), str(row["rooms"]),
+			"%.2f" % row["health_scale"],
 			"%.3f" % row["index"],
 			"" if is_nan(level_growth) else "%.4f" % level_growth,
 			str(row["meets_target"]),
