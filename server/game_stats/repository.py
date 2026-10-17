@@ -29,11 +29,54 @@ KEY_EVENT = "key_picked"
 HEART_EVENT = "heart_picked"
 DAMAGE_EVENT = "damage_taken"
 LEVEL_COMPLETED_EVENT = "level_completed"
+COIN_EVENT = "coin_picked"  # payload {"amount": int}
+ITEM_BOUGHT_EVENT = "item_bought"  # payload {"item": str, "price": int}
+UNKNOWN_ITEM = "unknown"
 
-_RUN_COLUMNS = """
+
+def _payload_int(path: str) -> str:
+    """SQL expression for a numeric field of e.payload, truncated to an integer.
+    A missing, negative or non-numeric value (or a malformed payload) counts as 0."""
+    return (
+        "CASE WHEN json_valid(e.payload) THEN"
+        f" CASE WHEN json_type(e.payload, '{path}') IN ('integer', 'real')"
+        f" THEN MAX(CAST(json_extract(e.payload, '{path}') AS INTEGER), 0) ELSE 0 END"
+        " ELSE 0 END"
+    )
+
+
+def _payload_text(path: str, default: str) -> str:
+    """SQL expression for a text field of e.payload, or default if it is not text."""
+    return (
+        "CASE WHEN json_valid(e.payload) THEN"
+        f" CASE WHEN json_type(e.payload, '{path}') = 'text'"
+        f" THEN json_extract(e.payload, '{path}') ELSE '{default}' END"
+        f" ELSE '{default}' END"
+    )
+
+
+# TOTAL() never overflows and is 0.0 (not NULL) without rows; the CAST turns it
+# back into an integer.
+_COIN_AMOUNT = _payload_int("$.amount")
+_ITEM_PRICE = _payload_int("$.price")
+
+
+def _run_sum(expression: str, event_type: str) -> str:
+    """Correlated subquery: sum of expression over one event type of run r."""
+    return (
+        f"(SELECT CAST(TOTAL({expression}) AS INTEGER) FROM events e"
+        f" WHERE e.run_id = r.id AND e.type = '{event_type}')"
+    )
+
+
+_RUN_COINS_COLLECTED = _run_sum(_COIN_AMOUNT, COIN_EVENT)
+_RUN_COINS_SPENT = _run_sum(_ITEM_PRICE, ITEM_BOUGHT_EVENT)
+
+_RUN_COLUMNS = f"""
     r.id, r.player_id, p.name AS player_name, r.mode, r.run_seed, r.start_level,
     r.started_at, r.ended_at, r.level_reached, r.score, r.enemies_killed,
-    r.outcome, r.duration_s
+    r.outcome, r.duration_s,
+    {_RUN_COINS_COLLECTED} AS coins_collected, {_RUN_COINS_SPENT} AS coins_spent
 """
 
 
@@ -208,7 +251,8 @@ class SqliteStatsRepository:
         rows = self._conn.execute(
             f"""
             SELECT r.id AS run_id, p.name AS player_name, r.score, r.level_reached,
-                   r.enemies_killed, r.duration_s, r.ended_at
+                   r.enemies_killed, {_RUN_COINS_COLLECTED} AS coins_collected,
+                   r.duration_s, r.ended_at
             FROM runs r JOIN players p ON p.id = r.player_id
             WHERE {finished_normal}
             ORDER BY r.score DESC, r.level_reached DESC, r.duration_s ASC, r.ended_at ASC
@@ -254,6 +298,26 @@ class SqliteStatsRepository:
             """,
             (DAMAGE_EVENT, *params),
         ).fetchone()[0]
+        mode_filter = "AND r.mode = ?" if mode else ""
+        coins = self._conn.execute(
+            f"""
+            SELECT CAST(TOTAL(CASE WHEN e.type = ? THEN {_COIN_AMOUNT} END) AS INTEGER) AS collected,
+                   CAST(TOTAL(CASE WHEN e.type = ? THEN {_ITEM_PRICE} END) AS INTEGER) AS spent
+            FROM events e JOIN runs r ON r.id = e.run_id
+            WHERE e.type IN (?, ?) {mode_filter}
+            """,
+            (COIN_EVENT, ITEM_BOUGHT_EVENT, COIN_EVENT, ITEM_BOUGHT_EVENT, *params),
+        ).fetchone()
+        item = _payload_text("$.item", UNKNOWN_ITEM)
+        by_item = dict(
+            self._conn.execute(
+                f"""
+                SELECT {item} AS item, COUNT(*) FROM events e JOIN runs r ON r.id = e.run_id
+                WHERE e.type = ? {mode_filter} GROUP BY item ORDER BY COUNT(*) DESC, item
+                """,
+                (ITEM_BOUGHT_EVENT, *params),
+            ).fetchall()
+        )
         return Stats(
             total_players=runs["total_players"],
             total_runs=runs["total_runs"],
@@ -262,6 +326,10 @@ class SqliteStatsRepository:
             keys_collected=by_type.get(KEY_EVENT, 0),
             hearts_collected=by_type.get(HEART_EVENT, 0),
             damage_taken=int(damage),
+            coins_collected=coins["collected"],
+            coins_spent=coins["spent"],
+            items_bought=by_type.get(ITEM_BOUGHT_EVENT, 0),
+            items_bought_by_item=by_item,
             levels_completed=by_type.get(LEVEL_COMPLETED_EVENT, 0),
             avg_duration_s=round(runs["avg_duration_s"] or 0.0, 1),
             best_level=runs["best_level"] or 0,

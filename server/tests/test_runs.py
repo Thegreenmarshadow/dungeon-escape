@@ -12,6 +12,7 @@ def test_run_lifecycle(client: TestClient, start_run, finish_run) -> None:
     assert created["outcome"] == "in_progress"
     assert created["player_name"] == "Ana"
     assert created["ended_at"] is None
+    assert (created["coins_collected"], created["coins_spent"]) == (0, 0)
 
     finished = finish_run(RUN_ID, score=250, level=3)
 
@@ -57,6 +58,27 @@ def test_event_batch_is_stored_in_order(client: TestClient, start_run) -> None:
     events = client.get(f"/api/runs/{RUN_ID}").json()["events"]
     assert [e["type"] for e in events] == ["level_started", "enemy_killed", "key_picked", "coin_picked"]
     assert events[1]["payload"] == {"enemy": "Skeleton"}
+
+
+def test_runs_include_coins_collected_and_spent(client: TestClient, start_run) -> None:
+    start_run(RUN_ID)
+    start_run("run-without-coins")
+    batch = [
+        _event(0, "coin_picked", amount=8),
+        _event(1, "coin_picked", amount=7),
+        _event(2, "item_bought", level=1, item="damage", price=10),
+        _event(3, "coin_picked", level=2, amount=4),
+    ]
+    client.post(f"/api/runs/{RUN_ID}/events", json={"events": batch})
+
+    detail = client.get(f"/api/runs/{RUN_ID}").json()
+    listed = {r["id"]: r for r in client.get("/api/runs").json()}
+
+    assert (detail["coins_collected"], detail["coins_spent"]) == (19, 10)
+    assert (listed[RUN_ID]["coins_collected"], listed[RUN_ID]["coins_spent"]) == (19, 10)
+    assert (listed["run-without-coins"]["coins_collected"], listed["run-without-coins"]["coins_spent"]) == (0, 0)
+    no_coins = client.get("/api/runs/run-without-coins").json()
+    assert (no_coins["coins_collected"], no_coins["coins_spent"]) == (0, 0)
 
 
 def test_resent_events_are_not_duplicated(client: TestClient, start_run) -> None:

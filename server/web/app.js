@@ -9,6 +9,8 @@ const EVENT_LABELS = {
   damage_taken: "Daño recibido",
   heart_picked: "Corazón recogido",
   key_picked: "Llave recogida",
+  coin_picked: "Monedas recogidas",
+  item_bought: "Compra en la tienda",
   player_died: "Muerte",
   run_quit: "Partida abandonada",
 };
@@ -18,6 +20,11 @@ const ENEMY_LABELS = {
   Vampire: "Vampiro",
   Skull: "Calavera",
   Reaper: "Parca",
+};
+
+const ITEM_LABELS = {
+  damage: "Mejora de daño",
+  life: "Vida extra",
 };
 
 const OUTCOME_LABELS = { died: "Murió", quit: "Abandonó", in_progress: "En curso" };
@@ -94,6 +101,7 @@ async function renderRanking() {
     td(e.score, "num"),
     td(e.level_reached, "num"),
     td(e.enemies_killed, "num"),
+    td(e.coins_collected, "num"),
     td(formatDuration(e.duration_s), "num"),
     td(formatDate(e.ended_at)),
     td(runLink(e)),
@@ -103,7 +111,7 @@ async function renderRanking() {
     board.best_level > 0 ? h("p", {}, `Nivel máximo alcanzado: ${board.best_level}`) : "",
     table(
       [["#"], ["Jugador"], ["Puntos", "num"], ["Nivel", "num"], ["Enemigos", "num"],
-        ["Duración", "num"], ["Fecha"], [""]],
+        ["Monedas", "num"], ["Duración", "num"], ["Fecha"], [""]],
       rows,
       "Todavía no hay partidas terminadas.",
     ),
@@ -133,12 +141,14 @@ async function renderRuns() {
     td(r.score, "num"),
     td(r.level_reached, "num"),
     td(r.enemies_killed, "num"),
+    td(r.coins_collected, "num"),
+    td(r.coins_spent, "num"),
     td(formatDuration(r.duration_s), "num"),
     td(runLink(r)),
   ));
   document.getElementById("runs-body").replaceChildren(table(
     [["Inicio"], ["Jugador"], ["Modo"], ["Resultado"], ["Puntos", "num"], ["Nivel", "num"],
-      ["Enemigos", "num"], ["Duración", "num"], [""]],
+      ["Enemigos", "num"], ["Monedas", "num"], ["Gastadas", "num"], ["Duración", "num"], [""]],
     rows,
     "No hay partidas con estos filtros.",
   ));
@@ -150,6 +160,9 @@ function eventDetail(event) {
     case "enemy_killed": return ENEMY_LABELS[p.enemy] || p.enemy || "";
     case "damage_taken": return `-${p.amount ?? 1} · quedan ${p.lives ?? "?"} vidas`;
     case "heart_picked": return `+${p.amount ?? 1} · ${p.lives ?? "?"} vidas`;
+    case "coin_picked": return `+${p.amount ?? "?"}`;
+    case "item_bought":
+      return `${ITEM_LABELS[p.item] || p.item || "?"} · ${p.price ?? "?"} monedas`;
     case "level_started": return `${p.enemies_total ?? "?"} enemigos · ${p.lives ?? "?"} vidas`;
     case "level_completed":
       return `en ${formatDuration(p.duration_s)} · ${p.kills ?? "?"}/${p.enemies_total ?? "?"} enemigos`;
@@ -167,6 +180,8 @@ async function renderRun(runId) {
     ["Puntos", run.score],
     ["Nivel alcanzado", run.level_reached],
     ["Enemigos eliminados", run.enemies_killed],
+    ["Monedas recogidas", run.coins_collected],
+    ["Monedas gastadas", run.coins_spent],
     ["Duración", formatDuration(run.duration_s)],
   ].map(([label, value]) => h("div", { class: "card" },
     h("div", { class: "value" }, value), h("div", { class: "label" }, label)));
@@ -202,6 +217,9 @@ async function renderStats() {
     ["Llaves recogidas", stats.keys_collected],
     ["Corazones recogidos", stats.hearts_collected],
     ["Daño recibido", stats.damage_taken],
+    ["Monedas recogidas", stats.coins_collected],
+    ["Monedas gastadas", stats.coins_spent],
+    ["Compras en la tienda", stats.items_bought],
     ["Niveles superados", stats.levels_completed],
     ["Duración promedio", formatDuration(stats.avg_duration_s)],
     ["Nivel máximo", stats.best_level],
@@ -210,8 +228,12 @@ async function renderStats() {
     h("div", { class: "value" }, value), h("div", { class: "label" }, label)));
   const rows = Object.entries(stats.events_by_type).map(([type, count]) => h("tr", {},
     td(EVENT_LABELS[type] || type), td(type, "muted"), td(count, "num")));
+  const itemRows = Object.entries(stats.items_bought_by_item || {}).map(([item, count]) => h("tr", {},
+    td(ITEM_LABELS[item] || item), td(item, "muted"), td(count, "num")));
   document.getElementById("stats-body").replaceChildren(
     h("div", { class: "cards" }, cards),
+    h("h3", {}, "Compras por artículo"),
+    table([["Artículo"], ["Id"], ["Compras", "num"]], itemRows, "Todavía no hay compras."),
     h("h3", {}, "Eventos por tipo"),
     table([["Evento"], ["Tipo"], ["Cantidad", "num"]], rows, "Todavía no hay eventos."),
   );

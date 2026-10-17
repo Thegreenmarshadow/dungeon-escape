@@ -17,6 +17,11 @@ SEED_PREFIX = "seed-"
 SAMPLE_PLAYERS = ["Ana", "Bruno", "Carla"]
 RUNS_PER_PLAYER = 4
 ENEMY_KINDS = ["Skeleton", "Vampire", "Skull", "Reaper"]
+# Shop prices, as in scripts/shop.gd: damage costs 10, 20, 30 (at most 3), life 6.
+DAMAGE_BASE_PRICE = 10
+DAMAGE_PRICE_STEP = 10
+MAX_DAMAGE_BONUS = 3
+LIFE_PRICE = 6
 
 
 def _sample_run(repo: SqliteStatsRepository, rng: random.Random, player: str, index: int) -> None:
@@ -28,6 +33,7 @@ def _sample_run(repo: SqliteStatsRepository, rng: random.Random, player: str, in
     )
     events: list[EventIn] = []
     t, kills, score, level = 0.0, 0, 0, 1
+    coins, damage_bought = 0, 0
     levels = rng.randint(1, 4)
 
     def add(kind: str, payload: dict | None = None) -> None:
@@ -41,6 +47,10 @@ def _sample_run(repo: SqliteStatsRepository, rng: random.Random, player: str, in
             kills += 1
             score += 10
             add("enemy_killed", {"enemy": rng.choice(ENEMY_KINDS)})
+            if rng.random() < 0.6:
+                amount = rng.randint(1, 4)
+                coins += amount
+                add("coin_picked", {"amount": amount})
             if rng.random() < 0.3:
                 add("damage_taken", {"amount": 1, "lives": 2})
             if rng.random() < 0.2:
@@ -51,6 +61,15 @@ def _sample_run(repo: SqliteStatsRepository, rng: random.Random, player: str, in
             t += rng.uniform(5, 20)
             score += 100
             add("level_completed", {"duration_s": round(t - level_start, 1), "score": score})
+            # The shop sits on the level-completed screen, between two levels.
+            damage_price = DAMAGE_BASE_PRICE + DAMAGE_PRICE_STEP * damage_bought
+            if damage_bought < MAX_DAMAGE_BONUS and coins >= damage_price and rng.random() < 0.7:
+                coins -= damage_price
+                damage_bought += 1
+                add("item_bought", {"item": "damage", "price": damage_price})
+            if coins >= LIFE_PRICE and rng.random() < 0.5:
+                coins -= LIFE_PRICE
+                add("item_bought", {"item": "life", "price": LIFE_PRICE})
     add("player_died", {"score": score})
     repo.add_events(run_id, events)
     repo.finish_run(

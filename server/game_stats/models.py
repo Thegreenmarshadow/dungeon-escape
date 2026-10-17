@@ -101,6 +101,9 @@ class Run(BaseModel):
     enemies_killed: int
     outcome: Outcome
     duration_s: float
+    # Computed from the run's coin_picked and item_bought events.
+    coins_collected: int = 0
+    coins_spent: int = 0
 
 
 # --- Events ------------------------------------------------------------------
@@ -149,6 +152,7 @@ class LeaderboardEntry(BaseModel):
     score: int
     level_reached: int
     enemies_killed: int
+    coins_collected: int
     duration_s: float
     ended_at: str | None
 
@@ -166,6 +170,10 @@ class Stats(BaseModel):
     keys_collected: int
     hearts_collected: int
     damage_taken: int
+    coins_collected: int
+    coins_spent: int
+    items_bought: int
+    items_bought_by_item: dict[str, int]
     levels_completed: int
     avg_duration_s: float
     best_level: int
