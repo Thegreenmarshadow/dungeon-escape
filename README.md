@@ -68,7 +68,7 @@ cd server
 uv run game-stats            # http://127.0.0.1:8765  (--port, --db, --reload)
 ```
 
-Luego abrir <http://127.0.0.1:8765/> para ver el ranking, el historial de partidas (filtrable por jugador y modo), el detalle de cada partida con sus eventos y las estadísticas globales. La base se crea sola al arrancar con `server/schema.sql`.
+Luego abrir <http://127.0.0.1:8765/>. La base se crea sola al arrancar con `server/schema.sql`.
 
 Otros comandos (desde `server/`):
 
@@ -80,15 +80,51 @@ Otros comandos (desde `server/`):
 
 Para empezar de cero basta con borrar `server/data/`.
 
-### Qué se guarda
+### Base de datos
 
-- `players`: nombre del jugador (se escribe en el menú principal; por defecto "Jugador").
-- `runs`: una fila por partida, con modo (`normal` o `test`), semilla, nivel inicial y alcanzado, puntos, enemigos, duración y resultado (`died`, `quit` o `in_progress`).
-- `events`: la línea de tiempo de cada partida. Acepta cualquier tipo de evento, así se pueden sumar otros sin cambiar la base. Tipos actuales: `level_started`, `enemy_killed`, `damage_taken`, `heart_picked`, `key_picked`, `coin_picked`, `item_bought`, `level_completed`, `player_died` y `run_quit`.
+SQLite en `server/data/game.db`, con tres tablas (`server/schema.sql`):
 
-El ranking solo incluye partidas terminadas en modo normal; las del modo prueba se guardan pero no compiten.
+```text
+players 1 ──< runs 1 ──< events
+```
 
-API principal: `POST /api/players`, `POST /api/runs`, `POST /api/runs/{id}/events`, `PATCH /api/runs/{id}`, `GET /api/leaderboard?limit=10`, `GET /api/runs?player=&mode=&limit=`, `GET /api/runs/{id}`, `GET /api/stats` y `GET /api/health`. La documentación interactiva está en <http://127.0.0.1:8765/docs>.
+| Tabla | Una fila por | Columnas principales |
+|---|---|---|
+| `players` | jugador | `name` (único, sin distinguir mayúsculas; se escribe en el menú, por defecto "Jugador"), `created_at` |
+| `runs` | partida | `id` (lo genera el juego, así puede reenviar sin duplicar), `player_id`, `mode` (`normal` o `test`), `run_seed`, `start_level`, `level_reached`, `score`, `enemies_killed`, `duration_s`, `outcome` (`died`, `quit` o `in_progress`), `started_at`, `ended_at` |
+| `events` | cosa que hizo el jugador | `run_id`, `seq` (orden dentro de la partida; `run_id + seq` es único), `type`, `level`, `t_run_s` (segundos jugados), `payload` (JSON), `created_at` |
+
+`events` acepta cualquier tipo de evento y los datos propios de cada uno van en `payload`, así se pueden sumar tipos nuevos sin migrar la base. Eventos actuales:
+
+| Tipo | `payload` |
+|---|---|
+| `level_started` | `lives`, `enemies_total` |
+| `enemy_killed` | `enemy` (Skeleton, Vampire…) |
+| `enemy_dodged` | `enemy` |
+| `damage_taken` | `amount`, `lives` |
+| `heart_picked` | `amount`, `lives` |
+| `key_picked` | vacío |
+| `coin_picked` | `amount` |
+| `item_bought` | `item` (`damage` o `life`), `price` |
+| `level_completed` | `duration_s`, `kills`, `enemies_total`, `score` |
+| `player_died` | `score` |
+| `run_quit` | vacío |
+
+Las monedas y los tiempos salen de estos eventos: el servidor suma `coin_picked` (recogidas) e `item_bought` (gastadas y artículos comprados) al calcular las estadísticas.
+
+### Página web
+
+Es una página estática (`server/web/`: HTML, CSS y JS sin dependencias) que el mismo servidor sirve en <http://127.0.0.1:8765/> y que consulta la API. Tiene tres secciones:
+
+| Sección | Qué muestra |
+|---|---|
+| **Ranking** | Mejores puntajes: puesto, jugador, puntos, nivel, enemigos, monedas recogidas, duración y fecha. Solo cuentan las partidas terminadas en modo normal. |
+| **Partidas** | Historial de partidas, filtrable por jugador y modo, con monedas recogidas y gastadas. Al abrir una se ve su detalle con la línea de tiempo de eventos. |
+| **Estadísticas** | Totales globales (jugadores, partidas, enemigos eliminados, llaves, corazones, daño recibido, mejor nivel y puntaje, duración media), monedas recogidas y gastadas, artículos comprados por tipo y cantidad de eventos de cada tipo. Se puede filtrar por modo. |
+
+### API
+
+`POST /api/players`, `POST /api/runs`, `POST /api/runs/{id}/events`, `PATCH /api/runs/{id}`, `GET /api/leaderboard?limit=10`, `GET /api/runs?player=&mode=&limit=`, `GET /api/runs/{id}`, `GET /api/stats` y `GET /api/health`. La documentación interactiva está en <http://127.0.0.1:8765/docs>.
 
 ## Estructura del proyecto
 
