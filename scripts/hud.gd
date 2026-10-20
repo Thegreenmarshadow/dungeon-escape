@@ -1,6 +1,6 @@
 extends CanvasLayer
 ## Interfaz del jugador: vidas, indicador de llave, enemigos eliminados,
-## monedas, barra de vida del jefe, mensajes, pantallas de fin de
+## monedas, barra de vida del jefe, minimapa, mensajes, pantallas de fin de
 ## partida, el resumen del nivel (RunSummary) y la tienda entre niveles.
 ## Solo muestra información; el nivel decide cuándo actualizarla y qué pasa al
 ## comprar.
@@ -54,6 +54,7 @@ const ITEM_ICON_WIDTH := 32
 @onready var retry_button: Button = %RetryButton
 @onready var back_to_menu_button: Button = %BackToMenuButton
 @onready var boss_bar: BossHealthBar = %BossBar
+@onready var minimap: Minimap = %Minimap
 @onready var run_summary: RunSummary = %RunSummary
 @onready var end_summary_button: Button = %EndSummaryButton
 @onready var game_over_summary_button: Button = %GameOverSummaryButton
