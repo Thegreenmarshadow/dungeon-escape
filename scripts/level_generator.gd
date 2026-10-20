@@ -13,7 +13,10 @@ extends RefCounted
 ##   2. Corredores en L de 2 celdas siguiendo un árbol de expansión mínimo, más
 ##      algunos lazos extra para que haya más de un camino.
 ##   3. Sala de inicio y sala de salida (la más lejana por camino real).
-##   4. Llave, jefes, enemigos, trampas y antorchas.
+##   4. Llave, jefes, enemigos, trampas y antorchas. En los niveles de jefe
+##      temático (BossRegistry) la sala de salida es la arena: el jefe va
+##      delante de la puerta en lugar de la parca y no hay otros enemigos ni
+##      trampas en esa sala.
 ##   5. Validación de invariantes. Si falla, se reintenta con la siguiente
 ##      semilla derivada; agotados los intentos se usa un diseño simple y
 ##      garantizado.
@@ -98,6 +101,12 @@ const PATROL_MAX := 7
 ## Distancia de la parca a su punto de guardia (puerta o llave), en celdas.
 const BOSS_DISTANCE_MIN := 3.0
 const BOSS_DISTANCE_MAX := 8.0
+## Niveles de jefe temático (ver BossRegistry): tamaño mínimo de la sala de
+## salida, que es la arena (la sección 9.1 de la biblia pide 9 × 9 celdas
+## libres), y distancia del jefe a la puerta, en celdas.
+const BOSS_ROOM_MIN := Vector2i(9, 9)
+const THEME_BOSS_DISTANCE_MIN := 3.0
+const THEME_BOSS_DISTANCE_MAX := 6.0
 const TORCHES_PER_ROOM := 2
 const TORCH_SPACING := 3
 ## Camino mínimo (en celdas) entre el inicio y la puerta.
@@ -109,6 +118,11 @@ const MIN_ENEMY_RATIO := 0.5
 const FALLBACK_SIZE := Vector2i(40, 16)
 const FALLBACK_ROOMS: Array[Rect2i] = [
 	Rect2i(2, 4, 8, 8), Rect2i(16, 4, 8, 8), Rect2i(30, 4, 8, 8),
+]
+## Diseño de emergencia de un nivel de jefe: las salas de los extremos (inicio
+## y salida) tienen lugar para la arena.
+const FALLBACK_BOSS_ROOMS: Array[Rect2i] = [
+	Rect2i(2, 3, 10, 10), Rect2i(16, 4, 8, 8), Rect2i(28, 3, 10, 10),
 ]
 
 ## Tipos de entidad que el generador coloca (LevelBuilder los traduce a escenas).
@@ -146,6 +160,9 @@ class Params extends RefCounted:
 	var special_counts := {}
 	## Multiplicador de la vida de todos los enemigos (ver enemy_health_scale).
 	var enemy_health_scale := 1.0
+	## Jefe temático del nivel (BossRegistry.boss_for_level); &"" si no hay.
+	## Ocupa el lugar de la parca de la puerta, así que boss_count no cambia.
+	var theme_boss: StringName = &""
 
 
 ## Algo que el generador coloca en una celda: un enemigo o una trampa.
@@ -185,6 +202,9 @@ class Layout extends RefCounted:
 	var door_cell := Vector2i.ZERO
 	var enemies: Array[Spawn] = []
 	var hazards: Array[Spawn] = []
+	## Jefe temático, aparte de enemies (kind = id de BossRegistry); null si el
+	## nivel no tiene. Va en la sala de salida, que es la arena, y lleva la llave.
+	var boss: Spawn = null
 	## Celdas de pared (fila superior de una sala) donde va una antorcha.
 	var torches: Array[Vector2i] = []
 
@@ -303,9 +323,14 @@ class Layout extends RefCounted:
 	func dist_at(dist: PackedInt32Array, c: Vector2i) -> int:
 		return dist[c.y * size.x + c.x] if in_bounds(c) else -1
 
+	## true si el nivel tiene jefe temático.
+	func has_boss() -> bool:
+		return boss != null
+
 	func summary() -> String:
-		return "nivel %d: %d salas, %d enemigos, %d trampas, intento %d%s" % [
+		return "nivel %d: %d salas, %d enemigos, %d trampas, intento %d%s%s" % [
 			level, rooms.size(), enemies.size(), hazards.size(), attempt,
+			", jefe %s" % boss.kind if boss != null else "",
 			" (diseño de emergencia)" if used_fallback else ""]
 
 
@@ -342,6 +367,7 @@ static func params_for_level(level: int) -> Params:
 	for kind: StringName in SPECIAL_ENEMIES:
 		p.special_counts[kind] = special_count(kind, level)
 	p.enemy_health_scale = enemy_health_scale(level)
+	p.theme_boss = BossRegistry.boss_for_level(level)
 	return p
 
 
@@ -401,7 +427,7 @@ static func build_fallback(level: int, seed_value: int) -> Layout:
 	layout.level = level
 	layout.seed_used = seed_value
 	layout.used_fallback = true
-	for room in FALLBACK_ROOMS:
+	for room in (FALLBACK_BOSS_ROOMS if params.theme_boss != &"" else FALLBACK_ROOMS):
 		layout.rooms.append(room)
 		layout.carve_rect(room)
 	for i in range(1, layout.rooms.size()):
@@ -450,6 +476,20 @@ static func validate(layout: Layout) -> String:
 		return "la llave no está sobre suelo"
 	if layout.dist_at(reach, layout.key_cell) < 0:
 		return "la llave es inalcanzable"
+
+	# Jefe temático: en la arena (sala de salida, con el tamaño mínimo).
+	if layout.boss != null:
+		var boss_error := _validate_spawn(layout, reach, layout.boss)
+		if not boss_error.is_empty():
+			return "jefe %s: %s" % [layout.boss.kind, boss_error]
+		var arena := layout.rooms[layout.exit_room]
+		if not arena.has_point(layout.boss.cell):
+			return "el jefe no está en la sala de salida"
+		if arena.size.x < BOSS_ROOM_MIN.x or arena.size.y < BOSS_ROOM_MIN.y:
+			return "la sala del jefe es más chica que %s" % str(BOSS_ROOM_MIN)
+		for enemy in layout.enemies:
+			if enemy.cell == layout.boss.cell:
+				return "un enemigo en la celda del jefe %s" % str(enemy.cell)
 
 	# Todas las salas se alcanzan desde el inicio.
 	for i in layout.rooms.size():
@@ -514,7 +554,8 @@ static func _try_generate(params: Params, seed_value: int) -> Layout:
 ## resultado es válido.
 static func _finish(layout: Layout, params: Params, rng: RandomNumberGenerator) -> String:
 	_remove_thin_walls(layout)
-	var error := _choose_rooms_and_door(layout, rng)
+	var min_exit_size := BOSS_ROOM_MIN if params.theme_boss != &"" else Vector2i.ZERO
+	var error := _choose_rooms_and_door(layout, rng, min_exit_size)
 	if not error.is_empty():
 		return error
 	error = _place_key(layout, rng)
@@ -525,6 +566,8 @@ static func _finish(layout: Layout, params: Params, rng: RandomNumberGenerator) 
 	var taken: Array[Vector2i] = [layout.key_cell]
 	taken.append_array(layout.door_floor_cells())
 	_place_bosses(layout, params, rng, taken)
+	if params.theme_boss != &"" and layout.boss == null:
+		return "no hay sitio para el jefe %s" % params.theme_boss
 	_place_enemies(layout, params, rng, taken)
 	_place_special_enemies(layout, params, rng, taken)
 	_place_hazards(layout, params, rng, taken)
@@ -637,9 +680,10 @@ static func _remove_thin_walls(layout: Layout) -> void:
 
 
 ## Elige la sala de inicio (el extremo del mapa), la de salida (la más lejana
-## por camino real desde el inicio que tenga sitio para la puerta) y coloca al
-## jugador y la puerta.
-static func _choose_rooms_and_door(layout: Layout, rng: RandomNumberGenerator) -> String:
+## por camino real desde el inicio que tenga sitio para la puerta y al menos
+## min_exit_size celdas) y coloca al jugador y la puerta.
+static func _choose_rooms_and_door(layout: Layout, rng: RandomNumberGenerator,
+		min_exit_size: Vector2i = Vector2i.ZERO) -> String:
 	# Doble barrido: la sala más lejana de la primera es un buen extremo.
 	var from_first := layout.distances_from(layout.room_center(0))
 	var farthest := -1
@@ -665,6 +709,9 @@ static func _choose_rooms_and_door(layout: Layout, rng: RandomNumberGenerator) -
 		return a < b)
 
 	for room_index in order:
+		var size := layout.rooms[room_index].size
+		if size.x < min_exit_size.x or size.y < min_exit_size.y:
+			continue
 		var door := _find_door(layout, room_index, rng)
 		if door.x >= 0:
 			layout.exit_room = room_index
@@ -721,19 +768,27 @@ static func _place_key(layout: Layout, rng: RandomNumberGenerator) -> String:
 	return ""
 
 
-## Parcas: una guarda la puerta y, en niveles altos, otra guarda la llave.
+## Parcas: una guarda la puerta y, en niveles altos, otra guarda la llave. En
+## un nivel de jefe temático el jefe ocupa el lugar de la parca de la puerta
+## (layout.boss, aparte de enemies).
 static func _place_bosses(layout: Layout, params: Params, rng: RandomNumberGenerator,
 		taken: Array[Vector2i]) -> void:
-	if params.boss_count >= 1:
-		_place_guard(layout, rng, taken, layout.exit_room, layout.door_cell)
+	if params.theme_boss != &"":
+		layout.boss = _place_guard(layout, rng, taken, layout.exit_room, layout.door_cell,
+				params.theme_boss, THEME_BOSS_DISTANCE_MIN, THEME_BOSS_DISTANCE_MAX)
+	elif params.boss_count >= 1:
+		_add_enemy(layout, _place_guard(layout, rng, taken, layout.exit_room, layout.door_cell))
 	if params.boss_count >= 2:
-		_place_guard(layout, rng, taken, layout.key_room, layout.key_cell)
+		_add_enemy(layout, _place_guard(layout, rng, taken, layout.key_room, layout.key_cell))
 
 
-## Coloca una parca en la sala, a distancia media de su punto de guardia. Si
-## no hay ninguna celda a esa distancia, usa cualquiera libre de la sala.
+## Coloca un guardián (por defecto una parca) en la sala, a distancia media de
+## su punto de guardia. Si no hay ninguna celda a esa distancia, usa cualquiera
+## libre de la sala. Devuelve el Spawn (ya reservado en taken) o null si la
+## sala no tiene sitio; quien llama decide dónde guardarlo.
 static func _place_guard(layout: Layout, rng: RandomNumberGenerator, taken: Array[Vector2i],
-		room_index: int, anchor: Vector2i) -> void:
+		room_index: int, anchor: Vector2i, kind: StringName = REAPER,
+		min_distance: float = BOSS_DISTANCE_MIN, max_distance: float = BOSS_DISTANCE_MAX) -> Spawn:
 	var cells := _spawnable_cells(layout, room_index)
 	_shuffle(cells, rng)
 	var fallback := Vector2i(-1, -1)
@@ -741,15 +796,20 @@ static func _place_guard(layout: Layout, rng: RandomNumberGenerator, taken: Arra
 		if not _is_spaced(cell, taken, ENEMY_SPACING):
 			continue
 		var d := Vector2(cell).distance_to(Vector2(anchor))
-		if d >= BOSS_DISTANCE_MIN and d <= BOSS_DISTANCE_MAX:
-			layout.enemies.append(Spawn.new(REAPER, cell))
+		if d >= min_distance and d <= max_distance:
 			taken.append(cell)
-			return
+			return Spawn.new(kind, cell)
 		if fallback.x < 0:
 			fallback = cell
 	if fallback.x >= 0:
-		layout.enemies.append(Spawn.new(REAPER, fallback))
 		taken.append(fallback)
+		return Spawn.new(kind, fallback)
+	return null
+
+
+static func _add_enemy(layout: Layout, spawn: Spawn) -> void:
+	if spawn != null:
+		layout.enemies.append(spawn)
 
 
 ## Perseguidores (vampiros y calaveras) entre los enemigos comunes del nivel.
@@ -761,7 +821,7 @@ static func chaser_count(params: Params) -> int:
 ## o, desde SKULL_FIRST_LEVEL, calaveras embestidoras.
 static func _place_enemies(layout: Layout, params: Params, rng: RandomNumberGenerator,
 		taken: Array[Vector2i]) -> void:
-	var cells := _all_spawnable_cells(layout)
+	var cells := _entity_cells(layout)
 	_shuffle(cells, rng)
 	var chasers := chaser_count(params)
 	var skeletons := params.enemy_count - chasers
@@ -822,7 +882,7 @@ static func _place_special_enemies(layout: Layout, params: Params, rng: RandomNu
 			pending.append(kind)
 	if pending.is_empty():
 		return
-	var cells := _all_spawnable_cells(layout)
+	var cells := _entity_cells(layout)
 	_shuffle(cells, rng)
 	var placed := 0
 	for cell in cells:
@@ -857,7 +917,7 @@ static func _find_patrol(layout: Layout, cell: Vector2i, rng: RandomNumberGenera
 
 static func _place_hazards(layout: Layout, params: Params, rng: RandomNumberGenerator,
 		taken: Array[Vector2i]) -> void:
-	var cells := _all_spawnable_cells(layout)
+	var cells := _entity_cells(layout)
 	_shuffle(cells, rng)
 	var placed := 0
 	for cell in cells:
@@ -941,6 +1001,18 @@ static func _spawnable_cells(layout: Layout, room_index: int) -> Array[Vector2i]
 ## capacidad del modo prueba (ver DifficultyCurve.capacity_report).
 static func spawnable_cells(layout: Layout) -> Array[Vector2i]:
 	return _all_spawnable_cells(layout)
+
+
+## Celdas para enemigos comunes, especiales y trampas: las de spawnable_cells
+## menos la arena del jefe temático, que queda libre para la pelea.
+static func _entity_cells(layout: Layout) -> Array[Vector2i]:
+	if layout.boss == null:
+		return _all_spawnable_cells(layout)
+	var out: Array[Vector2i] = []
+	for i in layout.rooms.size():
+		if i != layout.exit_room:
+			out.append_array(_spawnable_cells(layout, i))
+	return out
 
 
 static func _all_spawnable_cells(layout: Layout) -> Array[Vector2i]:

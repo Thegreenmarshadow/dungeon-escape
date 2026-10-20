@@ -124,7 +124,7 @@ static func apply(root: Node2D, layout: LevelGenerator.Layout, theme: StringName
 
 
 ## Celdas que ningún objeto puede ocupar: inicio, llave, las dos de la puerta,
-## enemigos con todo el recorrido de su patrulla, trampas y extra.
+## enemigos con todo el recorrido de su patrulla, jefe, trampas y extra.
 static func reserved_cells(layout: LevelGenerator.Layout,
 		extra: Array[Vector2i] = []) -> Dictionary:
 	var reserved := {layout.player_cell: true, layout.key_cell: true}
@@ -138,6 +138,8 @@ static func reserved_cells(layout: LevelGenerator.Layout,
 			reserved[spawn.cell + dir * step] = true
 	for spawn in layout.hazards:
 		reserved[spawn.cell] = true
+	if layout.boss != null:
+		reserved[layout.boss.cell] = true
 	for cell in extra:
 		reserved[cell] = true
 	return reserved
@@ -160,7 +162,9 @@ static func plan(layout: LevelGenerator.Layout, seed_value: int,
 
 		var cells := _free_room_cells(layout, room, reserved)
 		_shuffle(cells, rng)
-		if i != layout.start_room and rng.randf() < PROP_CHANCE:
+		# La arena del jefe queda sin objetos grandes que estorben la pelea.
+		var is_arena := layout.boss != null and i == layout.exit_room
+		if i != layout.start_room and not is_arena and rng.randf() < PROP_CHANCE:
 			for cell in cells:
 				if _is_prop_cell(layout, cell, reserved, props):
 					props.append(cell)
