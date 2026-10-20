@@ -9,6 +9,7 @@ const SHOWN_SCORES := 5
 
 @onready var play_button: Button = %PlayButton
 @onready var test_mode_button: Button = %TestModeButton
+@onready var sandbox_button: Button = %SandboxButton
 @onready var quit_button: Button = %QuitButton
 @onready var title: Label = %Title
 @onready var best_level_label: Label = %BestLevelLabel
@@ -23,6 +24,10 @@ func _ready() -> void:
 	Music.play_track(MENU_MUSIC)
 	play_button.pressed.connect(Game.start_new_game)
 	test_mode_button.pressed.connect(Game.go_to_difficulty_report)
+	# La zona de pruebas es una herramienta de desarrollo: solo en el editor y
+	# en builds de depuración, nunca en la versión publicada.
+	sandbox_button.visible = OS.is_debug_build()
+	sandbox_button.pressed.connect(Game.go_to_sandbox)
 	quit_button.pressed.connect(get_tree().quit)
 	# Con el foco en "Jugar" el menú también se maneja con el teclado.
 	play_button.grab_focus()

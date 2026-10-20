@@ -246,3 +246,13 @@ func _scores_file() -> String:
 	if not FileAccess.file_exists(ScoreBoard.DEFAULT_PATH):
 		return ""
 	return FileAccess.get_file_as_string(ScoreBoard.DEFAULT_PATH)
+
+
+func test_main_menu_button_starts_hidden() -> void:
+	# main_menu.gd lo muestra solo si OS.is_debug_build(); en la escena empieza
+	# oculto, así una build publicada nunca lo muestra.
+	var menu: Node = track(load("res://scenes/MainMenu.tscn").instantiate())
+	var button := menu.get_node_or_null("SandboxButton") as Button
+	assert_true(button != null, "el menú tiene el botón")
+	assert_false(button.visible)
+	assert_eq(button.text, "Zona de pruebas")
