@@ -79,6 +79,11 @@ var _walk_phase: float = 0.0
 # jugador no controla su movimiento.
 var _knockback: Vector2 = Vector2.ZERO
 var _knockback_left: float = 0.0
+# Freno de un efecto (frío de la liche, esporas del Guardián): multiplicador de
+# la velocidad y tiempo que le queda. Se marca con partículas, no con tinte.
+var _slow_factor: float = 1.0
+var _slow_left: float = 0.0
+var _slow_particles: CPUParticles2D
 
 @onready var sprite: AnimatedSprite2D = $AnimatedSprite2D
 @onready var weapon_pivot: Node2D = $WeaponPivot
@@ -105,6 +110,7 @@ func _ready() -> void:
 func _physics_process(delta: float) -> void:
 	_update_invulnerability(delta)
 	_update_attack(delta)
+	_update_slow(delta)
 
 	# Combina las cuatro acciones de movimiento en un solo vector.
 	# get_vector lo normaliza, por lo que en diagonal no se avanza más rápido.
@@ -276,9 +282,61 @@ func _update_attack(delta: float) -> void:
 			hitbox.set_deferred("monitoring", false)
 
 
-## Multiplicador de la velocidad: el arma puede frenar al jugador mientras ataca.
+## Multiplicador de la velocidad: el arma puede frenar al jugador mientras ataca
+## y un efecto (apply_slow) mientras dure.
 func _move_speed_factor() -> float:
-	return weapon.move_speed_while_attacking if is_attacking() else 1.0
+	var factor: float = weapon.move_speed_while_attacking if is_attacking() else 1.0
+	return factor * slow_multiplier()
+
+
+## Frena al jugador: multiplica su velocidad por factor (0 a 1) durante
+## duration segundos. Si ya estaba frenado se queda con el freno más fuerte y
+## el tiempo más largo. Lo usan los jefes (frío de la liche, esporas del
+## Guardián). Se ve con partículas del color dado alrededor del jugador: los
+## tintes ya tienen significado (sección 2.3 de la biblia).
+func apply_slow(factor: float, duration: float, color: Color = Color(0.85, 0.95, 1.0)) -> void:
+	if duration <= 0.0 or factor >= 1.0:
+		return
+	factor = clampf(factor, 0.0, 1.0)
+	_slow_factor = minf(_slow_factor, factor) if _slow_left > 0.0 else factor
+	_slow_left = maxf(_slow_left, duration)
+	var particles := _get_slow_particles()
+	particles.color = color
+	particles.emitting = true
+
+
+## Multiplicador de velocidad del freno actual (1 sin freno).
+func slow_multiplier() -> float:
+	return _slow_factor if _slow_left > 0.0 else 1.0
+
+
+func _update_slow(delta: float) -> void:
+	if _slow_left <= 0.0:
+		return
+	_slow_left -= delta
+	if _slow_left <= 0.0:
+		_slow_factor = 1.0
+		if _slow_particles:
+			_slow_particles.emitting = false
+
+
+## Partículas del freno; se crean la primera vez que hacen falta.
+func _get_slow_particles() -> CPUParticles2D:
+	if _slow_particles == null:
+		_slow_particles = CPUParticles2D.new()
+		_slow_particles.amount = 6
+		_slow_particles.lifetime = 0.6
+		_slow_particles.emission_shape = CPUParticles2D.EMISSION_SHAPE_SPHERE
+		_slow_particles.emission_sphere_radius = 7.0
+		_slow_particles.direction = Vector2.UP
+		_slow_particles.spread = 30.0
+		_slow_particles.gravity = Vector2.ZERO
+		_slow_particles.initial_velocity_min = 4.0
+		_slow_particles.initial_velocity_max = 8.0
+		_slow_particles.scale_amount_min = 1.0
+		_slow_particles.scale_amount_max = 2.0
+		add_child(_slow_particles)
+	return _slow_particles
 
 
 func _on_hitbox_touched(target: Node) -> void:

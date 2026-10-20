@@ -1,6 +1,6 @@
 extends CanvasLayer
 ## Interfaz del jugador: vidas, indicador de llave, enemigos eliminados,
-## monedas, mensajes, pantallas de fin de partida y la tienda entre niveles.
+## monedas, barra de vida del jefe, mensajes, pantallas de fin de partida y la tienda entre niveles.
 ## Solo muestra información; el nivel decide cuándo actualizarla y qué pasa al
 ## comprar.
 
@@ -46,6 +46,7 @@ const ITEM_ICON_WIDTH := 32
 @onready var breakdown_label: Label = %BreakdownLabel
 @onready var retry_button: Button = %RetryButton
 @onready var back_to_menu_button: Button = %BackToMenuButton
+@onready var boss_bar: BossHealthBar = %BossBar
 
 var _game_over_tween: Tween
 # Botón de cada artículo de la tienda; se crean la primera vez que se muestra.
@@ -99,6 +100,12 @@ func set_kills(killed: int, total: int) -> void:
 
 func set_coins(coins: int) -> void:
 	coins_label.text = str(coins)
+
+
+## Muestra la barra de vida de boss (nombre y vida) mientras esté vivo y en
+## alerta. La barra se actualiza sola.
+func track_boss(boss: BossBase) -> void:
+	boss_bar.track(boss)
 
 
 ## Muestra un mensaje temporal en la parte inferior de la pantalla.
