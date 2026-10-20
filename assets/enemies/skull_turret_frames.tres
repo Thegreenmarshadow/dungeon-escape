@@ -151,7 +151,7 @@ animations = [{
 "speed": 6.0
 }, {
 "frames": [{
-"duration": 1.0,
+"duration": 2.2,
 "texture": SubResource("AtlasTexture_attack_0")
 }, {
 "duration": 1.0,

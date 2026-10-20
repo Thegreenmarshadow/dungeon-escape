@@ -1,0 +1,48 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://scripts/ranged_enemy.gd" id="1_script"]
+[ext_resource type="SpriteFrames" path="res://assets/enemies/archer_frames.tres" id="2_frames"]
+[ext_resource type="PackedScene" path="res://scenes/projectiles/Arrow.tscn" id="3_projectile"]
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_body"]
+size = Vector2(10, 8)
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_contact"]
+size = Vector2(12, 14)
+
+[node name="Archer" type="CharacterBody2D"]
+collision_layer = 4
+motion_mode = 1
+script = ExtResource("1_script")
+max_health = 2
+speed = 30.0
+coin_drop_chance = 0.3
+dodge_chance = 0.15
+detect_radius = 140.0
+lose_radius = 180.0
+retreat_distance = 56.0
+approach_distance = 120.0
+attack_range = 160.0
+aim_lock_frame = 3
+release_frame = 5
+attack_cooldown = 1.6
+projectile_scene = ExtResource("3_projectile")
+projectile_offset = Vector2(8, -2)
+
+[node name="AnimatedSprite2D" type="AnimatedSprite2D" parent="."]
+offset = Vector2(0, -5)
+sprite_frames = ExtResource("2_frames")
+animation = &"idle"
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="."]
+position = Vector2(0, 4)
+shape = SubResource("RectangleShape2D_body")
+
+[node name="ContactArea" type="Area2D" parent="."]
+collision_layer = 0
+collision_mask = 2
+monitorable = false
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="ContactArea"]
+position = Vector2(0, 1)
+shape = SubResource("RectangleShape2D_contact")
