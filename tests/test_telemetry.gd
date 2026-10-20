@@ -83,6 +83,8 @@ func test_records_player_events_with_position_and_writes_on_death() -> void:
 	assert_eq(data["weapons_used"], ["sword", "spear"])
 	assert_eq(data["level"], 2)
 	assert_eq(data["level_seed"], "1234")
+	assert_true(absf(data["difficulty_index"] - DifficultyCurve.index_for_level(2)) < 0.001,
+			"índice planificado del nivel generado")
 
 	var path := TEMP_DIR.path_join("ana/runs/run-1/level_2.json")
 	assert_eq(telemetry.last_level_file, path)
@@ -113,6 +115,7 @@ func test_level_file_missing_fields_loads_with_defaults() -> void:
 	assert_eq(data["outcome"], "abandoned")
 	assert_eq(data["weapons_used"], [])
 	assert_eq(data["level_seed"], null)
+	assert_eq(data["difficulty_index"], null, "los archivos viejos no lo tienen")
 	assert_eq(data["path"], [[1.5, 20.0, 30.0]], "descarta los puntos malformados")
 	assert_eq(data["events"].size(), 1)
 	assert_eq(data["events"][0]["amount"], 2)

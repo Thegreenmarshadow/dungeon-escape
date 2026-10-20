@@ -98,6 +98,16 @@ func is_enabled() -> bool:
 	return GameSettings.telemetry_enabled(settings_path)
 
 
+## Índice de dificultad planificado (DifficultyCurve.index_for) que se guarda
+## en el archivo del nivel, redondeado a milésimas; null en los niveles hechos
+## a mano y en la demo (no salen del generador).
+static func planned_difficulty(level_number: int, mode: String) -> Variant:
+	if mode == RunRecorder.MODE_DEMO:
+		return null
+	var index := LevelStats.planned_index(level_number)
+	return null if is_nan(index) else roundf(index * 1000.0) / 1000.0
+
+
 ## Empieza una partida: los niveles que se registren desde ahora llevan estos
 ## datos. profile_slug es la carpeta del perfil.
 func begin_run(run_id: String, mode: String, profile_name: String, profile_slug: String, run_seed: int) -> void:
@@ -122,6 +132,7 @@ func attach_level(level: Node, player: Node2D, door: Node, enemies: Array, map: 
 	meta["level"] = level_number
 	# Texto: la semilla de un mapa generado no entra en un double de JSON.
 	meta["level_seed"] = str(level_seed) if level_seed != null else null
+	meta["difficulty_index"] = planned_difficulty(level_number, str(_run.get("mode", "")))
 	recorder.start(meta, map, player.global_position, String(player.weapon.id) if player.weapon else "")
 
 	player.damaged.connect(_on_damaged)

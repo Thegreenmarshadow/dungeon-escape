@@ -30,6 +30,10 @@ extends RefCounted
 ##   path            [[t, x, y], ...] posiciones del jugador en píxeles
 ##   events          [{t, type, x, y, ...campos del tipo}, ...] (ver EVENT_*)
 ##   weapons_used    ids de las armas usadas, en orden
+##   difficulty_index  índice de dificultad planificado del nivel
+##                   (DifficultyCurve.index_for); null en los niveles hechos
+##                   a mano, en la demo y en los archivos anteriores al campo.
+##                   Es un campo agregado: no cambia schema_version
 ##
 ## Eventos (x, y: dónde pasó, en píxeles del mundo):
 ##   damage          {amount, source}  source: tipo de enemigo ("Skeleton"),
@@ -154,6 +158,7 @@ static func default_level() -> Dictionary:
 		"path": [],
 		"events": [],
 		"weapons_used": [],
+		"difficulty_index": null,
 	}
 
 
@@ -215,6 +220,9 @@ static func normalize_level(raw: Dictionary) -> Dictionary:
 		for weapon: Variant in raw["weapons_used"]:
 			weapons.append(str(weapon))
 	data["weapons_used"] = weapons
+	var index: Variant = raw.get("difficulty_index")
+	if (index is float and is_finite(index)) or index is int:
+		data["difficulty_index"] = float(index)
 	for key: String in raw:
 		if not data.has(key):
 			data[key] = raw[key]
