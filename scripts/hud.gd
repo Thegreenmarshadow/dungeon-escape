@@ -1,6 +1,7 @@
 extends CanvasLayer
 ## Interfaz del jugador: vidas, indicador de llave, enemigos eliminados,
-## monedas, barra de vida del jefe, mensajes, pantallas de fin de partida y la tienda entre niveles.
+## monedas, barra de vida del jefe, minimapa, mensajes, pantallas de fin de
+## partida, el resumen del nivel (RunSummary) y la tienda entre niveles.
 ## Solo muestra información; el nivel decide cuándo actualizarla y qué pasa al
 ## comprar.
 
@@ -27,6 +28,12 @@ const ITEM_UNAVAILABLE_TEXT := {Shop.ITEM_DAMAGE: "al máximo", Shop.ITEM_LIFE: 
 ## Ancho del ícono de las armas en los botones de la tienda (16 px escalado x2).
 const ITEM_ICON_WIDTH := 32
 
+## El resumen del nivel (RunSummary) se abre solo al morir o al superar un
+## nivel, encima de la pantalla final. Con false solo se abre con el botón
+## "Ver recorrido". Sin telemetría no hay resumen ni botón.
+@export var summary_on_death := true
+@export var summary_on_complete := true
+
 @onready var lives_hearts: HBoxContainer = %LivesHearts
 @onready var key_icon: TextureRect = %KeyIcon
 @onready var kills_label: Label = %KillsLabel
@@ -47,12 +54,18 @@ const ITEM_ICON_WIDTH := 32
 @onready var retry_button: Button = %RetryButton
 @onready var back_to_menu_button: Button = %BackToMenuButton
 @onready var boss_bar: BossHealthBar = %BossBar
+@onready var minimap: Minimap = %Minimap
+@onready var run_summary: RunSummary = %RunSummary
+@onready var end_summary_button: Button = %EndSummaryButton
+@onready var game_over_summary_button: Button = %GameOverSummaryButton
 
 var _game_over_tween: Tween
 # Segundos de un mensaje sin duración propia (el wait_time de la escena).
 var _message_time := 1.5
 # Botón de cada artículo de la tienda; se crean la primera vez que se muestra.
 var _shop_buttons: Dictionary[StringName, Button] = {}
+# Último nivel terminado que registró la telemetría (lo muestra el resumen).
+var _summary_data: Dictionary = {}
 
 
 func _ready() -> void:
@@ -66,6 +79,11 @@ func _ready() -> void:
 	retry_button.pressed.connect(_on_game_over_choice.bind(retry_pressed))
 	back_to_menu_button.pressed.connect(_on_game_over_choice.bind(menu_pressed))
 	set_has_key(false)
+	end_summary_button.pressed.connect(show_run_summary)
+	game_over_summary_button.pressed.connect(show_run_summary)
+	var telemetry := get_node_or_null(^"/root/Telemetry")
+	if telemetry != null:
+		telemetry.level_finished.connect(_on_level_finished)
 
 
 ## Muestra un corazón por cada vida máxima: llenos los que quedan y apagados
@@ -209,3 +227,26 @@ func _on_game_over_choice(choice: Signal) -> void:
 func _set_game_over_buttons_enabled(enabled: bool) -> void:
 	retry_button.disabled = not enabled
 	back_to_menu_button.disabled = not enabled
+
+
+## Abre el resumen del último nivel terminado (mapa, ruta y reproducción).
+## No hace nada si la telemetría no registró ninguno.
+func show_run_summary() -> void:
+	if not _summary_data.is_empty():
+		run_summary.show_level(_summary_data)
+
+
+## La telemetría escribió el nivel: se guarda para el resumen, aparece el botón
+## "Ver recorrido" en la pantalla final y, según summary_on_death /
+## summary_on_complete, se abre el resumen. Los niveles abandonados no tienen
+## pantalla final.
+func _on_level_finished(data: Dictionary, _path: String) -> void:
+	var outcome: String = data.get("outcome", "")
+	var died := outcome == TelemetryRecorder.OUTCOME_DIED
+	if not died and outcome != TelemetryRecorder.OUTCOME_COMPLETED:
+		return
+	_summary_data = data
+	end_summary_button.show()
+	game_over_summary_button.show()
+	if summary_on_death if died else summary_on_complete:
+		show_run_summary()
