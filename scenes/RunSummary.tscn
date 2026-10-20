@@ -1,0 +1,120 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://scripts/analytics/run_summary.gd" id="1_summary"]
+[ext_resource type="Script" path="res://scripts/analytics/route_map_view.gd" id="2_map_view"]
+
+[node name="RunSummary" type="CanvasLayer"]
+process_mode = 3
+layer = 80
+visible = false
+script = ExtResource("1_summary")
+
+[node name="Background" type="ColorRect" parent="."]
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+color = Color(0.03, 0.02, 0.05, 0.94)
+
+[node name="Margin" type="MarginContainer" parent="Background"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_constants/margin_left = 24
+theme_override_constants/margin_top = 16
+theme_override_constants/margin_right = 24
+theme_override_constants/margin_bottom = 16
+
+[node name="VBox" type="VBoxContainer" parent="Background/Margin"]
+layout_mode = 2
+theme_override_constants/separation = 10
+
+[node name="Title" type="Label" parent="Background/Margin/VBox"]
+layout_mode = 2
+theme_override_colors/font_color = Color(1, 0.86, 0.5, 1)
+theme_override_font_sizes/font_size = 34
+text = "Resumen de la partida"
+horizontal_alignment = 1
+
+[node name="SubtitleLabel" type="Label" parent="Background/Margin/VBox"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_font_sizes/font_size = 22
+horizontal_alignment = 1
+
+[node name="Body" type="HBoxContainer" parent="Background/Margin/VBox"]
+layout_mode = 2
+size_flags_vertical = 3
+theme_override_constants/separation = 16
+
+[node name="MapView" type="Control" parent="Background/Margin/VBox/Body"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(320, 200)
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
+mouse_filter = 2
+script = ExtResource("2_map_view")
+
+[node name="Side" type="VBoxContainer" parent="Background/Margin/VBox/Body"]
+custom_minimum_size = Vector2(260, 0)
+layout_mode = 2
+theme_override_constants/separation = 8
+
+[node name="StatsLabel" type="Label" parent="Background/Margin/VBox/Body/Side"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_font_sizes/font_size = 18
+
+[node name="TimeHint" type="Label" parent="Background/Margin/VBox/Body/Side"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.75, 0.75, 0.8, 1)
+theme_override_font_sizes/font_size = 16
+text = "Color de la ruta según el tiempo:
+azul al inicio, amarillo a la mitad,
+rojo al final."
+
+[node name="Legend" type="HFlowContainer" parent="Background/Margin/VBox"]
+unique_name_in_owner = true
+layout_mode = 2
+alignment = 1
+theme_override_constants/h_separation = 18
+theme_override_constants/v_separation = 2
+
+[node name="Controls" type="HBoxContainer" parent="Background/Margin/VBox"]
+layout_mode = 2
+theme_override_constants/separation = 12
+
+[node name="PlayButton" type="Button" parent="Background/Margin/VBox/Controls"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(150, 44)
+layout_mode = 2
+theme_override_font_sizes/font_size = 22
+text = "Reproducir"
+
+[node name="ReplaySlider" type="HSlider" parent="Background/Margin/VBox/Controls"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 4
+max_value = 1.0
+step = 0.01
+
+[node name="TimeLabel" type="Label" parent="Background/Margin/VBox/Controls"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(130, 0)
+layout_mode = 2
+theme_override_font_sizes/font_size = 20
+text = "0:00 / 0:00"
+horizontal_alignment = 1
+
+[node name="CloseButton" type="Button" parent="Background/Margin/VBox/Controls"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(160, 44)
+layout_mode = 2
+theme_override_font_sizes/font_size = 22
+text = "Continuar"
