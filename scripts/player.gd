@@ -11,6 +11,11 @@ signal key_collected
 signal coins_collected(amount: int)
 ## Se emite cuando el jugador se queda sin vidas.
 signal died
+## Se emite en lugar de died cuando el jugador se queda sin vidas con
+## revives_on_death activo: el nivel decide dónde lo revive (revive()).
+signal knocked_out
+## Se emite al revivir, con las vidas con las que vuelve.
+signal revived(lives: int)
 
 ## Velocidad de movimiento en píxeles por segundo.
 @export var speed: float = 80.0
@@ -64,6 +69,10 @@ var facing: Vector2 = Vector2.RIGHT
 ## true ignora todo el daño (sin retroceso ni invulnerabilidad). Solo lo usa la
 ## zona de pruebas; en una partida siempre es false.
 var invincible := false
+## true: quedarse sin vidas no termina la partida. El jugador se detiene y
+## emite knocked_out en lugar de died, y el nivel lo revive con revive(). Solo
+## lo usa la demo (puntos de control); en una partida normal es false.
+var revives_on_death := false
 
 # Tiempo restante de invulnerabilidad; mayor que cero significa invulnerable.
 var _invulnerable_left: float = 0.0
@@ -441,6 +450,32 @@ func _update_invulnerability(delta: float) -> void:
 
 
 func _die() -> void:
-	# Deja de moverse y avisa; el nivel decide qué hacer (mostrar Game Over).
+	# Deja de moverse y avisa; el nivel decide qué hacer (mostrar Game Over o,
+	# en la demo, revivirlo en el punto de control).
 	set_physics_process(false)
+	if revives_on_death:
+		knocked_out.emit()
+		return
 	died.emit()
+
+
+## Vuelve a la vida en la posición global at con new_lives vidas (entre 1 y
+## max_lives), sin retroceso, frenos ni golpe en curso y con la invulnerabilidad
+## de un golpe recibido, para que no lo lastimen apenas aparece. No emite
+## lives_changed: el nivel actualiza lo que se ve con revived.
+func revive(at: Vector2, new_lives: int) -> void:
+	global_position = at
+	velocity = Vector2.ZERO
+	lives = clampi(new_lives, 1, max_lives)
+	_knockback_left = 0.0
+	_slow_left = 0.0
+	_slow_factor = 1.0
+	if _slow_particles:
+		_slow_particles.emitting = false
+	_windup_left = 0.0
+	_attack_left = 0.0
+	hitbox.set_deferred("monitoring", false)
+	_invulnerable_left = invulnerability_time
+	sprite.modulate.a = 0.5
+	set_physics_process(true)
+	revived.emit(lives)

@@ -49,6 +49,8 @@ const ITEM_ICON_WIDTH := 32
 @onready var boss_bar: BossHealthBar = %BossBar
 
 var _game_over_tween: Tween
+# Segundos de un mensaje sin duración propia (el wait_time de la escena).
+var _message_time := 1.5
 # Botón de cada artículo de la tienda; se crean la primera vez que se muestra.
 var _shop_buttons: Dictionary[StringName, Button] = {}
 
@@ -58,6 +60,7 @@ func _ready() -> void:
 	shop.hide()
 	game_over_screen.hide()
 	message_label.hide()
+	_message_time = message_timer.wait_time
 	message_timer.timeout.connect(message_label.hide)
 	action_button.pressed.connect(action_pressed.emit)
 	retry_button.pressed.connect(_on_game_over_choice.bind(retry_pressed))
@@ -108,11 +111,14 @@ func track_boss(boss: BossBase) -> void:
 	boss_bar.track(boss)
 
 
-## Muestra un mensaje temporal en la parte inferior de la pantalla.
-func show_message(text: String) -> void:
+## Muestra un mensaje temporal en la parte inferior de la pantalla. duration
+## son los segundos que se ve; 0 usa el tiempo de MessageTimer.
+func show_message(text: String, duration: float = 0.0) -> void:
 	message_label.text = text
 	message_label.show()
-	message_timer.start()
+	# start(segundos) cambia wait_time: siempre se pasa el tiempo, así un
+	# mensaje largo no alarga los siguientes.
+	message_timer.start(duration if duration > 0.0 else _message_time)
 
 
 ## Muestra la pantalla de fin de partida. details es una línea opcional

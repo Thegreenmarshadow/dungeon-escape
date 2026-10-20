@@ -8,6 +8,9 @@ extends Node
 signal run_started
 ## Se emite cada vez que cambian las monedas (al recoger o al comprar).
 signal coins_changed(coins: int)
+## Se emite al volver al menú, antes de cambiar de escena y de reiniciar el
+## estado de la demo: RunTracker cierra ahí la partida con sus totales.
+signal returning_to_menu
 ## Se emite al comprar un artículo de la tienda (ver Shop), con lo que se pagó.
 ## Lo escucha RunTracker para registrar la compra.
 signal item_bought(item: StringName, price: int)
@@ -23,6 +26,10 @@ const MENU_SCENE := "res://scenes/MainMenu.tscn"
 const LEVEL_SCENE := "res://scenes/Level.tscn"
 const DIFFICULTY_REPORT_SCENE := "res://scenes/DifficultyReport.tscn"
 const SANDBOX_SCENE := "res://scenes/Sandbox.tscn"
+const DEMO_SCENE := "res://scenes/DemoLevel.tscn"
+## Vidas de la demo: más que en una partida normal, para que quien prueba el
+## juego por primera vez no tenga que empezar de nuevo.
+const DEMO_LIVES := 5
 
 ## Nivel que se está jugando, empezando en 1.
 var current_level: int = 1
@@ -48,6 +55,10 @@ var test_mode := false
 ## Nivel en el que empezó la partida de prueba actual. "Reintentar" vuelve a
 ## empezar desde acá.
 var test_start_level: int = 1
+## true mientras se juega la demo (el nivel hecho a mano para quien no conoce
+## el juego). No guarda puntajes y RunTracker la registra con modo "demo". Nada
+## de la demo pasa a una partida normal: new_game() lo reinicia todo.
+var demo_mode := false
 
 
 ## Reinicia todo el estado para empezar una partida desde el nivel 1.
@@ -61,6 +72,7 @@ func new_game() -> void:
 	weapon_id = WeaponData.STARTING_ID
 	run_seed = randi()
 	test_mode = false
+	demo_mode = false
 
 
 func register_kill() -> void:
@@ -142,10 +154,24 @@ func start_test_run(level: int) -> void:
 	start_level()
 
 
+## Empieza la demo desde su primera sala, con DEMO_LIVES vidas y la espada.
+## Es un nivel aparte (DEMO_SCENE): current_level queda en 1, así los enemigos
+## tienen su vida base.
+func start_demo() -> void:
+	new_game()
+	demo_mode = true
+	lives = DEMO_LIVES
+	run_started.emit()
+	_change_scene(DEMO_SCENE)
+
+
 ## "Reintentar" tras perder: repite la misma clase de partida. Una partida de
-## prueba vuelve a empezar en su nivel inicial; una normal, desde el nivel 1.
+## prueba vuelve a empezar en su nivel inicial; la demo, desde su primera sala;
+## una normal, desde el nivel 1.
 func retry() -> void:
-	if test_mode:
+	if demo_mode:
+		start_demo()
+	elif test_mode:
 		start_test_run(test_start_level)
 	else:
 		start_new_game()
@@ -158,7 +184,12 @@ func start_level() -> void:
 	_change_scene(LEVEL_SCENE)
 
 
+## Vuelve al menú. Al salir de la demo se reinicia todo el estado (vidas, arma,
+## monedas...), así nada de la demo llega a la próxima partida.
 func go_to_menu() -> void:
+	returning_to_menu.emit()
+	if demo_mode:
+		new_game()
 	_change_scene(MENU_SCENE)
 
 

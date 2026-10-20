@@ -36,13 +36,8 @@ var _boss_fight: BossFight
 func _ready() -> void:
 	Music.play_track(EXPLORATION_MUSIC)
 
-	# El nivel 1 es el mapa hecho a mano de esta escena; del 2 en adelante se
-	# reemplaza por uno generado. Debe ocurrir antes de contar a los enemigos.
-	var camera_margin := 0
-	if Game.current_level >= LevelGenerator.FIRST_GENERATED_LEVEL:
-		_build_generated_level()
-		camera_margin = GENERATED_CAMERA_MARGIN
-	_fit_camera_to_map(camera_margin)
+	# Debe ocurrir antes de contar a los enemigos.
+	_fit_camera_to_map(_build_map())
 
 	# Las vidas vienen del estado global, así se conservan entre niveles.
 	# Se asignan acá porque el jugador ya ejecutó su _ready: Godot inicializa
@@ -126,6 +121,17 @@ func _any_enemy_alerted() -> bool:
 		if is_instance_valid(enemy) and enemy.is_alerted():
 			return true
 	return false
+
+
+## Arma el mapa del nivel y devuelve cuántas celdas de margen puede mostrar la
+## cámara alrededor. El nivel 1 es el mapa hecho a mano de esta escena; del 2
+## en adelante se reemplaza por uno generado. La demo (DemoLevel) lo
+## sobrescribe con su propio mapa.
+func _build_map() -> int:
+	if Game.current_level < LevelGenerator.FIRST_GENERATED_LEVEL:
+		return 0
+	_build_generated_level()
+	return GENERATED_CAMERA_MARGIN
 
 
 ## Genera el mapa de Game.current_level (determinista con Game.run_seed) y lo
@@ -282,10 +288,15 @@ func _end_level(title: String, details: String, action_text: String, action: Cal
 ## el vacío fuera de los bordes. Se calcula desde los tiles, así se adapta
 ## automáticamente si el mapa cambia de tamaño. margin_tiles agranda esa área.
 func _fit_camera_to_map(margin_tiles: int = 0) -> void:
-	var used := dungeon.get_used_rect().grow(margin_tiles)
+	var used := _map_used_rect().grow(margin_tiles)
 	var tile_size := dungeon.tile_set.tile_size
 	var camera: Camera2D = player.get_node("Camera2D")
 	camera.limit_left = used.position.x * tile_size.x
 	camera.limit_top = used.position.y * tile_size.y
 	camera.limit_right = used.end.x * tile_size.x
 	camera.limit_bottom = used.end.y * tile_size.y
+
+
+## Celdas ocupadas por el mapa. La demo lo amplía con su capa de otro tema.
+func _map_used_rect() -> Rect2i:
+	return dungeon.get_used_rect()
