@@ -6,10 +6,13 @@ const MENU_MUSIC := preload("res://assets/music/dungeon_yd.ogg")
 const FADE_IN_TIME := 0.8
 ## Cuántos puntajes de la tabla se muestran en el menú.
 const SHOWN_SCORES := 5
+## Informe de patrones de la telemetría (herramienta del equipo).
+const ANALYTICS_REPORT_SCENE := "res://scenes/AnalyticsReport.tscn"
 
 @onready var play_button: Button = %PlayButton
 @onready var demo_button: Button = %DemoButton
 @onready var test_mode_button: Button = %TestModeButton
+@onready var analytics_button: Button = %AnalyticsButton
 @onready var sandbox_button: Button = %SandboxButton
 @onready var quit_button: Button = %QuitButton
 @onready var title: Label = %Title
@@ -30,6 +33,10 @@ func _ready() -> void:
 	# La demo está en todas las builds: es para quien todavía no conoce el juego.
 	demo_button.pressed.connect(Game.start_demo)
 	test_mode_button.pressed.connect(Game.go_to_difficulty_report)
+	# El informe de analítica es para el equipo, no para quien juega: igual
+	# que la zona de pruebas, solo en el editor y en builds de depuración.
+	analytics_button.visible = OS.is_debug_build()
+	analytics_button.pressed.connect(func() -> void: get_tree().change_scene_to_file(ANALYTICS_REPORT_SCENE))
 	# La zona de pruebas es una herramienta de desarrollo: solo en el editor y
 	# en builds de depuración, nunca en la versión publicada.
 	sandbox_button.visible = OS.is_debug_build()

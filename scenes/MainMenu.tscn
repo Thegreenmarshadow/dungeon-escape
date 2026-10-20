@@ -599,6 +599,24 @@ theme_override_styles/hover = SubResource("StyleBoxFlat_hover")
 theme_override_styles/focus = SubResource("StyleBoxFlat_focus")
 text = "Modo prueba"
 
+[node name="AnalyticsButton" type="Button" parent="VBox/ModeRow"]
+unique_name_in_owner = true
+visible = false
+custom_minimum_size = Vector2(260, 56)
+layout_mode = 2
+size_flags_horizontal = 4
+tooltip_text = "Solo en builds de depuración: mapas de calor de las partidas guardadas"
+theme_override_colors/font_color = Color(0.95, 0.88, 0.7, 1)
+theme_override_colors/font_focus_color = Color(1, 0.95, 0.75, 1)
+theme_override_colors/font_pressed_color = Color(0.8, 0.7, 0.5, 1)
+theme_override_colors/font_hover_color = Color(1, 0.95, 0.75, 1)
+theme_override_font_sizes/font_size = 26
+theme_override_styles/normal = SubResource("StyleBoxFlat_normal")
+theme_override_styles/pressed = SubResource("StyleBoxFlat_pressed")
+theme_override_styles/hover = SubResource("StyleBoxFlat_hover")
+theme_override_styles/focus = SubResource("StyleBoxFlat_focus")
+text = "Analítica"
+
 [node name="SettingsButton" type="Button" parent="VBox/ModeRow"]
 unique_name_in_owner = true
 custom_minimum_size = Vector2(260, 56)
