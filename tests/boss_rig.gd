@@ -19,7 +19,7 @@ class TargetStub:
 	var slow_calls := 0
 	var last_slow_factor := 1.0
 
-	func take_damage(amount: int, _from_position: Vector2 = Vector2.INF) -> void:
+	func take_damage(amount: int, _from_position: Vector2 = Vector2.INF, _source: StringName = &"") -> void:
 		damage_taken += amount
 
 	func apply_slow(factor: float, _duration: float, _color: Color = Color.WHITE) -> void:

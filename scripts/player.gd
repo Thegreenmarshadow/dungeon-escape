@@ -14,8 +14,19 @@ signal died
 ## Se emite en lugar de died cuando el jugador se queda sin vidas con
 ## revives_on_death activo: el nivel decide dónde lo revive (revive()).
 signal knocked_out
-## Se emite al revivir, con las vidas con las que vuelve.
+## Se emite al revivir, con las vidas con las que vuelve. revive() también
+## lo teletransporta: la telemetría corta ahí la línea del recorrido.
 signal revived(lives: int)
+## Se emite al recibir daño, con las vidas perdidas y quién lo hizo (source):
+## el tipo de enemigo (RunRecorder.enemy_kind), &"spikes", el id del jefe para
+## sus efectos de suelo... Vacío si quien llamó no lo dijo. Solo lo observan
+## las estadísticas; el juego no depende de esta señal.
+signal damaged(amount: int, source: StringName)
+## Se emite una vez por golpe, al terminar su ventana activa: hit es true si
+## tocó algo golpeable (enemigo o proyectil). Solo observa.
+signal attacked(hit: bool)
+## Se emite cuando equip_weapon cambia el arma por otra distinta, con su id.
+signal weapon_changed(weapon_id: StringName)
 
 ## Velocidad de movimiento en píxeles por segundo.
 @export var speed: float = 80.0
@@ -73,6 +84,9 @@ var invincible := false
 ## emite knocked_out en lugar de died, y el nivel lo revive con revive(). Solo
 ## lo usa la demo (puntos de control); en una partida normal es false.
 var revives_on_death := false
+## Quién hizo el último daño (el source de take_damage): con él se registra la
+## causa de la muerte. Vacío hasta el primer golpe.
+var last_damage_source: StringName = &""
 
 # Tiempo restante de invulnerabilidad; mayor que cero significa invulnerable.
 var _invulnerable_left: float = 0.0
@@ -176,13 +190,18 @@ func _update_walk_animation(delta: float, moving: bool) -> void:
 ## Resta vidas salvo que el jugador esté en su ventana de invulnerabilidad.
 ## Lo llaman las trampas y los enemigos. Si se pasa from_position (de dónde
 ## vino el golpe), el jugador retrocede en la dirección contraria; sin ella,
-## como en los picos, solo pierde vidas.
-func take_damage(amount: int, from_position: Vector2 = Vector2.INF) -> void:
+## como en los picos, solo pierde vidas. source dice quién lo lastimó (ver
+## damaged); no cambia nada del juego.
+func take_damage(amount: int, from_position: Vector2 = Vector2.INF, source: StringName = &"") -> void:
 	if invincible or _invulnerable_left > 0.0 or lives <= 0:
 		return
 
+	var lives_before := lives
 	lives = max(lives - amount, 0)
+	last_damage_source = source
 	lives_changed.emit(lives)
+	if lives < lives_before:
+		damaged.emit(lives_before - lives, source)
 	Sfx.play(&"player_hurt")
 
 	if lives == 0:
@@ -238,10 +257,13 @@ func get_hit_damage() -> int:
 func equip_weapon(new_weapon: WeaponData) -> void:
 	if new_weapon == null:
 		return
+	var changed := weapon == null or weapon.id != new_weapon.id
 	weapon = new_weapon
 	if is_node_ready():
 		_apply_weapon()
 		_aim_weapon()
+	if changed:
+		weapon_changed.emit(weapon.id)
 
 
 ## true desde que empieza un golpe (anticipación incluida) hasta que su hitbox
@@ -292,6 +314,7 @@ func _update_attack(delta: float) -> void:
 		# Al terminar la ventana activa, la hitbox deja de detectar.
 		if _attack_left <= 0.0:
 			hitbox.set_deferred("monitoring", false)
+			attacked.emit(not _hit_this_swing.is_empty())
 
 
 ## Multiplicador de la velocidad: el arma puede frenar al jugador mientras ataca
@@ -467,6 +490,7 @@ func revive(at: Vector2, new_lives: int) -> void:
 	global_position = at
 	velocity = Vector2.ZERO
 	lives = clampi(new_lives, 1, max_lives)
+	last_damage_source = &""
 	_knockback_left = 0.0
 	_slow_left = 0.0
 	_slow_factor = 1.0

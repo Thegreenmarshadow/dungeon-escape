@@ -231,7 +231,7 @@ func _damage_touching_bodies() -> void:
 	# jugador se queda pegado. La invulnerabilidad del jugador evita daño repetido.
 	for body in contact_area.get_overlapping_bodies():
 		if body.has_method("take_damage"):
-			body.take_damage(contact_damage, global_position)
+			body.take_damage(contact_damage, global_position, damage_source())
 
 
 ## Retroceso del golpe que se está recibiendo: knockback_distance por el
@@ -300,3 +300,9 @@ func _on_animation_finished() -> void:
 	elif sprite.animation == hurt_animation:
 		_is_hurt = false
 		sprite.play(idle_animation)
+
+
+## Nombre con el que este enemigo figura como fuente del daño que hace
+## (Player.damaged): el mismo de RunRecorder.enemy_kind (Skeleton, Forge...).
+func damage_source() -> StringName:
+	return StringName(RunRecorder.enemy_kind(self))

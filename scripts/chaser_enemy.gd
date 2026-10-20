@@ -143,5 +143,5 @@ func _on_sprite_frame_changed() -> void:
 	if global_position.distance_to(_player.global_position) > attack_reach:
 		return
 	if _player.has_method("take_damage"):
-		_player.take_damage(attack_damage, global_position)
+		_player.take_damage(attack_damage, global_position, damage_source())
 		_attack_hit_done = true

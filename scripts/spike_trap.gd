@@ -1,6 +1,9 @@
 extends Area2D
 ## Trampa de picos animada: hace daño solo mientras los picos están arriba.
 
+## Fuente del daño de los picos (Player.damaged).
+const DAMAGE_SOURCE := &"spikes"
+
 ## Daño que recibe el jugador al pisar los picos levantados.
 @export var damage: int = 1
 ## Frame de la animación en el que la trampa arranca. Sirve para desfasar varias trampas.
@@ -25,7 +28,7 @@ func _physics_process(_delta: float) -> void:
 	# La invulnerabilidad del jugador evita que pierda varias vidas seguidas.
 	for body in get_overlapping_bodies():
 		if body.has_method("take_damage"):
-			body.take_damage(damage)
+			body.take_damage(damage, Vector2.INF, DAMAGE_SOURCE)
 
 
 func are_spikes_up() -> bool:

@@ -13,7 +13,7 @@ class TargetStub:
 	var damage_taken := 0
 	var last_source := Vector2.INF
 
-	func take_damage(amount: int, from_position: Vector2 = Vector2.INF) -> void:
+	func take_damage(amount: int, from_position: Vector2 = Vector2.INF, _source: StringName = &"") -> void:
 		damage_taken += amount
 		last_source = from_position
 

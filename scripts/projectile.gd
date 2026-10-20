@@ -36,6 +36,8 @@ const PLAYER_MASK := 2
 const ENEMY_MASK := 4
 ## Color del proyectil devuelto por el jugador.
 const REFLECTED_TINT := Color(0.7, 0.9, 1.0)
+## Fuente del daño (Player.damaged) de un proyectil sin source asignado.
+const DEFAULT_SOURCE := &"projectile"
 
 var direction: Vector2 = Vector2.RIGHT
 ## true después de que el jugador lo devolvió: ya no lo lastima a él sino a
@@ -45,6 +47,9 @@ var is_reflected: bool = false
 ## cuerpo: el proyectil sale a la altura de la mano o del orbe, más arriba que
 ## el cuerpo, y volviendo por el mismo camino le pasaría por encima.
 var shooter: Node2D
+## Fuente del daño al jugador (Player.damaged): RangedEnemy pone su tipo al
+## disparar. Vacía usa DEFAULT_SOURCE.
+var source: StringName = &""
 
 var _travelled: float = 0.0
 var _done: bool = false
@@ -106,7 +111,7 @@ func _on_body_entered(body: Node) -> void:
 		if body is EnemyBase:
 			body.take_hit(damage, global_position)
 	elif body.has_method("take_damage"):
-		body.take_damage(damage, global_position)
+		body.take_damage(damage, global_position, source if source != &"" else DEFAULT_SOURCE)
 	# Lo que sea que haya tocado (jugador, enemigo o pared) lo detiene.
 	_finish()
 

@@ -256,6 +256,8 @@ func spawn_hazard(scene: PackedScene, at: Vector2) -> Node2D:
 	var hazard: Node2D = scene.instantiate()
 	if "target" in hazard:
 		hazard.target = _player
+	if "source" in hazard and boss_id != &"":
+		hazard.source = boss_id
 	var parent := hazard_parent if is_instance_valid(hazard_parent) else get_parent() as Node2D
 	if parent == null:
 		hazard.free()
