@@ -22,6 +22,7 @@ const POINTS_PER_LEVEL := 100
 const MENU_SCENE := "res://scenes/MainMenu.tscn"
 const LEVEL_SCENE := "res://scenes/Level.tscn"
 const DIFFICULTY_REPORT_SCENE := "res://scenes/DifficultyReport.tscn"
+const SANDBOX_SCENE := "res://scenes/Sandbox.tscn"
 
 ## Nivel que se está jugando, empezando en 1.
 var current_level: int = 1
@@ -164,6 +165,12 @@ func go_to_menu() -> void:
 ## Abre la pantalla del modo prueba con el informe de la curva de dificultad.
 func go_to_difficulty_report() -> void:
 	_change_scene(DIFFICULTY_REPORT_SCENE)
+
+
+## Abre la zona de pruebas (solo en builds de depuración). No empieza ninguna
+## partida ni toca el estado de acá: nada de lo que pase ahí cuenta.
+func go_to_sandbox() -> void:
+	_change_scene(SANDBOX_SCENE)
 
 
 func _change_scene(path: String) -> void:

@@ -56,6 +56,19 @@ func test_knockback_speed_decays_to_zero() -> void:
 	assert_true(player._knockback_left <= 0.0)
 
 
+func test_invincible_player_takes_no_damage_nor_knockback() -> void:
+	var player := _make_player()
+	player.invincible = true
+	var lives: int = player.lives
+	player.take_damage(1, Vector2(-10, 0))
+	assert_eq(player.lives, lives, "invencible no pierde vidas")
+	assert_eq(player._knockback_left, 0.0, "ni sale despedido")
+	assert_eq(player._invulnerable_left, 0.0, "ni parpadea")
+	player.invincible = false
+	player.take_damage(1, Vector2(-10, 0))
+	assert_eq(player.lives, lives - 1, "sin la marca vuelve a recibir daño")
+
+
 ## Jugador armado con PlayerRig (ver ahí por qué no se instancia la escena).
 func _make_player() -> CharacterBody2D:
 	var player: CharacterBody2D = track(PLAYER_RIG.make_player())
