@@ -61,6 +61,9 @@ var has_key: bool = false
 var damage_bonus: int = 0
 ## Última dirección de movimiento; hacia ella se lanza el golpe.
 var facing: Vector2 = Vector2.RIGHT
+## true ignora todo el daño (sin retroceso ni invulnerabilidad). Solo lo usa la
+## zona de pruebas; en una partida siempre es false.
+var invincible := false
 
 # Tiempo restante de invulnerabilidad; mayor que cero significa invulnerable.
 var _invulnerable_left: float = 0.0
@@ -160,7 +163,7 @@ func _update_walk_animation(delta: float, moving: bool) -> void:
 ## vino el golpe), el jugador retrocede en la dirección contraria; sin ella,
 ## como en los picos, solo pierde vidas.
 func take_damage(amount: int, from_position: Vector2 = Vector2.INF) -> void:
-	if _invulnerable_left > 0.0 or lives <= 0:
+	if invincible or _invulnerable_left > 0.0 or lives <= 0:
 		return
 
 	lives = max(lives - amount, 0)
