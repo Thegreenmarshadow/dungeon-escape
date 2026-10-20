@@ -196,10 +196,24 @@ func test_boss_reports_health_changes() -> void:
 	var boss := _make_forge(Vector2(500, 0))
 	var seen: Array = []
 	boss.health_changed.connect(func(health: int, max_health: int) -> void: seen.append([health, max_health]))
-	boss.apply_health_scale(1.88)
+	boss.apply_health_scale(LevelGenerator.enemy_health_scale(24))
 	boss.take_hit(1, Vector2(-10, 0))
-	assert_eq(seen, [[23, 23], [22, 23]], "escala del nivel y golpe")
+	assert_eq(seen, [[18, 18], [17, 18]], "escala del nivel y golpe")
 	assert_true(boss.is_alerted(), "un golpe empieza el combate")
+
+
+func test_boss_has_base_health_on_its_first_level() -> void:
+	for boss_id in [&"lich", &"forge", &"warden"]:
+		var boss: BossBase = track(load(BossRegistry.scene_path(boss_id)).instantiate())
+		var base: int = boss.max_health
+		var first := BossRegistry.first_level(boss_id)
+		boss.apply_health_scale(LevelGenerator.enemy_health_scale(first))
+		assert_eq(boss.max_health, base, "%s en el nivel %d" % [boss_id, first])
+		boss.apply_health_scale(LevelGenerator.enemy_health_scale(first + 12))
+		assert_true(boss.max_health > base, "%s crece en la vuelta siguiente" % boss_id)
+	assert_eq(BossRegistry.first_level(&"lich"), 8)
+	assert_eq(BossRegistry.first_level(&"forge"), 12)
+	assert_eq(BossRegistry.first_level(&"warden"), 16)
 
 
 # ----- fase 2 -----
@@ -225,12 +239,12 @@ func test_phase_two_starts_at_half_health_once() -> void:
 
 func test_phase_two_threshold_with_scaled_health() -> void:
 	var boss := _make_forge(Vector2(500, 0))
-	boss.apply_health_scale(1.88)
-	assert_eq(boss.max_health, 23)
-	boss.take_hit(11, Vector2(-10, 0))
-	assert_eq(boss.phase, 1, "12 de 23 es más de la mitad")
+	boss.apply_health_scale(LevelGenerator.enemy_health_scale(24))
+	assert_eq(boss.max_health, 18)
+	boss.take_hit(8, Vector2(-10, 0))
+	assert_eq(boss.phase, 1, "10 de 18 es más de la mitad")
 	boss.take_hit(1, Vector2(-10, 0))
-	assert_eq(boss.phase, 2, "11 de 23")
+	assert_eq(boss.phase, 2, "9 de 18")
 
 
 func test_heal_is_capped_and_keeps_phase_two() -> void:

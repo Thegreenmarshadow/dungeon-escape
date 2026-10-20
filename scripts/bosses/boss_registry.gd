@@ -52,6 +52,16 @@ static func planned_boss_for_level(level: int) -> StringName:
 	return THEME_BOSSES.get(DungeonTheme.for_level(level), &"")
 
 
+## Primer nivel en el que aparece el jefe (8 la liche, 12 el Forjador, 16 el
+## Guardián). 0 si el jefe no tiene tema.
+static func first_level(boss_id: StringName) -> int:
+	var last := DungeonTheme.FIRST_THEMED_LEVEL + DungeonTheme.BAND_LENGTH * DungeonTheme.ROTATION.size()
+	for level in range(DungeonTheme.FIRST_THEMED_LEVEL, last):
+		if planned_boss_for_level(level) == boss_id:
+			return level
+	return 0
+
+
 ## Jefe que de verdad aparece en el nivel: el planeado, si su escena existe.
 ## &"" si el nivel no es de jefe o su jefe todavía no está hecho. scenes
 ## permite probar con otro registro.

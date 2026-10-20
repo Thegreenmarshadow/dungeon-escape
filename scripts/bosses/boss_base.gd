@@ -129,7 +129,13 @@ func health_ratio() -> float:
 	return clampf(float(health) / float(maxi(max_health, 1)), 0.0, 1.0)
 
 
+## La vida de la escena ya es la pensada para el primer nivel del jefe, así que
+## solo crece lo que crecieron los enemigos desde ese nivel: en su primera
+## aparición tiene la vida base y en las vueltas siguientes (20, 24, 28...) sube.
 func apply_health_scale(multiplier: float) -> void:
+	var first_level := BossRegistry.first_level(boss_id)
+	if first_level > 0:
+		multiplier /= LevelGenerator.enemy_health_scale(first_level)
 	super(multiplier)
 	health_changed.emit(health, max_health)
 
