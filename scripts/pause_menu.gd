@@ -8,6 +8,10 @@ extends CanvasLayer
 ## modo prueba. Escucha el fin del nivel (Player.died y Door.player_escaped)
 ## para no abrirse sobre las pantallas finales.
 
+## false en escenas que no terminan como un nivel (la zona de pruebas): no
+## busca al jugador ni a la puerta para cerrarse al fin del nivel.
+@export var listens_level_end := true
+
 @onready var pause_screen: Control = %PauseScreen
 @onready var continue_button: Button = %ContinueButton
 @onready var back_to_menu_button: Button = %BackToMenuButton
@@ -20,9 +24,10 @@ func _ready() -> void:
 	pause_screen.hide()
 	continue_button.pressed.connect(_resume)
 	back_to_menu_button.pressed.connect(_on_back_to_menu_pressed)
-	var level := get_parent()
-	level.get_node("Player").died.connect(_on_level_ended)
-	level.get_node("ExitDoor").player_escaped.connect(_on_level_ended)
+	if listens_level_end:
+		var level := get_parent()
+		level.get_node("Player").died.connect(_on_level_ended)
+		level.get_node("ExitDoor").player_escaped.connect(_on_level_ended)
 
 
 func _unhandled_input(event: InputEvent) -> void:
