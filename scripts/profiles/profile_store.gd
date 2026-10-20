@@ -248,12 +248,12 @@ func add_play_time(slug: String, seconds: float, run_id: String = "", mode: Stri
 	if profile.is_empty():
 		return {}
 	seconds = maxf(seconds, 0.0)
-	profile["total_time_s"] = float(profile["total_time_s"]) + seconds
+	profile["total_time_s"] = _hundredths(float(profile["total_time_s"]) + seconds)
 	if not run_id.is_empty():
 		var runs: Dictionary = profile["runs"]
 		if not runs.has(run_id):
 			runs[run_id] = {"time_s": 0.0, "mode": mode, "started_at": _now()}
-		runs[run_id]["time_s"] = float(runs[run_id]["time_s"]) + seconds
+		runs[run_id]["time_s"] = _hundredths(float(runs[run_id]["time_s"]) + seconds)
 	save_profile(profile)
 	return profile
 
@@ -333,6 +333,11 @@ func _set_index_value(key: String, value: Variant) -> void:
 	var error := config.save(base_dir.path_join(INDEX_FILE))
 	if error != OK:
 		push_warning("ProfileStore: no se pudo guardar %s (%s)" % [INDEX_FILE, error_string(error)])
+
+
+## Redondea a centésimas: el archivo no acumula decimales de más.
+static func _hundredths(value: float) -> float:
+	return roundf(value * 100.0) / 100.0
 
 
 static func _now() -> String:
