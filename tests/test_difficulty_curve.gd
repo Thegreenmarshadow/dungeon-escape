@@ -17,6 +17,10 @@ const SKELETON := 1.5 / 0.85
 const VAMPIRE := 2.0 / 0.8
 const SKULL := 2.5 / 0.9
 const BOSS := 6.0 / 0.9
+const ARCHER := 2.5 / 0.85
+const SKULL_TURRET := 1.5 / 1.0
+const MIMIC := 2.5 / 0.9
+const MAGE := 3.0 / 0.85
 
 ## Escena de cada tipo y la constante de esquiva de DifficultyCurve que la copia.
 const DODGE_BY_SCENE := {
@@ -24,6 +28,10 @@ const DODGE_BY_SCENE := {
 	"res://scenes/Vampire.tscn": DifficultyCurve.DODGE_VAMPIRE,
 	"res://scenes/Skull.tscn": DifficultyCurve.DODGE_SKULL,
 	"res://scenes/Reaper.tscn": DifficultyCurve.DODGE_BOSS,
+	"res://scenes/Archer.tscn": DifficultyCurve.DODGE_ARCHER,
+	"res://scenes/SkullTurret.tscn": DifficultyCurve.DODGE_SKULL_TURRET,
+	"res://scenes/Mimic.tscn": DifficultyCurve.DODGE_MIMIC,
+	"res://scenes/Mage.tscn": DifficultyCurve.DODGE_MAGE,
 }
 
 ## Niveles y semillas de la prueba de capacidad.
@@ -50,6 +58,25 @@ func test_index_uses_the_documented_weights() -> void:
 	var expected := 5 * SKELETON + 3 * VAMPIRE + 2 * SKULL + BOSS + 4 * 0.5
 	_assert_close(expected, 30.545752, "cuenta a mano")
 	_assert_close(DifficultyCurve.index_for(p), expected, "índice de parámetros hechos a mano")
+
+
+func test_special_enemies_add_their_documented_weights() -> void:
+	# Los mismos parámetros hechos a mano más 1 arquero, 2 torres, 1 mímico y
+	# 1 mago: 30.5458 + 2.9412 + 2 * 1.5 + 2.7778 + 3.5294 = 42.7941.
+	var p := LevelGenerator.Params.new()
+	p.enemy_count = 10
+	p.chaser_share = 0.5
+	p.skull_count = 2
+	p.boss_count = 1
+	p.hazard_count = 4
+	p.special_counts = {
+		LevelGenerator.ARCHER: 1, LevelGenerator.SKULL_TURRET: 2,
+		LevelGenerator.MIMIC: 1, LevelGenerator.MAGE: 1,
+	}
+	var expected := 5 * SKELETON + 3 * VAMPIRE + 2 * SKULL + BOSS + 4 * 0.5 \
+			+ ARCHER + 2 * SKULL_TURRET + MIMIC + MAGE
+	_assert_close(expected, 42.794118, "cuenta a mano")
+	_assert_close(DifficultyCurve.index_for(p), expected, "índice con especiales")
 
 
 func test_dodge_counts_as_extra_health() -> void:
@@ -91,31 +118,42 @@ func test_enemy_health_scale_grows_linearly() -> void:
 
 func test_index_for_level_matches_hand_computed_value() -> void:
 	# Nivel 7 (escalón 6): 18 enemigos, proporción 0.7 -> 13 perseguidores,
-	# 5 calaveras (13 * 0.4 redondeado), 8 vampiros, 5 esqueletos, 2 jefes y
-	# 11 trampas. Vida ×1.48: (5 esqueletos + 8 vampiros + 5 calaveras + 2 jefes)
-	# * 1.48 + 5.5 = 88.4477.
+	# 5 calaveras (13 * 0.4 redondeado), 8 vampiros, 5 esqueletos, 2 jefes,
+	# 1 torre, 1 mímico y 11 trampas. Vida ×1.48: (5 esqueletos + 8 vampiros
+	# + 5 calaveras + 2 jefes + 1 torre + 1 mímico) * 1.48 + 5.5 = 94.7788.
 	var p := LevelGenerator.params_for_level(7)
 	assert_eq(p.enemy_count, 18)
 	assert_eq(LevelGenerator.chaser_count(p), 13)
 	assert_eq(p.skull_count, 5)
 	assert_eq(p.boss_count, 2)
 	assert_eq(p.hazard_count, 11)
-	var level_7 := (5 * SKELETON + 8 * VAMPIRE + 5 * SKULL + 2 * BOSS) * 1.48 + 5.5
+	assert_eq(p.special_counts, {
+		LevelGenerator.SKULL_TURRET: 1, LevelGenerator.MIMIC: 1,
+		LevelGenerator.ARCHER: 0, LevelGenerator.MAGE: 0,
+	})
+	var level_7 := (5 * SKELETON + 8 * VAMPIRE + 5 * SKULL + 2 * BOSS + SKULL_TURRET + MIMIC) * 1.48 + 5.5
+	_assert_close(level_7, 94.778824, "cuenta a mano del nivel 7")
 	_assert_close(DifficultyCurve.index_for_level(7), level_7, "índice del nivel 7")
-	# Nivel 6: 6 esqueletos, 6 vampiros, 4 calaveras, 2 jefes, 10 trampas y
-	# vida ×1.4 = 75.0458.
-	var level_6 := (6 * SKELETON + 6 * VAMPIRE + 4 * SKULL + 2 * BOSS) * 1.4 + 5.0
+	# Nivel 6: 6 esqueletos, 6 vampiros, 4 calaveras, 2 jefes, 1 torre,
+	# 1 mímico, 10 trampas y vida ×1.4 = 81.0346.
+	var level_6 := (6 * SKELETON + 6 * VAMPIRE + 4 * SKULL + 2 * BOSS + SKULL_TURRET + MIMIC) * 1.4 + 5.0
 	_assert_close(DifficultyCurve.growth(7), level_7 / level_6 - 1.0, "crecimiento del nivel 7")
 
 
 func test_index_keeps_growing_after_the_caps() -> void:
-	# Desde el nivel 14 las cantidades están al tope (7 esqueletos, 10 vampiros,
-	# 7 calaveras y 2 jefes = 70.1307 de enemigos, y 9 de trampas); solo crece
-	# la vida: 70.1307 * 2.04 + 9 y 70.1307 * 8.92 + 9.
+	# Desde el nivel 14 los comunes están al tope (7 esqueletos, 10 vampiros,
+	# 7 calaveras y 2 jefes = 70.1307 de enemigos, y 9 de trampas). En el 14
+	# hay además 3 torres, 2 mímicos, 3 arqueros y 2 magos: (70.1307 + 25.9379)
+	# * 2.04 + 9. Desde el 18 los especiales también están al tope (4 arqueros
+	# y 3 magos) y solo crece la vida: 102.5392 * 8.92 + 9 en el nivel 100.
 	var capped := 7 * SKELETON + 10 * VAMPIRE + 7 * SKULL + 2 * BOSS
-	_assert_close(DifficultyCurve.index_for_level(14), capped * 2.04 + 9.0, "índice del nivel 14")
-	_assert_close(DifficultyCurve.index_for_level(14), 152.066667, "índice del nivel 14 a mano")
-	_assert_close(DifficultyCurve.index_for_level(100), 634.566013, "índice del nivel 100")
+	var level_14 := capped + 3 * SKULL_TURRET + 2 * MIMIC + 3 * ARCHER + 2 * MAGE
+	_assert_close(DifficultyCurve.index_for_level(14), level_14 * 2.04 + 9.0, "índice del nivel 14")
+	_assert_close(DifficultyCurve.index_for_level(14), 204.98, "índice del nivel 14 a mano")
+	var all_capped := capped + 3 * SKULL_TURRET + 2 * MIMIC + 4 * ARCHER + 3 * MAGE
+	_assert_close(all_capped, 102.539216, "enemigos al tope")
+	_assert_close(DifficultyCurve.index_for_level(100), all_capped * 8.92 + 9.0, "índice del nivel 100")
+	_assert_close(DifficultyCurve.index_for_level(100), 923.649804, "índice del nivel 100 a mano")
 
 
 func test_first_generated_level_has_no_growth() -> void:

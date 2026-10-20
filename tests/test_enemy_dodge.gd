@@ -17,6 +17,10 @@ const DODGE_BY_SCENE := {
 	"res://scenes/Skull.tscn": 0.10,
 	"res://scenes/Vampire.tscn": 0.20,
 	"res://scenes/Reaper.tscn": 0.10,
+	"res://scenes/Archer.tscn": 0.15,
+	"res://scenes/SkullTurret.tscn": 0.0,
+	"res://scenes/Mimic.tscn": 0.10,
+	"res://scenes/Mage.tscn": 0.15,
 }
 
 ## Tirada que siempre esquiva con chance > 0 y que nunca lo hace con chance 0.

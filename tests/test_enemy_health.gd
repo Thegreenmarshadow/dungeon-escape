@@ -10,6 +10,10 @@ const ENEMY_SCENES := {
 	"res://scenes/Vampire.tscn": 3,
 	"res://scenes/Skull.tscn": 2,
 	"res://scenes/Reaper.tscn": 5,
+	"res://scenes/Archer.tscn": 2,
+	"res://scenes/SkullTurret.tscn": 3,
+	"res://scenes/Mimic.tscn": 3,
+	"res://scenes/Mage.tscn": 3,
 }
 
 

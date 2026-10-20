@@ -33,9 +33,21 @@ const WEIGHT_SKULL := 2.5
 const WEIGHT_BOSS := 6.0
 ## Trampa de picos: estática y predecible.
 const WEIGHT_HAZARD := 0.5
+## Esqueleto arquero: el primer peligro a distancia; guarda distancia y
+## dispara flechas con aviso (la biblia propone 2.5).
+const WEIGHT_ARCHER := 2.5
+## Torre de calaveras: dispara orbes pero no se mueve; basta con no quedarse
+## en su línea o rodearla.
+const WEIGHT_SKULL_TURRET := 1.5
+## Cofre mímico: emboscada cuerpo a cuerpo, aguanta más que el vampiro.
+const WEIGHT_MIMIC := 2.5
+## Mago del orbe: a distancia y con más vida que el arquero, aunque su orbe es
+## más lento y se puede devolver con la espada.
+const WEIGHT_MAGE := 3.0
 
 ## Probabilidad de esquivar de cada tipo: copia de dodge_chance de sus escenas
-## (Skeleton, Vampire, Skull y Reaper.tscn); una prueba comprueba que coincidan.
+## (Skeleton, Vampire, Skull, Reaper, Archer, SkullTurret, Mimic y Mage.tscn);
+## una prueba comprueba que coincidan.
 ## La esquiva cuenta como vida extra: con probabilidad p de esquivar, hacen
 ## falta en promedio 1 / (1 - p) golpes por cada golpe que llega. Es una cota
 ## superior: el enfriamiento de la esquiva (EnemyBase.DODGE_COOLDOWN) y las
@@ -44,6 +56,11 @@ const DODGE_SKELETON := 0.15
 const DODGE_VAMPIRE := 0.20
 const DODGE_SKULL := 0.10
 const DODGE_BOSS := 0.10
+const DODGE_ARCHER := 0.15
+## La torre es un pedestal: no esquiva.
+const DODGE_SKULL_TURRET := 0.0
+const DODGE_MIMIC := 0.10
+const DODGE_MAGE := 0.15
 
 ## Crecimiento mínimo del índice respecto del nivel anterior para considerar
 ## que el nivel sube la dificultad de forma significativa (+10 %).
@@ -77,12 +94,29 @@ static func index_for(params: LevelGenerator.Params) -> float:
 			+ counts["vampires"] * effective_weight(WEIGHT_VAMPIRE, DODGE_VAMPIRE) \
 			+ counts["skulls"] * effective_weight(WEIGHT_SKULL, DODGE_SKULL) \
 			+ params.boss_count * effective_weight(WEIGHT_BOSS, DODGE_BOSS)
+	for kind: StringName in params.special_counts:
+		enemies += params.special_counts[kind] * special_effective_weight(kind)
 	return enemies * params.enemy_health_scale + params.hazard_count * WEIGHT_HAZARD
 
 
 ## Peso de un enemigo contando su esquiva como vida extra: weight / (1 - dodge).
 static func effective_weight(weight: float, dodge: float) -> float:
 	return weight / (1.0 - dodge)
+
+
+## Peso efectivo de un enemigo especial de LevelGenerator.SPECIAL_ENEMIES.
+static func special_effective_weight(kind: StringName) -> float:
+	match kind:
+		LevelGenerator.ARCHER:
+			return effective_weight(WEIGHT_ARCHER, DODGE_ARCHER)
+		LevelGenerator.SKULL_TURRET:
+			return effective_weight(WEIGHT_SKULL_TURRET, DODGE_SKULL_TURRET)
+		LevelGenerator.MIMIC:
+			return effective_weight(WEIGHT_MIMIC, DODGE_MIMIC)
+		LevelGenerator.MAGE:
+			return effective_weight(WEIGHT_MAGE, DODGE_MAGE)
+	push_error("DifficultyCurve: enemigo especial sin peso: %s" % kind)
+	return 0.0
 
 
 static func index_for_level(level: int) -> float:
@@ -107,7 +141,8 @@ static func growth(level: int) -> float:
 
 ## Una fila por nivel entre first y last (incluidos) con la composición del
 ## nivel, su índice, su crecimiento y los topes que ya alcanzó. Claves:
-## level, enemies, skeletons, vampires, skulls, bosses, hazards, grid, rooms,
+## level, enemies, skeletons, vampires, skulls, archers, skull_turrets, mimics,
+## mages (los especiales no cuentan en enemies), bosses, hazards, grid, rooms,
 ## health_scale (multiplicador de vida de los enemigos), index, growth (NAN si no hay nivel anterior), meets_target (true si no hay
 ## con qué comparar) y capped_params (Array[StringName]).
 static func report(first: int = LevelGenerator.FIRST_GENERATED_LEVEL, last: int = LAST_LEVEL) -> Array[Dictionary]:
@@ -122,6 +157,10 @@ static func report(first: int = LevelGenerator.FIRST_GENERATED_LEVEL, last: int 
 			"skeletons": counts["skeletons"],
 			"vampires": counts["vampires"],
 			"skulls": counts["skulls"],
+			"archers": counts["archers"],
+			"skull_turrets": counts["skull_turrets"],
+			"mimics": counts["mimics"],
+			"mages": counts["mages"],
 			"bosses": params.boss_count,
 			"hazards": params.hazard_count,
 			"grid": params.grid_size,
@@ -199,7 +238,8 @@ static func save_csv(rows: Array[Dictionary], path: String = CSV_PATH) -> Error:
 	if file == null:
 		return FileAccess.get_open_error()
 	file.store_csv_line(PackedStringArray([
-		"level", "enemies", "skeletons", "vampires", "skulls", "bosses", "hazards",
+		"level", "enemies", "skeletons", "vampires", "skulls",
+		"archers", "skull_turrets", "mimics", "mages", "bosses", "hazards",
 		"grid_x", "grid_y", "rooms", "health_scale", "index", "growth", "meets_target",
 		"capped_params"]))
 	for row in rows:
@@ -210,7 +250,8 @@ static func save_csv(rows: Array[Dictionary], path: String = CSV_PATH) -> Error:
 			caps.append(cap)
 		file.store_csv_line(PackedStringArray([
 			str(row["level"]), str(row["enemies"]), str(row["skeletons"]), str(row["vampires"]),
-			str(row["skulls"]), str(row["bosses"]), str(row["hazards"]),
+			str(row["skulls"]), str(row["archers"]), str(row["skull_turrets"]),
+			str(row["mimics"]), str(row["mages"]), str(row["bosses"]), str(row["hazards"]),
 			str(grid.x), str(grid.y), str(row["rooms"]),
 			"%.2f" % row["health_scale"],
 			"%.3f" % row["index"],
@@ -227,7 +268,7 @@ static func save_csv(rows: Array[Dictionary], path: String = CSV_PATH) -> Error:
 ## Genera de verdad el mapa del nivel con esa semilla y compara lo pedido con
 ## lo colocado. Sirve para responder si el mapa admitiría más enemigos o
 ## trampas si se subieran ENEMIES_MAX o HAZARDS_MAX. Claves:
-##   level, seed, requested_enemies / placed_enemies (incluye jefes),
+##   level, seed, requested_enemies / placed_enemies (incluye jefes y especiales),
 ##   requested_hazards / placed_hazards, used_fallback, attempt,
 ##   spawnable_cells: celdas aptas para una entidad en todo el mapa,
 ##   free_cells: de esas, las que respetan ENEMY_SPACING con todo lo colocado,
@@ -259,7 +300,8 @@ static func capacity_report(level: int, run_seed: int) -> Dictionary:
 	return {
 		"level": level,
 		"seed": run_seed,
-		"requested_enemies": params.enemy_count + params.boss_count,
+		"requested_enemies": params.enemy_count + params.boss_count
+				+ LevelGenerator.special_total(params),
 		"placed_enemies": layout.enemies.size(),
 		"requested_hazards": params.hazard_count,
 		"placed_hazards": layout.hazards.size(),
@@ -277,14 +319,18 @@ static func capacity_report(level: int, run_seed: int) -> Dictionary:
 # Ayudas
 # ---------------------------------------------------------------------------
 
-## Cuántos enemigos comunes de cada tipo pide el nivel, con el mismo reparto
-## que LevelGenerator._place_enemies.
+## Cuántos enemigos de cada tipo pide el nivel: los comunes con el mismo
+## reparto que LevelGenerator._place_enemies, y los especiales.
 static func _enemy_counts(params: LevelGenerator.Params) -> Dictionary:
 	var chasers := LevelGenerator.chaser_count(params)
 	return {
 		"skeletons": params.enemy_count - chasers,
 		"vampires": chasers - params.skull_count,
 		"skulls": params.skull_count,
+		"archers": params.special_counts.get(LevelGenerator.ARCHER, 0),
+		"skull_turrets": params.special_counts.get(LevelGenerator.SKULL_TURRET, 0),
+		"mimics": params.special_counts.get(LevelGenerator.MIMIC, 0),
+		"mages": params.special_counts.get(LevelGenerator.MAGE, 0),
 	}
 
 
