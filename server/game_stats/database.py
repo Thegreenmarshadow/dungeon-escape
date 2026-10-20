@@ -34,5 +34,60 @@ def initialize(db_path: Path) -> None:
         conn.execute("PRAGMA journal_mode = WAL")
         conn.executescript(SCHEMA_PATH.read_text(encoding="utf-8"))
         conn.commit()
+        _migrate_runs_mode_check(conn)
     finally:
         conn.close()
+
+
+# Databases created before the "demo" mode existed have this CHECK on runs.mode.
+# SQLite cannot alter a CHECK constraint, so the table is rebuilt once.
+OLD_MODE_CHECK = "CHECK (mode IN ('normal', 'test'))"
+NEW_MODE_CHECK = "CHECK (mode IN ('normal', 'test', 'demo'))"
+
+
+def _migrate_runs_mode_check(conn: sqlite3.Connection) -> None:
+    """Rebuild runs with the new mode CHECK if it still has the old one.
+
+    Follows SQLite's documented procedure for schema changes ALTER TABLE cannot
+    make (https://sqlite.org/lang_altertable.html#otheralter): create the new
+    table, copy the rows, drop the old one and rename the new one into place.
+    Idempotent: a table that already allows "demo" is left untouched.
+    """
+    table_sql = conn.execute(
+        "SELECT sql FROM sqlite_master WHERE type = 'table' AND name = 'runs'"
+    ).fetchone()[0]
+    if OLD_MODE_CHECK not in table_sql:
+        return
+    new_table_sql = table_sql.replace(OLD_MODE_CHECK, NEW_MODE_CHECK).replace(
+        "CREATE TABLE runs", "CREATE TABLE runs_new", 1
+    )
+    # Dropping runs drops its indexes and triggers, so they are recreated after.
+    # Automatic indexes (PRIMARY KEY, UNIQUE) have no sql and come back on their own.
+    dependents = [
+        row[0]
+        for row in conn.execute(
+            "SELECT sql FROM sqlite_master"
+            " WHERE tbl_name = 'runs' AND type IN ('index', 'trigger') AND sql IS NOT NULL"
+        )
+    ]
+    # With foreign keys on, DROP TABLE runs would cascade-delete every event.
+    # The pragma is a no-op inside a transaction, so it is set before BEGIN.
+    conn.execute("PRAGMA foreign_keys = OFF")
+    try:
+        conn.execute("BEGIN")
+        conn.execute(new_table_sql)
+        conn.execute("INSERT INTO runs_new SELECT * FROM runs")
+        conn.execute("DROP TABLE runs")
+        # events keeps "REFERENCES runs(id)": the name it points to is the one
+        # runs_new takes now, so no foreign key needs rewriting.
+        conn.execute("ALTER TABLE runs_new RENAME TO runs")
+        for sql in dependents:
+            conn.execute(sql)
+        if conn.execute("PRAGMA foreign_key_check").fetchone() is not None:
+            raise sqlite3.IntegrityError("foreign key violations after rebuilding runs")
+        conn.commit()
+    except BaseException:
+        conn.rollback()
+        raise
+    finally:
+        conn.execute("PRAGMA foreign_keys = ON")

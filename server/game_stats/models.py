@@ -5,7 +5,7 @@ from typing import Any, Literal
 
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 
-Mode = Literal["normal", "test"]
+Mode = Literal["normal", "test", "demo"]
 Outcome = Literal["died", "quit", "in_progress"]
 FinishedOutcome = Literal["died", "quit"]
 

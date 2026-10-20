@@ -34,7 +34,7 @@ const ITEM_LABELS = {
 };
 
 const OUTCOME_LABELS = { died: "Murió", quit: "Abandonó", in_progress: "En curso" };
-const MODE_LABELS = { normal: "Normal", test: "Prueba" };
+const MODE_LABELS = { normal: "Normal", test: "Prueba", demo: "Demo" };
 
 // --- Helpers ----------------------------------------------------------------
 

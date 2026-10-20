@@ -23,6 +23,16 @@ def test_run_lifecycle(client: TestClient, start_run, finish_run) -> None:
     assert client.get(f"/api/runs/{RUN_ID}").json()["duration_s"] == 42.5
 
 
+def test_demo_run_can_be_created_and_finished(client: TestClient, start_run, finish_run) -> None:
+    created = start_run("run-demo-1", mode="demo")
+    finished = finish_run("run-demo-1", score=80, outcome="quit")
+
+    assert created["mode"] == "demo"
+    assert finished["mode"] == "demo"
+    assert finished["outcome"] == "quit"
+    assert [r["id"] for r in client.get("/api/runs", params={"mode": "demo"}).json()] == ["run-demo-1"]
+
+
 def test_creating_the_same_run_twice_is_idempotent(client: TestClient, start_run) -> None:
     start_run(RUN_ID)
 

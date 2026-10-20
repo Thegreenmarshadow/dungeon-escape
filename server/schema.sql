@@ -13,7 +13,7 @@ CREATE TABLE IF NOT EXISTS players (
 CREATE TABLE IF NOT EXISTS runs (
     id             TEXT    PRIMARY KEY,
     player_id      INTEGER NOT NULL REFERENCES players(id),
-    mode           TEXT    NOT NULL DEFAULT 'normal' CHECK (mode IN ('normal', 'test')),
+    mode           TEXT    NOT NULL DEFAULT 'normal' CHECK (mode IN ('normal', 'test', 'demo')),
     run_seed       INTEGER NOT NULL DEFAULT 0,
     start_level    INTEGER NOT NULL DEFAULT 1,
     started_at     TEXT    NOT NULL,

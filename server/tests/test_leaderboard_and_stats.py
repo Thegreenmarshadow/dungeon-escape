@@ -20,6 +20,38 @@ def test_leaderboard_only_has_finished_normal_runs(client: TestClient, start_run
     assert board["best_level"] == 3
 
 
+def test_leaderboard_excludes_demo_runs(client: TestClient, start_run, finish_run) -> None:
+    start_run("run-normal", player="Ana")
+    finish_run("run-normal", score=50, level=2)
+    start_run("run-demo", player="Bruno", mode="demo")
+    finish_run("run-demo", score=10**9, level=99)
+
+    board = client.get("/api/leaderboard").json()
+
+    assert [e["run_id"] for e in board["entries"]] == ["run-normal"]
+    assert board["best_level"] == 2
+
+
+def test_stats_filtered_by_demo_mode_count_only_demo_runs(client: TestClient, start_run, finish_run) -> None:
+    start_run("run-stats-normal", player="Ana")
+    start_run("run-stats-test", player="Bruno", mode="test")
+    start_run("run-stats-demo", player="Carla", mode="demo")
+    client.post("/api/runs/run-stats-normal/events", json={"events": [{"seq": 0, "type": "enemy_killed"}]})
+    demo_events = [{"seq": 0, "type": "enemy_killed"}, {"seq": 1, "type": "key_picked"}]
+    client.post("/api/runs/run-stats-demo/events", json={"events": demo_events})
+    finish_run("run-stats-demo", score=70, level=1)
+
+    demo = client.get("/api/stats", params={"mode": "demo"}).json()
+
+    assert demo["total_runs"] == 1
+    assert demo["total_players"] == 1
+    assert demo["finished_runs"] == 1
+    assert demo["total_kills"] == 1
+    assert demo["keys_collected"] == 1
+    assert demo["best_score"] == 70
+    assert client.get("/api/stats").json()["total_runs"] == 3
+
+
 def test_leaderboard_entries_include_coins_collected(client: TestClient, start_run, finish_run) -> None:
     start_run("run-coins-board")
     coins = [{"seq": 0, "type": "coin_picked", "payload": {"amount": 4}},

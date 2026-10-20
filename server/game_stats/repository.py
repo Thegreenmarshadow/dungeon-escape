@@ -246,7 +246,7 @@ class SqliteStatsRepository:
     # --- Leaderboard and stats -----------------------------------------------
 
     def leaderboard(self, limit: int = 10) -> Leaderboard:
-        """Best finished normal-mode runs: test runs and runs in progress are excluded."""
+        """Best finished normal-mode runs: test and demo runs and runs in progress are excluded."""
         finished_normal = "r.mode = 'normal' AND r.outcome != 'in_progress'"
         rows = self._conn.execute(
             f"""
