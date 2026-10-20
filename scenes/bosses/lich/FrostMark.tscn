@@ -1,0 +1,16 @@
+[gd_scene load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://scripts/bosses/boss_hazard.gd" id="1_script"]
+[ext_resource type="SpriteFrames" path="res://assets/bosses/lich/fx-frost_mark_frames.tres" id="2_frames"]
+
+[node name="FrostMark" type="Node2D"]
+script = ExtResource("1_script")
+damage = 0
+radius = 12.0
+active_frames = Vector2i(4, 5)
+continuous = false
+lifetime = 0.0
+
+[node name="AnimatedSprite2D" type="AnimatedSprite2D" parent="."]
+sprite_frames = ExtResource("2_frames")
+animation = &"default"

@@ -1,0 +1,108 @@
+[gd_scene load_steps=11 format=3]
+
+[ext_resource type="Script" path="res://scripts/bosses/ice_crystal.gd" id="1_script"]
+[ext_resource type="Texture2D" path="res://assets/dungeon_themes/ice/ice_prop.png" id="2_texture"]
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_0"]
+atlas = ExtResource("2_texture")
+region = Rect2(0, 0, 16, 16)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_1"]
+atlas = ExtResource("2_texture")
+region = Rect2(16, 0, 16, 16)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_2"]
+atlas = ExtResource("2_texture")
+region = Rect2(32, 0, 16, 16)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_3"]
+atlas = ExtResource("2_texture")
+region = Rect2(48, 0, 16, 16)
+
+[sub_resource type="SpriteFrames" id="SpriteFrames_crystal"]
+animations = [{
+"frames": [{
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_0")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_1")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_2")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_3")
+}],
+"loop": true,
+"name": &"idle",
+"speed": 6.0
+}, {
+"frames": [{
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_0")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_2")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_0")
+}],
+"loop": false,
+"name": &"hurt",
+"speed": 12.0
+}, {
+"frames": [{
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_0")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_1")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_2")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_3")
+}],
+"loop": false,
+"name": &"death",
+"speed": 12.0
+}]
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_body"]
+size = Vector2(12, 6)
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_contact"]
+size = Vector2(14, 14)
+
+[node name="IceCrystal" type="CharacterBody2D"]
+collision_layer = 4
+motion_mode = 1
+script = ExtResource("1_script")
+max_health = 2
+speed = 0.0
+contact_damage = 0
+knockback_distance = 0.0
+heart_drop_chance = 0.0
+coin_drop_chance = 0.0
+dodge_chance = 0.0
+idle_animation = &"idle"
+move_animation = &"idle"
+
+[node name="AnimatedSprite2D" type="AnimatedSprite2D" parent="."]
+offset = Vector2(0, -5)
+sprite_frames = SubResource("SpriteFrames_crystal")
+animation = &"idle"
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="."]
+shape = SubResource("RectangleShape2D_body")
+
+[node name="ContactArea" type="Area2D" parent="."]
+collision_layer = 0
+collision_mask = 2
+monitorable = false
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="ContactArea"]
+position = Vector2(0, -4)
+shape = SubResource("RectangleShape2D_contact")
