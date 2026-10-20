@@ -28,7 +28,7 @@ El escudo funciona mejor como objeto de la otra mano, combinado con cualquier ar
 
 ### Cómo conectarlo con el caballero
 
-El sprite actual del caballero (`priest3`) ya trae la espada dibujada. Para cambiar de arma hay que borrar esos píxeles de la espada en los 4 frames, en Aseprite o LibreSprite, o pasarme los PNG y los dejo listos.
+**Hecho** para la espada, la daga y la lanza. El caballero usa `priest3/v1_unarmed/` (los 4 frames de `priest3` sin la espada dibujada, generados con `tools/remove_knight_sword.py`), `Player.tscn` tiene el `WeaponPivot` de abajo y `player.gd` lee todo el golpe del `WeaponData` equipado (`equip_weapon`). El retroceso (`knockback`) es relativo a la espada: cada enemigo retrocede su `knockback_distance × knockback / 10`. La lanza y la daga se compran en la tienda entre niveles. Falta conectar las mecánicas especiales del resto (barridos, giro, combos, proyectiles, estados, escudo, críticos, aturdir) y el botín por rareza y `min_level`.
 
 Estructura sugerida en `Player.tscn`:
 

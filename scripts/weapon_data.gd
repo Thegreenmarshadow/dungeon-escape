@@ -2,6 +2,16 @@ class_name WeaponData
 extends Resource
 ## Datos de un arma del caballero. Un .tres por arma en res://assets/weapons/<id>/.
 ## Los valores de la espada son los que ya usa player.gd; el resto son propuestas para probar.
+## El jugador la equipa con Player.equip_weapon y lee de acá el daño, la hitbox,
+## los tiempos y el retroceso de cada golpe.
+
+## Retroceso de la espada. Con este valor cada enemigo retrocede su propio
+## knockback_distance; ver knockback.
+const BASE_KNOCKBACK := 10.0
+## Arma con la que empieza cada partida.
+const STARTING_ID := &"sword"
+## Ruta del recurso de cada arma, con su id dos veces.
+const PATH_FORMAT := "res://assets/weapons/%s/%s.tres"
 
 @export var id: StringName
 @export var display_name := ""
@@ -34,7 +44,10 @@ extends Resource
 @export var windup := 0.0
 @export var active_time := 0.2
 @export var cooldown := 0.4
-## Retroceso aplicado al enemigo (px). Negativo = lo jala hacia el jugador (látigo).
+## Retroceso aplicado al enemigo, relativo a la espada (BASE_KNOCKBACK): cada
+## enemigo retrocede su knockback_distance × knockback / BASE_KNOCKBACK, así uno
+## pesado como la parca se sigue moviendo menos. Negativo = lo jala hacia el
+## jugador (látigo).
 @export var knockback := 10.0
 ## Multiplicador de velocidad del jugador mientras ataca.
 @export var move_speed_while_attacking := 1.0
@@ -79,3 +92,35 @@ extends Resource
 ## Solo escudo: bloquea el daño que viene de frente dentro de este ángulo (grados).
 @export var block_angle := 0.0
 @export var move_speed_while_blocking := 1.0
+
+
+## Carga el arma id desde res://assets/weapons/<id>/<id>.tres. Devuelve null si
+## no existe.
+static func load_by_id(weapon_id: StringName) -> WeaponData:
+	var path := PATH_FORMAT % [weapon_id, weapon_id]
+	if not ResourceLoader.exists(path):
+		return null
+	return load(path) as WeaponData
+
+
+## Multiplicador del retroceso de cada enemigo (1 con la espada).
+func knockback_scale() -> float:
+	return knockback / BASE_KNOCKBACK
+
+
+## true si el golpe es una estocada (daga, lanza): la hitbox es más larga que
+## ancha. Si no, es un tajo en arco (espada) o un golpe circular (maza).
+func is_thrust() -> bool:
+	return hitbox_radius <= 0.0 and hitbox_size.x >= hitbox_size.y
+
+
+## Forma de la hitbox, sin rotar: un círculo de hitbox_radius o un rectángulo
+## de hitbox_size. Siempre una nueva, así cambiarla no afecta a otro jugador.
+func make_hitbox_shape() -> Shape2D:
+	if hitbox_radius > 0.0:
+		var circle := CircleShape2D.new()
+		circle.radius = hitbox_radius
+		return circle
+	var rectangle := RectangleShape2D.new()
+	rectangle.size = hitbox_size
+	return rectangle

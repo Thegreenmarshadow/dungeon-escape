@@ -31,6 +31,7 @@ Juego de acción 2D con vista cenital, hecho en **Godot 4.7.2**. El jugador cont
 
 - **Monedas:** los enemigos pueden soltar monedas al morir (los más duros, más seguido y de más valor; la parca, casi siempre) y en cada mapa generado hay una suelta. Valen más cuanto más alto el nivel: se multiplican por la misma escala que la vida de los enemigos. Se conservan entre niveles y se reinician en cada partida.
 - **Tienda:** en la pantalla de nivel superado se pueden gastar las monedas en **+1 daño** (10, 20, 30... hasta 100 monedas; hasta 10 veces por partida) o **+1 vida** (6 monedas en el nivel 1, multiplicadas por la escala del nivel; solo si falta alguna). Así las mejoras de daño siguen el ritmo de la vida de los enemigos.
+- **Armas:** el caballero empieza cada partida con la espada. En la tienda se puede cambiar por la **lanza** (15 monedas: estocada larga y angosta, el doble de alcance, pero más lenta y frena al jugador al golpear) o la **daga** (25 monedas: golpea el doble de seguido, de muy cerca). El arma comprada reemplaza a la actual, se conserva entre niveles y el +1 daño se le suma igual. Los valores de cada arma están en `assets/weapons/<id>/<id>.tres` (`WeaponData`).
 - La interfaz muestra las vidas, si se tiene la llave, cuántos enemigos se eliminaron y las monedas. La pantalla de victoria incluye ese contador.
 
 ## Cómo ejecutarlo

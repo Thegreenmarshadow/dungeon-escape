@@ -1,6 +1,7 @@
 extends CharacterBody2D
 ## Jugador controlable con movimiento en 8 direcciones, vidas, invulnerabilidad
-## y ataque con espada.
+## y ataque con el arma equipada (WeaponData). El arma se ve en WeaponPivot,
+## que gira hacia donde mira el jugador y lleva la hitbox y la estela del golpe.
 
 ## Se emite cada vez que cambia la cantidad de vidas.
 signal lives_changed(lives: int)
@@ -23,12 +24,9 @@ signal died
 @export var knockback_distance: float = 14.0
 
 @export_group("Ataque")
-## Daño que hace cada golpe de espada.
-@export var attack_damage: int = 1
-## Segundos que la hitbox del golpe permanece activa.
-@export var attack_active_time: float = 0.2
-## Segundos mínimos entre el inicio de un golpe y el siguiente.
-@export var attack_cooldown: float = 0.4
+## Arma equipada: de ella salen el daño, la hitbox, los tiempos y el retroceso
+## de cada golpe. El nivel la reemplaza por la de la partida (Game.weapon_id).
+@export var weapon: WeaponData = preload("res://assets/weapons/sword/sword.tres")
 ## Píxeles que el sprite se adelanta al golpear.
 @export var attack_lunge: float = 3.0
 
@@ -42,20 +40,37 @@ signal died
 
 # Duración del retroceso en segundos.
 const KNOCKBACK_TIME := 0.15
+## Mano derecha del caballero respecto de WeaponPivot, mirando a la derecha: ahí
+## queda la empuñadura (held_grip) del arma.
+const HAND_POSITION := Vector2(3, 2)
+## Ángulo del arma en reposo, en el espacio del pivote: la hoja levantada hacia
+## adelante, como la espada que traía dibujada el sprite original.
+const REST_ANGLE := -PI / 4.0
+## Medio arco que recorre el arma en un tajo: va de -SWING_HALF_ANGLE (arriba) a
+## +SWING_HALF_ANGLE (abajo), como la estela de la espada.
+const SWING_HALF_ANGLE := PI * 5.0 / 12.0
+## Píxeles que avanza el arma en una estocada.
+const THRUST_DISTANCE := 4.0
+## Animación de la estela en effect_frames.
+const EFFECT_ANIMATION := &"default"
 
 var lives: int
 var has_key: bool = false
 ## Daño extra de cada golpe, comprado en la tienda. El nivel lo asigna desde
-## Game.damage_bonus; se suma a attack_damage.
+## Game.damage_bonus; se suma al daño del arma.
 var damage_bonus: int = 0
 ## Última dirección de movimiento; hacia ella se lanza el golpe.
 var facing: Vector2 = Vector2.RIGHT
 
 # Tiempo restante de invulnerabilidad; mayor que cero significa invulnerable.
 var _invulnerable_left: float = 0.0
-# Tiempo restante con la hitbox activa y hasta poder volver a atacar.
+# Tiempo restante de anticipación (el arma se levanta, la hitbox todavía no
+# está activa), con la hitbox activa y hasta poder volver a atacar.
+var _windup_left: float = 0.0
 var _attack_left: float = 0.0
 var _cooldown_left: float = 0.0
+# Movimiento del arma en la mano durante el golpe.
+var _weapon_tween: Tween
 # Objetivos ya golpeados en el golpe actual, para no pegarles dos veces.
 var _hit_this_swing: Array[Node] = []
 # Fase del ciclo de caminata; cada paso avanza PI radianes.
@@ -66,9 +81,11 @@ var _knockback: Vector2 = Vector2.ZERO
 var _knockback_left: float = 0.0
 
 @onready var sprite: AnimatedSprite2D = $AnimatedSprite2D
-@onready var attack_pivot: Node2D = $AttackPivot
-@onready var hitbox: Area2D = $AttackPivot/Hitbox
-@onready var slash: Line2D = $AttackPivot/Slash
+@onready var weapon_pivot: Node2D = $WeaponPivot
+@onready var held: Sprite2D = $WeaponPivot/Held
+@onready var effect: AnimatedSprite2D = $WeaponPivot/Effect
+@onready var hitbox: Area2D = $WeaponPivot/Hitbox
+@onready var hitbox_shape: CollisionShape2D = $WeaponPivot/Hitbox/CollisionShape2D
 
 
 func _ready() -> void:
@@ -79,6 +96,10 @@ func _ready() -> void:
 	# objetivo golpeable es un Area2D.
 	hitbox.area_entered.connect(_on_hitbox_touched)
 	hitbox.body_entered.connect(_on_hitbox_touched)
+	# La estela no tiene loop: al terminar se oculta.
+	effect.animation_finished.connect(effect.hide)
+	_apply_weapon()
+	_aim_weapon()
 
 
 func _physics_process(delta: float) -> void:
@@ -91,7 +112,7 @@ func _physics_process(delta: float) -> void:
 	if _knockback_left > 0.0:
 		velocity = _knockback_step(delta)
 	else:
-		velocity = direction * speed
+		velocity = direction * speed * _move_speed_factor()
 
 	if direction != Vector2.ZERO:
 		facing = direction.normalized()
@@ -99,6 +120,9 @@ func _physics_process(delta: float) -> void:
 	# así al moverse en vertical conserva la última orientación.
 	if direction.x != 0.0:
 		sprite.flip_h = direction.x < 0.0
+	# Durante el golpe el arma y la hitbox quedan hacia donde se lanzó.
+	if not is_attacking():
+		_aim_weapon()
 
 	if Input.is_action_just_pressed("attack"):
 		_try_attack()
@@ -186,9 +210,26 @@ func collect_coins(amount: int) -> void:
 		coins_collected.emit(amount)
 
 
-## Daño total de cada golpe de espada: el base más lo comprado en la tienda.
+## Daño total de cada golpe: el del arma más lo comprado en la tienda.
 func get_hit_damage() -> int:
-	return attack_damage + maxi(damage_bonus, 0)
+	return weapon.damage + maxi(damage_bonus, 0)
+
+
+## Cambia el arma equipada y actualiza lo que se ve y la hitbox. Ignora null.
+## Lo llama el nivel con el arma de la partida.
+func equip_weapon(new_weapon: WeaponData) -> void:
+	if new_weapon == null:
+		return
+	weapon = new_weapon
+	if is_node_ready():
+		_apply_weapon()
+		_aim_weapon()
+
+
+## true desde que empieza un golpe (anticipación incluida) hasta que su hitbox
+## deja de estar activa.
+func is_attacking() -> bool:
+	return _windup_left > 0.0 or _attack_left > 0.0
 
 
 ## Marca que el jugador tiene la llave. La llama la llave al ser tocada.
@@ -200,48 +241,129 @@ func collect_key() -> void:
 func _try_attack() -> void:
 	if _cooldown_left > 0.0:
 		return
-	_cooldown_left = attack_cooldown
-	_attack_left = attack_active_time
+	_cooldown_left = weapon.cooldown
 	_hit_this_swing.clear()
 	Sfx.play(&"sword_swing")
 
-	# Orienta la hitbox y el efecto hacia donde mira el jugador.
-	attack_pivot.rotation = facing.angle()
+	# Orienta el arma, la hitbox y la estela hacia donde mira el jugador.
+	_aim_weapon()
+	_play_attack_motion()
+	if weapon.windup > 0.0:
+		_windup_left = weapon.windup
+	else:
+		_start_active_time()
+
+
+## Activa la hitbox durante active_time y muestra la estela.
+func _start_active_time() -> void:
+	_attack_left = weapon.active_time
 	# Diferido: cambiar el monitoreo durante el paso de física no es seguro.
 	hitbox.set_deferred("monitoring", true)
-	_play_attack_effect()
+	_play_effect()
 
 
 func _update_attack(delta: float) -> void:
 	if _cooldown_left > 0.0:
 		_cooldown_left -= delta
-	if _attack_left > 0.0:
+	if _windup_left > 0.0:
+		_windup_left -= delta
+		if _windup_left <= 0.0:
+			_start_active_time()
+	elif _attack_left > 0.0:
 		_attack_left -= delta
 		# Al terminar la ventana activa, la hitbox deja de detectar.
 		if _attack_left <= 0.0:
 			hitbox.set_deferred("monitoring", false)
 
 
+## Multiplicador de la velocidad: el arma puede frenar al jugador mientras ataca.
+func _move_speed_factor() -> float:
+	return weapon.move_speed_while_attacking if is_attacking() else 1.0
+
+
 func _on_hitbox_touched(target: Node) -> void:
-	# Solo golpea a lo que sabe recibir golpes, y una vez por ataque.
+	# Solo golpea a lo que sabe recibir golpes, y una vez por ataque. Un arma
+	# que no atraviesa (pierce en false) solo golpea al primero.
 	if target in _hit_this_swing or not target.has_method("take_hit"):
 		return
+	if not weapon.pierce and not _hit_this_swing.is_empty():
+		return
 	_hit_this_swing.append(target)
-	target.take_hit(get_hit_damage(), global_position)
+	# Solo los enemigos entienden el retroceso del arma; otros objetivos (por
+	# ejemplo, proyectiles que se rompen) reciben el golpe de siempre.
+	if target is EnemyBase:
+		target.take_hit(get_hit_damage(), global_position, weapon.knockback_scale())
+	else:
+		target.take_hit(get_hit_damage(), global_position)
 
 
-## Efecto visual del golpe: un arco blanco que se desvanece y un pequeño
-## avance del sprite, porque el caballero no tiene animación de ataque.
-func _play_attack_effect() -> void:
-	slash.modulate.a = 1.0
-	slash.show()
-	var fade := create_tween()
-	fade.tween_property(slash, "modulate:a", 0.0, attack_active_time)
-	fade.tween_callback(slash.hide)
+## Muestra el arma equipada: su sprite con la empuñadura en la mano, su estela y
+## la forma y distancia de su hitbox.
+func _apply_weapon() -> void:
+	if _weapon_tween:
+		_weapon_tween.kill()
+	held.texture = weapon.held_texture
+	if weapon.held_texture:
+		# Con centered, el píxel held_grip queda en el origen del Sprite2D.
+		held.offset = weapon.held_texture.get_size() / 2.0 - weapon.held_grip
+	held.position = HAND_POSITION
+	held.rotation = REST_ANGLE
+	effect.sprite_frames = weapon.effect_frames
+	effect.stop()
+	effect.hide()
+	hitbox_shape.shape = weapon.make_hitbox_shape()
+	hitbox_shape.position = Vector2(weapon.hitbox_distance, 0.0)
+
+
+## Gira el pivote hacia facing. Si el caballero mira a la izquierda el pivote se
+## refleja en vertical, así el arma queda en su mano y no boca abajo. Mirando
+## hacia arriba el arma se dibuja detrás del cuerpo.
+func _aim_weapon() -> void:
+	weapon_pivot.rotation = facing.angle()
+	weapon_pivot.scale.y = -1.0 if sprite.flip_h else 1.0
+	held.z_index = -1 if facing.y < -0.5 else 0
+
+
+## Movimiento del arma en la mano y pequeño avance del sprite, porque el
+## caballero no tiene animación de ataque. Un tajo recorre un arco de arriba
+## abajo; una estocada empuja el arma hacia adelante. La anticipación (windup)
+## prepara el golpe y el resto dura active_time.
+func _play_attack_motion() -> void:
+	if _weapon_tween:
+		_weapon_tween.kill()
+	var active := weapon.active_time
+	_weapon_tween = create_tween()
+	if weapon.is_thrust():
+		held.rotation = 0.0
+		var back := HAND_POSITION - Vector2(THRUST_DISTANCE * 0.5, 0.0)
+		if weapon.windup > 0.0:
+			_weapon_tween.tween_property(held, "position", back, weapon.windup)
+		_weapon_tween.tween_property(held, "position", HAND_POSITION + Vector2(THRUST_DISTANCE, 0.0), active * 0.4)
+		_weapon_tween.tween_property(held, "position", HAND_POSITION, active * 0.6)
+	else:
+		if weapon.windup > 0.0:
+			_weapon_tween.tween_property(held, "rotation", -SWING_HALF_ANGLE, weapon.windup)
+		else:
+			held.rotation = -SWING_HALF_ANGLE
+		_weapon_tween.tween_property(held, "rotation", SWING_HALF_ANGLE, active * 0.4) \
+				.set_ease(Tween.EASE_OUT).set_trans(Tween.TRANS_QUAD)
+		_weapon_tween.tween_interval(active * 0.6)
+	_weapon_tween.tween_property(held, "rotation", REST_ANGLE, weapon.cooldown * 0.25)
 
 	var lunge := create_tween()
-	lunge.tween_property(sprite, "position", facing * attack_lunge, attack_active_time * 0.4)
-	lunge.tween_property(sprite, "position", Vector2.ZERO, attack_active_time * 0.6)
+	if weapon.windup > 0.0:
+		lunge.tween_interval(weapon.windup)
+	lunge.tween_property(sprite, "position", facing * attack_lunge, active * 0.4)
+	lunge.tween_property(sprite, "position", Vector2.ZERO, active * 0.6)
+
+
+## Estela del arma, centrada en el jugador y apuntando a la derecha del pivote.
+func _play_effect() -> void:
+	if effect.sprite_frames == null or not effect.sprite_frames.has_animation(EFFECT_ANIMATION):
+		return
+	effect.show()
+	effect.stop()
+	effect.play(EFFECT_ANIMATION)
 
 
 func _update_invulnerability(delta: float) -> void:

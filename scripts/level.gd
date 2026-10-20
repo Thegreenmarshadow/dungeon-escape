@@ -48,6 +48,7 @@ func _ready() -> void:
 	player.lives = Game.lives
 	# Igual con las mejoras compradas en la tienda.
 	player.damage_bonus = Game.damage_bonus
+	player.equip_weapon(WeaponData.load_by_id(Game.weapon_id))
 
 	# Estado inicial de la interfaz.
 	hud.set_lives(player.lives, player.max_lives)

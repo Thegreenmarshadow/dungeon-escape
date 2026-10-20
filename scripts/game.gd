@@ -32,9 +32,12 @@ var enemies_killed: int = 0
 var score: int = 0
 ## Monedas para gastar en la tienda; se conservan entre niveles.
 var coins: int = 0
-## Daño extra de cada golpe de espada, comprado en la tienda. El nivel se lo
-## asigna al jugador al empezar.
+## Daño extra de cada golpe, comprado en la tienda. El nivel se lo asigna al
+## jugador al empezar.
 var damage_bonus: int = 0
+## Arma equipada (id de WeaponData). Se compra en la tienda, se conserva entre
+## niveles y el nivel se la da al jugador al empezar.
+var weapon_id: StringName = WeaponData.STARTING_ID
 ## Semilla de la partida. Junto con el número de nivel determina el mapa que
 ## se genera del nivel 2 en adelante, así un nivel se puede reproducir.
 var run_seed: int = 0
@@ -54,6 +57,7 @@ func new_game() -> void:
 	score = 0
 	coins = 0
 	damage_bonus = 0
+	weapon_id = WeaponData.STARTING_ID
 	run_seed = randi()
 	test_mode = false
 
@@ -78,8 +82,11 @@ func level_scale() -> float:
 
 
 ## Veces que se compró item en esta partida. La vida no necesita contarse: su
-## precio no depende de cuántas se compraron.
+## precio no depende de cuántas se compraron. Un arma cuenta 1 si es la
+## equipada, así la tienda no la vuelve a ofrecer.
 func times_bought(item: StringName) -> int:
+	if Shop.is_weapon(item):
+		return 1 if item == weapon_id else 0
 	return damage_bonus if item == Shop.ITEM_DAMAGE else 0
 
 
@@ -90,8 +97,8 @@ func can_buy(item: StringName, max_lives: int) -> bool:
 
 
 ## Compra item si las reglas de Shop lo permiten: descuenta el precio y aplica
-## la mejora (más daño o una vida más). Devuelve false sin cambiar nada si no
-## se puede comprar.
+## la mejora (más daño, una vida más o el arma nueva). Devuelve false sin
+## cambiar nada si no se puede comprar.
 func buy(item: StringName, max_lives: int) -> bool:
 	if not can_buy(item, max_lives):
 		return false
@@ -102,6 +109,9 @@ func buy(item: StringName, max_lives: int) -> bool:
 			damage_bonus += 1
 		Shop.ITEM_LIFE:
 			lives += 1
+		_:
+			if Shop.is_weapon(item):
+				weapon_id = item
 	coins_changed.emit(coins)
 	item_bought.emit(item, price)
 	return true

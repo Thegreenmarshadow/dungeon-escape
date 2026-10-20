@@ -19,9 +19,13 @@ const GAME_OVER_FADE_TIME := 0.5
 ## Tamaño de cada corazón de vida: el dibujo de 9x8 escalado x3.
 const LIFE_ICON_SIZE := Vector2(27, 24)
 ## Nombre de cada artículo de la tienda y el texto que se muestra cuando no está
-## disponible.
-const ITEM_NAMES := {Shop.ITEM_DAMAGE: "+1 daño", Shop.ITEM_LIFE: "+1 vida"}
-const ITEM_UNAVAILABLE_TEXT := {Shop.ITEM_DAMAGE: "al máximo", Shop.ITEM_LIFE: "vidas completas"}
+## disponible. Las armas muestran además su ícono.
+const ITEM_NAMES := {Shop.ITEM_DAMAGE: "+1 daño", Shop.ITEM_LIFE: "+1 vida",
+		Shop.ITEM_SPEAR: "Lanza", Shop.ITEM_DAGGER: "Daga"}
+const ITEM_UNAVAILABLE_TEXT := {Shop.ITEM_DAMAGE: "al máximo", Shop.ITEM_LIFE: "vidas completas",
+		Shop.ITEM_SPEAR: "equipada", Shop.ITEM_DAGGER: "equipada"}
+## Ancho del ícono de las armas en los botones de la tienda (16 px escalado x2).
+const ITEM_ICON_WIDTH := 32
 
 @onready var lives_hearts: HBoxContainer = %LivesHearts
 @onready var key_icon: TextureRect = %KeyIcon
@@ -35,7 +39,7 @@ const ITEM_UNAVAILABLE_TEXT := {Shop.ITEM_DAMAGE: "al máximo", Shop.ITEM_LIFE: 
 @onready var action_button: Button = %ActionButton
 @onready var shop: Control = %Shop
 @onready var shop_coins_label: Label = %ShopCoinsLabel
-@onready var shop_items: HBoxContainer = %ShopItems
+@onready var shop_items: HFlowContainer = %ShopItems
 @onready var game_over_screen: Control = %GameOverScreen
 @onready var new_record_label: Label = %NewRecordLabel
 @onready var record_label: Label = %RecordLabel
@@ -145,6 +149,11 @@ func _make_shop_button(item: StringName) -> Button:
 	var button := Button.new()
 	button.custom_minimum_size = Vector2(240, 44)
 	button.add_theme_font_size_override("font_size", 22)
+	if Shop.is_weapon(item):
+		var weapon := WeaponData.load_by_id(item)
+		if weapon:
+			button.icon = weapon.icon
+			button.add_theme_constant_override("icon_max_width", ITEM_ICON_WIDTH)
 	button.pressed.connect(buy_pressed.emit.bind(item))
 	shop_items.add_child(button)
 	_shop_buttons[item] = button

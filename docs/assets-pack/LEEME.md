@@ -50,8 +50,8 @@ Las rutas dentro de los `.tres` son `res://assets/...` y `res://scripts/...`. Co
 
 - [ ] `assets/` y `scripts/` copiados; Godot importó sin errores.
 - [ ] Los 4 enemigos tienen escena y aparecen en el generador.
-- [ ] El caballero tiene su sprite sin espada y `WeaponPivot`.
-- [ ] El arma inicial (`sword.tres`) funciona igual que antes.
+- [x] El caballero tiene su sprite sin espada y `WeaponPivot`.
+- [x] El arma inicial (`sword.tres`) funciona igual que antes.
 - [ ] Armas nuevas: rareza y `min_level` conectados al botín.
 - [ ] Jefes: barra de vida, fase 2 al 50 % y efectos de habilidades.
 - [x] Tilesets de los 3 temas generados y cambio por nivel.
@@ -61,7 +61,6 @@ Las rutas dentro de los `.tres` son `res://assets/...` y `res://scripts/...`. Co
 
 | Qué | Por qué | Qué hace falta |
 |---|---|---|
-| Caballero sin espada en el sprite | `priest3` trae la espada dibujada en sus 4 frames | adjuntar esos 4 PNG |
 | Ajuste de stats | todos los números son propuestas | probar en juego y ajustar con `difficulty_playtest.csv` |
 
 ## Para `assets/CREDITS.md`

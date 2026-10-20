@@ -1,8 +1,8 @@
 @tool
 extends McpTestSuite
-## Pruebas de la tienda: precios y reglas de compra (Shop) y la compra sobre el
-## estado de la partida (Game.buy). Usan una copia de Game cuya start_level no
-## cambia de escena.
+## Pruebas de la tienda: precios y reglas de compra (Shop), incluidas las armas,
+## y la compra sobre el estado de la partida (Game.buy). Usan una copia de Game
+## cuya start_level no cambia de escena.
 
 const GAME_SCRIPT := "res://scripts/game.gd"
 const MAX_LIVES := 3
@@ -125,3 +125,46 @@ func test_add_coins_ignores_non_positive_amounts() -> void:
 	_game.add_coins(-3)
 	assert_eq(_game.coins, 2)
 	assert_eq(emitted, [2])
+
+
+func test_weapon_prices_and_availability() -> void:
+	assert_eq(Shop.price_for(Shop.ITEM_SPEAR, 0), 15)
+	assert_eq(Shop.price_for(Shop.ITEM_DAGGER, 0), 25)
+	assert_eq(Shop.price_for(Shop.ITEM_DAGGER, 0, 8.92), 25, "no sigue la escala del nivel")
+	assert_true(Shop.is_weapon(Shop.ITEM_SPEAR))
+	assert_false(Shop.is_weapon(Shop.ITEM_DAMAGE))
+	assert_true(Shop.is_available(Shop.ITEM_SPEAR, 0, 3, MAX_LIVES))
+	assert_false(Shop.is_available(Shop.ITEM_SPEAR, 1, 3, MAX_LIVES), "la equipada no se ofrece")
+	assert_true(Shop.ITEM_SPEAR in Shop.ITEMS and Shop.ITEM_DAGGER in Shop.ITEMS)
+	for item in Shop.WEAPON_PRICES:
+		assert_true(WeaponData.load_by_id(item) != null, "%s es un arma que existe" % item)
+
+
+func test_buying_a_weapon_equips_it() -> void:
+	var bought: Array = []
+	_game.item_bought.connect(func(item: StringName, price: int) -> void: bought.append([item, price]))
+	_game.add_coins(14)
+	assert_false(_game.buy(Shop.ITEM_SPEAR, MAX_LIVES), "faltan monedas")
+	assert_eq(_game.weapon_id, &"sword")
+	_game.add_coins(26)
+	assert_true(_game.buy(Shop.ITEM_SPEAR, MAX_LIVES))
+	assert_eq(_game.weapon_id, &"spear")
+	assert_eq(_game.coins, 25)
+	assert_false(_game.buy(Shop.ITEM_SPEAR, MAX_LIVES), "ya la tiene equipada")
+	assert_true(_game.buy(Shop.ITEM_DAGGER, MAX_LIVES))
+	assert_eq(_game.weapon_id, &"dagger", "reemplaza a la lanza")
+	assert_eq(_game.coins, 0)
+	assert_eq(_game.times_bought(Shop.ITEM_SPEAR), 0, "la lanza se vuelve a ofrecer")
+	assert_eq(bought, [[Shop.ITEM_SPEAR, 15], [Shop.ITEM_DAGGER, 25]])
+	assert_eq(_game.damage_bonus, 0, "comprar un arma no toca el daño extra")
+
+
+func test_bought_weapon_lasts_until_the_run_ends() -> void:
+	_game.add_coins(Shop.price_for(Shop.ITEM_DAGGER, 0))
+	assert_true(_game.buy(Shop.ITEM_DAGGER, MAX_LIVES))
+	_game.complete_level()
+	_game.start_level()
+	assert_eq(_game.weapon_id, &"dagger", "el siguiente nivel la conserva")
+	_game.retry()
+	assert_eq(_game.weapon_id, WeaponData.STARTING_ID, "la partida nueva vuelve a la espada")
+	assert_true(Shop.is_available(Shop.ITEM_DAGGER, _game.times_bought(Shop.ITEM_DAGGER), _game.lives, MAX_LIVES))

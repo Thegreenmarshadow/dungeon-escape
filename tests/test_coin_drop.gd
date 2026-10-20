@@ -60,11 +60,11 @@ func test_coin_ignores_bodies_that_cannot_collect() -> void:
 
 func test_player_damage_includes_the_bought_bonus() -> void:
 	var player := _make_player()
-	assert_eq(player.get_hit_damage(), player.attack_damage)
+	assert_eq(player.get_hit_damage(), player.weapon.damage)
 	player.damage_bonus = 2
-	assert_eq(player.get_hit_damage(), player.attack_damage + 2)
+	assert_eq(player.get_hit_damage(), player.weapon.damage + 2)
 	player.damage_bonus = -1
-	assert_eq(player.get_hit_damage(), player.attack_damage, "un bono negativo no resta")
+	assert_eq(player.get_hit_damage(), player.weapon.damage, "un bono negativo no resta")
 
 
 func test_enemies_expose_their_coin_data() -> void:
