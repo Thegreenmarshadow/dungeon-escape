@@ -8,6 +8,7 @@ const FADE_IN_TIME := 0.8
 const SHOWN_SCORES := 5
 
 @onready var play_button: Button = %PlayButton
+@onready var demo_button: Button = %DemoButton
 @onready var test_mode_button: Button = %TestModeButton
 @onready var sandbox_button: Button = %SandboxButton
 @onready var quit_button: Button = %QuitButton
@@ -23,6 +24,8 @@ const SHOWN_SCORES := 5
 func _ready() -> void:
 	Music.play_track(MENU_MUSIC)
 	play_button.pressed.connect(Game.start_new_game)
+	# La demo está en todas las builds: es para quien todavía no conoce el juego.
+	demo_button.pressed.connect(Game.start_demo)
 	test_mode_button.pressed.connect(Game.go_to_difficulty_report)
 	# La zona de pruebas es una herramienta de desarrollo: solo en el editor y
 	# en builds de depuración, nunca en la versión publicada.

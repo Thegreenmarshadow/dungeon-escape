@@ -326,6 +326,14 @@ func test_a_normal_game_after_the_demo_is_not_a_demo() -> void:
 
 # ----- menú y pantalla final -----
 
+func test_main_menu_has_a_demo_button_in_every_build() -> void:
+	var menu: Node = track(load("res://scenes/MainMenu.tscn").instantiate())
+	var button := menu.get_node_or_null("%DemoButton") as Button
+	if button == null:
+		button = menu.find_child("DemoButton") as Button
+	assert_true(button != null, "el menú tiene el botón Demo")
+	assert_true(button.visible, "visible siempre, no solo en depuración")
+	assert_eq(button.text, "Demo")
 
 
 func test_end_screen_formats_minutes_and_seconds() -> void:
