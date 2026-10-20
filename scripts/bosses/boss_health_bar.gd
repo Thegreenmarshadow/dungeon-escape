@@ -29,13 +29,18 @@ func track(new_boss: BossBase) -> void:
 	refresh()
 
 
-## true si la barra debe verse para ese jefe.
-static func should_show(target: BossBase) -> bool:
-	return is_instance_valid(target) and target.is_alerted()
+## true si la barra debe verse para ese jefe. Sin tipo: un jefe ya liberado no
+## pasa por un parámetro tipado (ni como Object) y el chequeo tiene que poder
+## recibirlo.
+static func should_show(target) -> bool:
+	return is_instance_valid(target) and (target as BossBase).is_alerted()
 
 
 ## Actualiza visibilidad, nombre y vida desde el jefe.
 func refresh() -> void:
+	# El jefe muerto se libera: se suelta la referencia para no tocarlo más.
+	if boss != null and not is_instance_valid(boss):
+		boss = null
 	var showing := should_show(boss)
 	visible = showing
 	if not showing:

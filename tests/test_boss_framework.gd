@@ -178,6 +178,20 @@ func test_health_bar_shows_only_while_the_boss_is_alerted_and_alive() -> void:
 	assert_false(bar.visible)
 
 
+func test_health_bar_lets_go_of_a_freed_boss() -> void:
+	var bar := _make_bar()
+	var boss := _make_forge(Vector2(500, 0))
+	bar.track(boss)
+	boss.engage()
+	bar.refresh()
+	assert_true(bar.visible)
+	boss.free()
+	bar.refresh()
+	assert_false(bar.visible, "el jefe liberado no se muestra")
+	assert_true(bar.boss == null, "suelta la referencia")
+	assert_false(BossHealthBar.should_show(null))
+
+
 func test_boss_reports_health_changes() -> void:
 	var boss := _make_forge(Vector2(500, 0))
 	var seen: Array = []
