@@ -30,7 +30,7 @@ const THEME_BOSSES := {
 ## propia línea, separadas por la del Forjador, así dos ramas que completan
 ## jefes distintos no chocan al unirse.
 const SCENES := {
-	LICH: "",  # TODO paso 2: "res://scenes/bosses/lich/Lich.tscn"
+	LICH: "res://scenes/bosses/lich/Lich.tscn",
 	FORGE: "res://scenes/bosses/forge/Forge.tscn",
 	WARDEN: "",  # TODO paso 2: "res://scenes/bosses/warden/Warden.tscn"
 }
