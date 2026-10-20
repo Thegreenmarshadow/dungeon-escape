@@ -1,0 +1,25 @@
+[gd_resource type="Resource" script_class="WeaponData" load_steps=5 format=3]
+
+[ext_resource type="Script" path="res://scripts/weapon_data.gd" id="1_script"]
+[ext_resource type="Texture2D" path="res://assets/weapons/trident/trident_icon.png" id="2_icon"]
+[ext_resource type="Texture2D" path="res://assets/weapons/trident/trident_held.png" id="3_held"]
+[ext_resource type="SpriteFrames" path="res://assets/weapons/trident/trident_fx.tres" id="4_fx"]
+
+[resource]
+script = ExtResource("1_script")
+id = &"trident"
+display_name = "Tridente"
+description = "Tres puntas en paralelo: atraviesa filas de enemigos."
+icon = ExtResource("2_icon")
+held_texture = ExtResource("3_held")
+held_grip = Vector2(3, 8)
+effect_frames = ExtResource("4_fx")
+rarity = &"rare"
+min_level = 6
+damage = 1
+hitbox_size = Vector2(26, 12)
+hitbox_distance = 20.0
+windup = 0.1
+active_time = 0.15
+cooldown = 0.6
+knockback = 10.0

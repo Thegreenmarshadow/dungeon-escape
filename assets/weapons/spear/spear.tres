@@ -1,0 +1,24 @@
+[gd_resource type="Resource" script_class="WeaponData" load_steps=6 format=3]
+
+[ext_resource type="Script" path="res://scripts/weapon_data.gd" id="1_script"]
+[ext_resource type="Texture2D" path="res://assets/weapons/spear/spear_icon.png" id="2_icon"]
+[ext_resource type="Texture2D" path="res://assets/weapons/spear/spear_held.png" id="3_held"]
+[ext_resource type="SpriteFrames" path="res://assets/weapons/spear/spear_fx.tres" id="4_fx"]
+
+[resource]
+script = ExtResource("1_script")
+id = &"spear"
+display_name = "Lanza"
+description = "Estocada larga y angosta; atraviesa a varios enemigos."
+icon = ExtResource("2_icon")
+held_texture = ExtResource("3_held")
+held_grip = Vector2(6, 8)
+effect_frames = ExtResource("4_fx")
+damage = 1
+hitbox_size = Vector2(26, 6)
+hitbox_distance = 20.0
+windup = 0.05
+active_time = 0.15
+cooldown = 0.55
+knockback = 12.0
+move_speed_while_attacking = 0.7

@@ -1,0 +1,27 @@
+[gd_resource type="Resource" script_class="WeaponData" load_steps=5 format=3]
+
+[ext_resource type="Script" path="res://scripts/weapon_data.gd" id="1_script"]
+[ext_resource type="Texture2D" path="res://assets/weapons/scythe/scythe_icon.png" id="2_icon"]
+[ext_resource type="Texture2D" path="res://assets/weapons/scythe/scythe_held.png" id="3_held"]
+[ext_resource type="SpriteFrames" path="res://assets/weapons/scythe/scythe_fx.tres" id="4_fx"]
+
+[resource]
+script = ExtResource("1_script")
+id = &"scythe"
+display_name = "Guadaña"
+description = "Barrido de 270°. Cada 6 enemigos eliminados cura 1 vida."
+icon = ExtResource("2_icon")
+held_texture = ExtResource("3_held")
+held_grip = Vector2(3, 8)
+effect_frames = ExtResource("4_fx")
+rarity = &"epic"
+min_level = 10
+damage = 1
+hitbox_distance = 21.0
+sweep_degrees = 270.0
+windup = 0.2
+active_time = 0.3
+cooldown = 0.9
+knockback = 12.0
+move_speed_while_attacking = 0.6
+heal_every_kills = 6

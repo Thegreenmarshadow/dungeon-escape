@@ -25,3 +25,9 @@ Los sprites de esta carpeta son de **Pixel_Poem**:
 - [Set gratuito de animaciones de enemigos](https://pixel-poem.itch.io/dungeon-assetpuck/devlog/902754/new-animations-set-for-free): vampiro, esqueleto espadachín y parca (`enemies/`).
 
 Según la licencia del autor, se pueden usar en proyectos gratuitos y comerciales y modificarse, pero **no se pueden redistribuir ni revender por separado**. Se incluyen aquí únicamente como parte del juego *Dungeon Escape*. Para usarlos en otro proyecto, descargarlos desde la página del autor.
+
+## Arte original
+
+Enemigos (`archer`, `skull_turret`, `mimic`, `mage`), proyectiles (`arrow`, `orb_blue`, `orb_gold`), 21 armas del caballero (`weapons/`), jefes temáticos (`forge`, `lich`, `warden` en `bosses/`) y objetos de los temas `ice`, `lava` y `moss` (`dungeon_themes/`): arte original generado por código (Python + Pillow) con Claude, octubre de 2026. La paleta sigue el estilo del juego y no tiene restricciones de licencia de terceros. El código que lo genera está en `docs/assets-pack/fuente/`.
+
+Los tilesets recoloreados con `tools/retheme.py` son modificaciones del pack de **Pixel_Poem** y mantienen su licencia.

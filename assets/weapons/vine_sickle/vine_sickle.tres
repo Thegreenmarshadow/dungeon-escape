@@ -1,0 +1,25 @@
+[gd_resource type="Resource" script_class="WeaponData" load_steps=5 format=3]
+
+[ext_resource type="Script" path="res://scripts/weapon_data.gd" id="1_script"]
+[ext_resource type="Texture2D" path="res://assets/weapons/vine_sickle/vine_sickle_icon.png" id="2_icon"]
+[ext_resource type="Texture2D" path="res://assets/weapons/vine_sickle/vine_sickle_held.png" id="3_held"]
+[ext_resource type="SpriteFrames" path="res://assets/weapons/vine_sickle/vine_sickle_fx.tres" id="4_fx"]
+
+[resource]
+script = ExtResource("1_script")
+id = &"vine_sickle"
+display_name = "Hoz de enredadera"
+description = "Hoz viva: cada 8 golpes acertados recupera 1 vida."
+icon = ExtResource("2_icon")
+held_texture = ExtResource("3_held")
+held_grip = Vector2(3, 8)
+effect_frames = ExtResource("4_fx")
+rarity = &"rare"
+min_level = 13
+damage = 1
+hitbox_size = Vector2(14, 16)
+hitbox_distance = 9.0
+active_time = 0.15
+cooldown = 0.35
+knockback = 8.0
+heal_every_hits = 8

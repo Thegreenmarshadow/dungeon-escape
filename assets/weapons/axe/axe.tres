@@ -1,0 +1,24 @@
+[gd_resource type="Resource" script_class="WeaponData" load_steps=6 format=3]
+
+[ext_resource type="Script" path="res://scripts/weapon_data.gd" id="1_script"]
+[ext_resource type="Texture2D" path="res://assets/weapons/axe/axe_icon.png" id="2_icon"]
+[ext_resource type="Texture2D" path="res://assets/weapons/axe/axe_held.png" id="3_held"]
+[ext_resource type="SpriteFrames" path="res://assets/weapons/axe/axe_fx.tres" id="4_fx"]
+
+[resource]
+script = ExtResource("1_script")
+id = &"axe"
+display_name = "Hacha"
+description = "Lenta, barre un arco amplio y hace 2 de daño."
+icon = ExtResource("2_icon")
+held_texture = ExtResource("3_held")
+held_grip = Vector2(3, 8)
+effect_frames = ExtResource("4_fx")
+damage = 2
+hitbox_size = Vector2(20, 30)
+hitbox_distance = 12.0
+windup = 0.15
+active_time = 0.25
+cooldown = 0.8
+knockback = 16.0
+move_speed_while_attacking = 0.5

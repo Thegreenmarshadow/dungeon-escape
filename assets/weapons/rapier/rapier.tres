@@ -1,0 +1,26 @@
+[gd_resource type="Resource" script_class="WeaponData" load_steps=5 format=3]
+
+[ext_resource type="Script" path="res://scripts/weapon_data.gd" id="1_script"]
+[ext_resource type="Texture2D" path="res://assets/weapons/rapier/rapier_icon.png" id="2_icon"]
+[ext_resource type="Texture2D" path="res://assets/weapons/rapier/rapier_held.png" id="3_held"]
+[ext_resource type="SpriteFrames" path="res://assets/weapons/rapier/rapier_fx.tres" id="4_fx"]
+
+[resource]
+script = ExtResource("1_script")
+id = &"rapier"
+display_name = "Estoque"
+description = "Estocada fina y veloz; muchos críticos."
+icon = ExtResource("2_icon")
+held_texture = ExtResource("3_held")
+held_grip = Vector2(3, 8)
+effect_frames = ExtResource("4_fx")
+rarity = &"common"
+min_level = 2
+damage = 1
+hitbox_size = Vector2(24, 4)
+hitbox_distance = 16.0
+active_time = 0.08
+cooldown = 0.25
+knockback = 4.0
+crit_chance = 0.3
+pierce = false

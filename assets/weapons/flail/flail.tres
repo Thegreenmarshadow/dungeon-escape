@@ -1,0 +1,27 @@
+[gd_resource type="Resource" script_class="WeaponData" load_steps=5 format=3]
+
+[ext_resource type="Script" path="res://scripts/weapon_data.gd" id="1_script"]
+[ext_resource type="Texture2D" path="res://assets/weapons/flail/flail_icon.png" id="2_icon"]
+[ext_resource type="Texture2D" path="res://assets/weapons/flail/flail_held.png" id="3_held"]
+[ext_resource type="SpriteFrames" path="res://assets/weapons/flail/flail_fx.tres" id="4_fx"]
+
+[resource]
+script = ExtResource("1_script")
+id = &"flail"
+display_name = "Mangual"
+description = "Mantener el botón para girar: daña todo alrededor sin parar."
+icon = ExtResource("2_icon")
+held_texture = ExtResource("3_held")
+held_grip = Vector2(3, 8)
+effect_frames = ExtResource("4_fx")
+rarity = &"rare"
+min_level = 7
+damage = 1
+hitbox_radius = 20.0
+hitbox_distance = 0.0
+active_time = 0.1
+cooldown = 0.5
+knockback = 14.0
+move_speed_while_attacking = 0.6
+spin = true
+spin_tick = 0.35

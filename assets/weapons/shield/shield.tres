@@ -1,0 +1,24 @@
+[gd_resource type="Resource" script_class="WeaponData" load_steps=6 format=3]
+
+[ext_resource type="Script" path="res://scripts/weapon_data.gd" id="1_script"]
+[ext_resource type="Texture2D" path="res://assets/weapons/shield/shield_icon.png" id="2_icon"]
+[ext_resource type="Texture2D" path="res://assets/weapons/shield/shield_held.png" id="3_held"]
+[ext_resource type="SpriteFrames" path="res://assets/weapons/shield/shield_fx.tres" id="4_fx"]
+
+[resource]
+script = ExtResource("1_script")
+id = &"shield"
+display_name = "Escudo"
+description = "Mantener el botón bloquea el daño de frente. Empujón sin daño."
+icon = ExtResource("2_icon")
+held_texture = ExtResource("3_held")
+held_grip = Vector2(8, 8)
+effect_frames = ExtResource("4_fx")
+damage = 0
+hitbox_size = Vector2(10, 16)
+hitbox_distance = 8.0
+active_time = 0.15
+cooldown = 1.0
+knockback = 20.0
+block_angle = 90.0
+move_speed_while_blocking = 0.5

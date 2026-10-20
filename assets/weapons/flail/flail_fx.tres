@@ -1,0 +1,53 @@
+[gd_resource type="SpriteFrames" load_steps=8 format=3]
+
+[ext_resource type="Texture2D" path="res://assets/weapons/flail/flail_fx.png" id="1_default"]
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_default_0"]
+atlas = ExtResource("1_default")
+region = Rect2(0, 0, 48, 48)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_default_1"]
+atlas = ExtResource("1_default")
+region = Rect2(48, 0, 48, 48)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_default_2"]
+atlas = ExtResource("1_default")
+region = Rect2(96, 0, 48, 48)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_default_3"]
+atlas = ExtResource("1_default")
+region = Rect2(144, 0, 48, 48)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_default_4"]
+atlas = ExtResource("1_default")
+region = Rect2(192, 0, 48, 48)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_default_5"]
+atlas = ExtResource("1_default")
+region = Rect2(240, 0, 48, 48)
+
+[resource]
+animations = [{
+"frames": [{
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_default_0")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_default_1")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_default_2")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_default_3")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_default_4")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_default_5")
+}],
+"loop": true,
+"name": &"default",
+"speed": 18.0
+}]

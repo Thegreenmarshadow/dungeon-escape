@@ -1,0 +1,29 @@
+[gd_resource type="Resource" script_class="WeaponData" load_steps=6 format=3]
+
+[ext_resource type="Script" path="res://scripts/weapon_data.gd" id="1_script"]
+[ext_resource type="Texture2D" path="res://assets/weapons/crossbow/crossbow_icon.png" id="2_icon"]
+[ext_resource type="Texture2D" path="res://assets/weapons/crossbow/crossbow_held.png" id="3_held"]
+[ext_resource type="SpriteFrames" path="res://assets/weapons/crossbow/crossbow_fx.tres" id="4_fx"]
+[ext_resource type="SpriteFrames" path="res://assets/weapons/crossbow/crossbow_projectile.tres" id="5_proj"]
+
+[resource]
+script = ExtResource("1_script")
+id = &"crossbow"
+display_name = "Ballesta de mano"
+description = "Virote rápido de largo alcance; hay que recargar."
+icon = ExtResource("2_icon")
+held_texture = ExtResource("3_held")
+held_grip = Vector2(3, 9)
+effect_frames = ExtResource("4_fx")
+projectile_frames = ExtResource("5_proj")
+rarity = &"rare"
+min_level = 5
+damage = 1
+hitbox_size = Vector2(6, 4)
+hitbox_distance = 0.0
+windup = 0.1
+active_time = 0.0
+cooldown = 0.9
+knockback = 10.0
+projectile_speed = 220.0
+projectile_range = 160.0

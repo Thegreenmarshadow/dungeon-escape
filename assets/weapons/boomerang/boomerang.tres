@@ -1,0 +1,30 @@
+[gd_resource type="Resource" script_class="WeaponData" load_steps=6 format=3]
+
+[ext_resource type="Script" path="res://scripts/weapon_data.gd" id="1_script"]
+[ext_resource type="Texture2D" path="res://assets/weapons/boomerang/boomerang_icon.png" id="2_icon"]
+[ext_resource type="Texture2D" path="res://assets/weapons/boomerang/boomerang_held.png" id="3_held"]
+[ext_resource type="SpriteFrames" path="res://assets/weapons/boomerang/boomerang_fx.tres" id="4_fx"]
+[ext_resource type="SpriteFrames" path="res://assets/weapons/boomerang/boomerang_projectile.tres" id="5_proj"]
+
+[resource]
+script = ExtResource("1_script")
+id = &"boomerang"
+display_name = "Bumerán"
+description = "Se lanza, atraviesa enemigos y vuelve. Solo uno a la vez."
+icon = ExtResource("2_icon")
+held_texture = ExtResource("3_held")
+held_grip = Vector2(5, 8)
+effect_frames = ExtResource("4_fx")
+projectile_frames = ExtResource("5_proj")
+rarity = &"common"
+min_level = 2
+damage = 1
+hitbox_size = Vector2(10, 10)
+hitbox_distance = 0.0
+active_time = 0.0
+cooldown = 0.2
+knockback = 8.0
+projectile_speed = 140.0
+projectile_range = 80.0
+projectile_returns = true
+projectile_pierce = true

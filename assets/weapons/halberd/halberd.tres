@@ -1,0 +1,26 @@
+[gd_resource type="Resource" script_class="WeaponData" load_steps=5 format=3]
+
+[ext_resource type="Script" path="res://scripts/weapon_data.gd" id="1_script"]
+[ext_resource type="Texture2D" path="res://assets/weapons/halberd/halberd_icon.png" id="2_icon"]
+[ext_resource type="Texture2D" path="res://assets/weapons/halberd/halberd_held.png" id="3_held"]
+[ext_resource type="SpriteFrames" path="res://assets/weapons/halberd/halberd_fx.tres" id="4_fx"]
+
+[resource]
+script = ExtResource("1_script")
+id = &"halberd"
+display_name = "Alabarda"
+description = "Largo alcance y un barrido ancho al final de la estocada."
+icon = ExtResource("2_icon")
+held_texture = ExtResource("3_held")
+held_grip = Vector2(3, 8)
+effect_frames = ExtResource("4_fx")
+rarity = &"rare"
+min_level = 5
+damage = 1
+hitbox_size = Vector2(14, 26)
+hitbox_distance = 22.0
+windup = 0.15
+active_time = 0.2
+cooldown = 0.7
+knockback = 18.0
+move_speed_while_attacking = 0.7

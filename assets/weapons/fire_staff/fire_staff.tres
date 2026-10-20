@@ -1,0 +1,34 @@
+[gd_resource type="Resource" script_class="WeaponData" load_steps=7 format=3]
+
+[ext_resource type="Script" path="res://scripts/weapon_data.gd" id="1_script"]
+[ext_resource type="Texture2D" path="res://assets/weapons/fire_staff/fire_staff_icon.png" id="2_icon"]
+[ext_resource type="Texture2D" path="res://assets/weapons/fire_staff/fire_staff_held.png" id="3_held"]
+[ext_resource type="SpriteFrames" path="res://assets/weapons/fire_staff/fire_staff_fx.tres" id="4_fx"]
+[ext_resource type="SpriteFrames" path="res://assets/weapons/fire_staff/fire_staff_projectile.tres" id="5_proj"]
+[ext_resource type="SpriteFrames" path="res://assets/weapons/fire_staff/fire_staff_impact.tres" id="6_hit"]
+
+[resource]
+script = ExtResource("1_script")
+id = &"fire_staff"
+display_name = "Báculo ígneo"
+description = "Bola de fuego que explota y quema."
+icon = ExtResource("2_icon")
+held_texture = ExtResource("3_held")
+held_grip = Vector2(3, 8)
+effect_frames = ExtResource("4_fx")
+projectile_frames = ExtResource("5_proj")
+impact_frames = ExtResource("6_hit")
+rarity = &"epic"
+min_level = 9
+damage = 1
+hitbox_size = Vector2(8, 8)
+hitbox_distance = 0.0
+windup = 0.2
+active_time = 0.0
+cooldown = 1.1
+knockback = 12.0
+projectile_speed = 110.0
+projectile_range = 140.0
+impact_radius = 14.0
+status_effect = &"burn"
+status_time = 1.5

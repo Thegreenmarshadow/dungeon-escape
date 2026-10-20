@@ -1,0 +1,32 @@
+[gd_resource type="SpriteFrames" load_steps=5 format=3]
+
+[ext_resource type="Texture2D" path="res://assets/weapons/katana/katana_fx.png" id="1_default"]
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_default_0"]
+atlas = ExtResource("1_default")
+region = Rect2(0, 0, 32, 32)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_default_1"]
+atlas = ExtResource("1_default")
+region = Rect2(32, 0, 32, 32)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_default_2"]
+atlas = ExtResource("1_default")
+region = Rect2(64, 0, 32, 32)
+
+[resource]
+animations = [{
+"frames": [{
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_default_0")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_default_1")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_default_2")
+}],
+"loop": false,
+"name": &"default",
+"speed": 24.0
+}]
