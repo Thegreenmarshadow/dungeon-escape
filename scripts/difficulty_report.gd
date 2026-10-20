@@ -1,7 +1,14 @@
 extends Control
 ## Pantalla del modo prueba: tabla de la curva de dificultad de los niveles
-## generados, análisis de capacidad del mapa, exportación a CSV y acceso
-## directo a una partida de prueba en cualquier nivel.
+## generados, gráfica de dificultad planificada contra medida (con las
+## partidas guardadas por la telemetría), análisis de capacidad del mapa,
+## exportación a CSV y acceso directo a una partida de prueba en cualquier
+## nivel.
+
+## Carpeta de perfiles de donde se leen las partidas (TelemetryStore).
+@export var telemetry_dir := ProfileStore.DEFAULT_BASE_DIR
+## Carpeta donde "Exportar análisis" escribe los CSV e insights.md.
+@export var analytics_dir := CsvExport.DEFAULT_DIR
 
 ## Niveles y semillas de muestra para el análisis de capacidad.
 const CAPACITY_LEVELS: Array[int] = [2, 5, 10, 20, 50, 100]
@@ -38,16 +45,23 @@ const CAPACITY_FONT_SIZE := 12
 @onready var level_spin: SpinBox = %LevelSpin
 @onready var play_level_button: Button = %PlayLevelButton
 @onready var export_button: Button = %ExportButton
+@onready var analytics_export_button: Button = %AnalyticsExportButton
+@onready var chart: DifficultyChart = %DifficultyChart
+@onready var chart_hint: Label = %ChartHint
 @onready var back_button: Button = %BackButton
 @onready var status_label: Label = %StatusLabel
 
 var _rows: Array[Dictionary] = []
+## Archivos de nivel de la telemetría y sus estadísticas por nivel.
+var _levels: Array[Dictionary] = []
+var _level_stats: Array[Dictionary] = []
 
 
 func _ready() -> void:
 	_rows = DifficultyCurve.report()
 	_show_summary()
 	_fill_table()
+	load_measured()
 
 	level_spin.min_value = 1
 	level_spin.max_value = DifficultyCurve.LAST_LEVEL
@@ -61,6 +75,7 @@ func _ready() -> void:
 	capacity_button.pressed.connect(_run_capacity_check)
 	play_level_button.pressed.connect(func() -> void: Game.start_test_run(int(level_spin.value)))
 	export_button.pressed.connect(_export_csv)
+	analytics_export_button.pressed.connect(export_analytics)
 	back_button.pressed.connect(Game.go_to_menu)
 	status_label.text = ("Las filas en rojo crecen menos del %d %% respecto del nivel anterior. "
 			+ "Vida: multiplicador de la vida de los enemigos. Topes: E enemigos, P proporción de perseguidores, T trampas, G grilla, S salas.") % roundi(
@@ -212,3 +227,37 @@ func _export_csv() -> void:
 		status_label.text = "CSV exportado en: " + ProjectSettings.globalize_path(DifficultyCurve.CSV_PATH)
 	else:
 		status_label.text = "No se pudo exportar el CSV (error %d)." % error
+
+
+## Lee las partidas guardadas en telemetry_dir y actualiza la gráfica.
+func load_measured() -> void:
+	_levels = TelemetryStore.new(telemetry_dir).load_levels()
+	_level_stats = LevelStats.aggregate(_levels)
+	chart.set_points(LevelStats.chart_rows(_level_stats))
+	var files := 0
+	for row in _level_stats:
+		files += row["attempts"]
+	chart_hint.text = ("Las dos líneas van de 0 a 1. Planificada: índice de dificultad ÷ su máximo en el rango. "
+			+ "Medida: %d %% muertes por intento + %d %% daño por minuto, cada uno ÷ su máximo entre los niveles jugados. "
+			+ "Datos: %d intentos en %d niveles (sin la demo). Pasa el puntero sobre la gráfica para ver los valores.") % [
+			roundi(LevelStats.WEIGHT_DEATHS * 100.0), roundi(LevelStats.WEIGHT_DAMAGE * 100.0),
+			files, _level_stats.size()]
+
+
+## Escribe levels.csv, deaths.csv, runs.csv e insights.md en analytics_dir.
+## Devuelve OK o el primer error.
+func export_analytics() -> Error:
+	var result := CsvExport.export_all(_levels, analytics_dir)
+	var error: Error = result["error"]
+	var lines := AnalyticsInsights.generate_from_stats(_level_stats)
+	if error == OK:
+		var files := 0
+		for row in _level_stats:
+			files += row["attempts"]
+		error = AnalyticsInsights.save_markdown(lines, analytics_dir, files)
+	if error == OK:
+		status_label.text = "Análisis exportado en %s (levels.csv, deaths.csv, runs.csv, insights.md). Avisos: %d." % [
+			ProjectSettings.globalize_path(analytics_dir), lines.size()]
+	else:
+		status_label.text = "No se pudo exportar el análisis (error %d)." % error
+	return error
