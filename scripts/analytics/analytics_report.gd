@@ -74,7 +74,6 @@ func _ready() -> void:
 	heatmap.value_formatter = func(value: float) -> String: return PatternAnalysis.format_value(_current_layer(), value)
 	reload_button.pressed.connect(reload)
 	back_button.pressed.connect(Game.go_to_menu)
-	set_insights(PackedStringArray())
 	reload()
 	view_select.grab_focus()
 
@@ -216,6 +215,7 @@ func _apply_filters() -> void:
 	_groups = PatternAnalysis.group_by_map(_filtered)
 	_fill_map_select()
 	_show_summary()
+	set_insights(AnalyticsInsights.generate(_filtered))
 	_refresh_view()
 
 
