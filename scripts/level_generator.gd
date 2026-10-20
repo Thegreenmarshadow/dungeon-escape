@@ -58,6 +58,15 @@ const CHASER_SHARE_MAX := 0.7
 const SKULL_FIRST_LEVEL := 3
 ## Proporción de los perseguidores que son calaveras (el resto son vampiros).
 const SKULL_CHASER_SHARE := 0.4
+## Enemigos especiales: aparecen desde first_level con 1, suman otro cada
+## `every` niveles hasta max. Se suman a los comunes (no ocupan su cupo de
+## ENEMIES_MAX) y se colocan después de ellos.
+const SPECIAL_ENEMIES := {
+	SKULL_TURRET: {"first_level": 5, "every": 3, "max": 3},
+	MIMIC: {"first_level": 6, "every": 4, "max": 2},
+	ARCHER: {"first_level": 8, "every": 3, "max": 4},
+	MAGE: {"first_level": 10, "every": 4, "max": 3},
+}
 ## Trampas de picos.
 const HAZARDS_BASE := 5
 const HAZARDS_PER_LEVEL := 1
@@ -107,6 +116,10 @@ const SKELETON := &"skeleton"
 const VAMPIRE := &"vampire"
 const REAPER := &"reaper"
 const SKULL := &"skull"
+const ARCHER := &"archer"
+const SKULL_TURRET := &"skull_turret"
+const MIMIC := &"mimic"
+const MAGE := &"mage"
 const SPIKES := &"spikes"
 
 const DIRS4: Array[Vector2i] = [
@@ -129,6 +142,8 @@ class Params extends RefCounted:
 	var skull_count := 0
 	var boss_count := 0
 	var hazard_count := 0
+	## Enemigos especiales por tipo (kind -> cantidad), aparte de enemy_count.
+	var special_counts := {}
 	## Multiplicador de la vida de todos los enemigos (ver enemy_health_scale).
 	var enemy_health_scale := 1.0
 
@@ -324,8 +339,28 @@ static func params_for_level(level: int) -> Params:
 	elif level >= BOSS_FIRST_LEVEL:
 		p.boss_count = 1
 	p.hazard_count = mini(HAZARDS_BASE + HAZARDS_PER_LEVEL * step, HAZARDS_MAX)
+	for kind: StringName in SPECIAL_ENEMIES:
+		p.special_counts[kind] = special_count(kind, level)
 	p.enemy_health_scale = enemy_health_scale(level)
 	return p
+
+
+## Cuántos enemigos especiales de ese tipo pide el nivel: ninguno antes de su
+## first_level, 1 en ese nivel y uno más cada `every` niveles, hasta su max.
+static func special_count(kind: StringName, level: int) -> int:
+	var rule: Dictionary = SPECIAL_ENEMIES[kind]
+	var first: int = rule["first_level"]
+	if level < first:
+		return 0
+	return mini(1 + floori((level - first) / float(rule["every"])), rule["max"])
+
+
+## Total de enemigos especiales de los parámetros, de todos los tipos.
+static func special_total(params: Params) -> int:
+	var total := 0
+	for kind: StringName in params.special_counts:
+		total += params.special_counts[kind]
+	return total
 
 
 ## Multiplicador de la vida de los enemigos en el nivel. Crece de forma lineal,
@@ -491,6 +526,7 @@ static func _finish(layout: Layout, params: Params, rng: RandomNumberGenerator) 
 	taken.append_array(layout.door_floor_cells())
 	_place_bosses(layout, params, rng, taken)
 	_place_enemies(layout, params, rng, taken)
+	_place_special_enemies(layout, params, rng, taken)
 	_place_hazards(layout, params, rng, taken)
 	_place_torches(layout, rng)
 	return validate(layout)
@@ -771,6 +807,32 @@ static func _place_enemies(layout: Layout, params: Params, rng: RandomNumberGene
 		layout.enemies.append(Spawn.new(SKELETON, cell))
 		taken.append(cell)
 		skeletons_placed += 1
+
+
+## Enemigos especiales (arqueros, torres, mímicos y magos), después de los
+## comunes y con la misma separación, en cualquier sala. Si el mapa no tiene
+## sitio para todos se colocan los que entren, en el orden de SPECIAL_ENEMIES.
+## Sin especiales no toca el generador aleatorio, así los niveles bajos salen
+## igual que antes de que existieran.
+static func _place_special_enemies(layout: Layout, params: Params, rng: RandomNumberGenerator,
+		taken: Array[Vector2i]) -> void:
+	var pending: Array[StringName] = []
+	for kind: StringName in params.special_counts:
+		for i in params.special_counts[kind]:
+			pending.append(kind)
+	if pending.is_empty():
+		return
+	var cells := _all_spawnable_cells(layout)
+	_shuffle(cells, rng)
+	var placed := 0
+	for cell in cells:
+		if placed >= pending.size():
+			break
+		if not _is_spaced(cell, taken, ENEMY_SPACING):
+			continue
+		layout.enemies.append(Spawn.new(pending[placed], cell))
+		taken.append(cell)
+		placed += 1
 
 
 ## Busca un tramo recto de patrulla desde cell. Todas las celdas del recorrido

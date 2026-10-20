@@ -1,0 +1,50 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://scripts/mimic_enemy.gd" id="1_script"]
+[ext_resource type="SpriteFrames" path="res://assets/enemies/mimic_frames.tres" id="2_frames"]
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_body"]
+size = Vector2(12, 8)
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_contact"]
+size = Vector2(12, 14)
+
+[node name="Mimic" type="CharacterBody2D"]
+collision_layer = 4
+motion_mode = 1
+script = ExtResource("1_script")
+max_health = 3
+speed = 45.0
+contact_damage = 0
+heart_drop_chance = 0.25
+coin_drop_chance = 0.6
+coin_min_value = 2
+coin_max_value = 4
+dodge_chance = 0.1
+detect_radius = 90.0
+lose_radius = 130.0
+leash_radius = 120.0
+attack_animation = &"attack"
+attack_range = 18.0
+attack_reach = 24.0
+attack_hit_frames = Vector2i(4, 5)
+attack_cooldown = 1.2
+wake_radius = 28.0
+
+[node name="AnimatedSprite2D" type="AnimatedSprite2D" parent="."]
+offset = Vector2(0, -5)
+sprite_frames = ExtResource("2_frames")
+animation = &"idle"
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="."]
+position = Vector2(0, 4)
+shape = SubResource("RectangleShape2D_body")
+
+[node name="ContactArea" type="Area2D" parent="."]
+collision_layer = 0
+collision_mask = 2
+monitorable = false
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="ContactArea"]
+position = Vector2(0, 1)
+shape = SubResource("RectangleShape2D_contact")

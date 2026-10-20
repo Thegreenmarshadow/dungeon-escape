@@ -20,6 +20,10 @@ const ENEMY_LABELS = {
   Vampire: "Vampiro",
   Skull: "Calavera",
   Reaper: "Parca",
+  Archer: "Esqueleto arquero",
+  SkullTurret: "Torre de calaveras",
+  Mimic: "Cofre mímico",
+  Mage: "Mago del orbe",
 };
 
 const ITEM_LABELS = {

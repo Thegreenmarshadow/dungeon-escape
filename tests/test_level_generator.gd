@@ -208,11 +208,56 @@ func test_skulls_appear_from_the_configured_level() -> void:
 
 
 func test_builder_has_a_scene_for_every_generated_enemy_kind() -> void:
-	for kind in [LevelGenerator.SKELETON, LevelGenerator.VAMPIRE, LevelGenerator.REAPER, LevelGenerator.SKULL]:
+	var kinds := [LevelGenerator.SKELETON, LevelGenerator.VAMPIRE, LevelGenerator.REAPER, LevelGenerator.SKULL]
+	kinds.append_array(LevelGenerator.SPECIAL_ENEMIES.keys())
+	for kind in kinds:
 		assert_true(LevelBuilder.ENEMY_SCENES.has(kind), "sin escena para %s" % kind)
 	for run_seed in SEEDS_PER_LEVEL:
-		for enemy in _gen(LevelGenerator.SKULL_FIRST_LEVEL + 2, run_seed).enemies:
-			assert_true(LevelBuilder.ENEMY_SCENES.has(enemy.kind), "el generador pidió %s" % enemy.kind)
+		for level in [LevelGenerator.SKULL_FIRST_LEVEL + 2, 12]:
+			for enemy in _gen(level, run_seed).enemies:
+				assert_true(LevelBuilder.ENEMY_SCENES.has(enemy.kind), "el generador pidió %s" % enemy.kind)
+
+
+func test_special_enemies_appear_from_their_configured_level() -> void:
+	for kind: StringName in LevelGenerator.SPECIAL_ENEMIES:
+		var rule: Dictionary = LevelGenerator.SPECIAL_ENEMIES[kind]
+		var first: int = rule["first_level"]
+		assert_eq(LevelGenerator.params_for_level(first - 1).special_counts[kind], 0,
+				"%s antes de su nivel" % kind)
+		assert_eq(LevelGenerator.params_for_level(first).special_counts[kind], 1,
+				"%s en su primer nivel" % kind)
+		var before := 0
+		var placed := 0
+		for run_seed in SEEDS_PER_LEVEL:
+			before += _count_kind(_gen(first - 1, run_seed), kind)
+			placed += _count_kind(_gen(first, run_seed), kind)
+		assert_eq(before, 0, "no debe haber %s antes del nivel %d" % [kind, first])
+		assert_eq(placed, SEEDS_PER_LEVEL, "un %s en cada mapa del nivel %d" % [kind, first])
+
+
+func test_special_enemies_grow_up_to_their_cap() -> void:
+	for kind: StringName in LevelGenerator.SPECIAL_ENEMIES:
+		var cap: int = LevelGenerator.SPECIAL_ENEMIES[kind]["max"]
+		var previous := 0
+		for level in range(LevelGenerator.FIRST_GENERATED_LEVEL, 41):
+			var count: int = LevelGenerator.params_for_level(level).special_counts[kind]
+			assert_true(count >= previous, "%s baja en el nivel %d" % [kind, level])
+			assert_true(count <= cap, "%s supera su tope en el nivel %d" % [kind, level])
+			previous = count
+		assert_eq(previous, cap, "%s llega a su tope" % kind)
+
+
+func test_special_enemies_do_not_replace_common_ones() -> void:
+	# Se suman a los comunes: el mapa coloca enemy_count + jefes + especiales.
+	for run_seed in 10:
+		var layout := _gen(12, run_seed)
+		var p := LevelGenerator.params_for_level(12)
+		var specials := 0
+		for kind: StringName in LevelGenerator.SPECIAL_ENEMIES:
+			specials += _count_kind(layout, kind)
+		assert_eq(specials, LevelGenerator.special_total(p), "especiales del nivel 12, semilla %d" % run_seed)
+		assert_eq(layout.enemies.size() - specials - _count_kind(layout, LevelGenerator.REAPER),
+				p.enemy_count, "comunes del nivel 12, semilla %d" % run_seed)
 
 
 func test_skull_count_never_exceeds_the_chasers() -> void:
