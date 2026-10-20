@@ -11,8 +11,9 @@ extends Area2D
 ##   └── CollisionShape2D
 ##
 ## La espada del jugador lo rompe (take_hit). Si reflectable está activo, en
-## lugar de romperse sale despedido en sentido contrario y lastima a los
-## enemigos que toque.
+## lugar de romperse sale despedido hacia quien lo disparó (shooter) y lastima
+## a los enemigos que toque. Sin tirador vivo sale en sentido contrario al
+## golpe.
 
 ## Se emite cuando el proyectil desaparece por cualquier motivo.
 signal finished(projectile: Projectile)
@@ -40,6 +41,10 @@ var direction: Vector2 = Vector2.RIGHT
 ## true después de que el jugador lo devolvió: ya no lo lastima a él sino a
 ## los enemigos.
 var is_reflected: bool = false
+## Enemigo que lo disparó (lo asigna RangedEnemy). Al devolverlo vuelve a su
+## cuerpo: el proyectil sale a la altura de la mano o del orbe, más arriba que
+## el cuerpo, y volviendo por el mismo camino le pasaría por encima.
+var shooter: Node2D
 
 var _travelled: float = 0.0
 var _done: bool = false
@@ -81,9 +86,13 @@ func take_hit(_amount: int, from_position: Vector2) -> void:
 		_finish()
 		return
 	is_reflected = true
-	# Sale alejándose del jugador, con el alcance completo otra vez.
+	# Sale hacia el tirador o, si ya no está, alejándose del jugador, con el
+	# alcance completo otra vez.
 	var away := global_position - from_position
 	direction = away.normalized() if away != Vector2.ZERO else -direction
+	var target := _shooter_target()
+	if target != Vector2.INF and target != global_position:
+		direction = global_position.direction_to(target)
 	_travelled = 0.0
 	collision_mask = WORLD_MASK | ENEMY_MASK
 	modulate = REFLECTED_TINT
@@ -108,6 +117,15 @@ func _finish() -> void:
 	_done = true
 	finished.emit(self)
 	queue_free()
+
+
+## Centro del cuerpo del tirador (su forma de colisión), o Vector2.INF si no
+## hay tirador vivo.
+func _shooter_target() -> Vector2:
+	if not is_instance_valid(shooter) or shooter.get("is_dying") == true:
+		return Vector2.INF
+	var body := shooter.get("body_shape") as Node2D
+	return body.global_position if body != null else shooter.global_position
 
 
 func _apply_rotation() -> void:

@@ -210,6 +210,7 @@ func _fire() -> Projectile:
 	if projectile_scene == null or get_parent() == null:
 		return null
 	var projectile: Projectile = projectile_scene.instantiate()
+	projectile.shooter = self
 	get_parent().add_child(projectile)
 	projectile.launch(projectile_spawn_position(), _aim_direction)
 	return projectile

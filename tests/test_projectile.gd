@@ -111,6 +111,29 @@ func test_sword_reflects_the_mage_orb_against_enemies() -> void:
 	assert_true(reflected.is_queued_for_deletion())
 
 
+func test_reflected_orb_flies_back_at_the_body_of_its_shooter() -> void:
+	# El orbe sale más arriba que el cuerpo del mago: devuelto por el mismo
+	# camino le pasaría por encima, así que apunta al centro de su cuerpo.
+	var mage := _make_enemy()
+	mage.global_position = Vector2(0, 0)
+	mage.body_shape.position = Vector2(0, 4)
+	var orb := _make()
+	orb.reflectable = true
+	orb.shooter = mage
+	orb.launch(Vector2(60, -15), Vector2.RIGHT)
+	orb.take_hit(1, Vector2(70, -15))
+	assert_true(orb.direction.is_equal_approx(Vector2(-60, 19).normalized()),
+			"vuelve al cuerpo del tirador, no por donde vino")
+
+	var orphan := _make()
+	orphan.reflectable = true
+	orphan.shooter = mage
+	mage._die()
+	orphan.launch(Vector2(60, -15), Vector2.RIGHT)
+	orphan.take_hit(1, Vector2(70, -15))
+	assert_eq(orphan.direction, Vector2.LEFT, "con el tirador muerto sale alejándose del jugador")
+
+
 # ----- ayudas -----
 
 func _load_fresh(path: String) -> PackedScene:
