@@ -101,19 +101,27 @@ func _any_enemy_alerted() -> bool:
 ## dibuja en esta escena.
 func _build_generated_level() -> void:
 	var layout := LevelGenerator.generate(Game.current_level, Game.run_seed)
-	LevelBuilder.new().build(self, layout)
-	_scatter_loose_coins(layout)
+	var theme := DungeonTheme.for_level(Game.current_level)
+	var builder := LevelBuilder.new()
+	builder.torch_frames = ThemeDecor.torch_frames(theme)
+	builder.build(self, layout)
+	var coin_cells := _scatter_loose_coins(layout)
+	# Tileset y decoración del tema; deja libres las celdas de las monedas.
+	ThemeDecor.apply(self, layout, theme,
+			hash([Game.run_seed, Game.current_level, "decoracion"]), coin_cells)
 	print("Mapa generado, %s (semilla de partida %d)" % [layout.summary(), Game.run_seed])
 
 
 ## Reparte monedas sueltas por las salas del mapa generado. Las celdas salen de
 ## Game.run_seed y el nivel, así el mismo mapa tiene siempre las mismas monedas;
-## no cambian el mapa ni lo que coloca el generador.
-func _scatter_loose_coins(layout: LevelGenerator.Layout) -> void:
+## no cambian el mapa ni lo que coloca el generador. Devuelve sus celdas.
+func _scatter_loose_coins(layout: LevelGenerator.Layout) -> Array[Vector2i]:
 	var seed_value := hash([Game.run_seed, Game.current_level, "monedas"])
-	for cell in Coin.scatter_cells(layout, seed_value, LOOSE_COINS_PER_LEVEL):
+	var cells := Coin.scatter_cells(layout, seed_value, LOOSE_COINS_PER_LEVEL)
+	for cell in cells:
 		_spawn_coin(to_local(dungeon.to_global(dungeon.map_to_local(cell))),
 				Coin.scaled_value(1, Game.level_scale()))
+	return cells
 
 
 func _on_lives_changed(lives: int) -> void:

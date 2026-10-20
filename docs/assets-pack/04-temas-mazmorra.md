@@ -31,39 +31,19 @@ Las manchas y las runas de suelo no tienen contorno, para que se lean como parte
 
 `tools/retheme.py` cambia los tonos de suelo y paredes del tileset actual por la rampa de colores de cada tema. Respeta el contorno y el acomodo de la imagen. Las coordenadas del atlas no cambian, así que `dungeon_tileset.tres` y sus colisiones sirven tal cual: solo hay que cambiar la textura.
 
+Solo recolorea los tiles de suelo y pared (`ENV_TILES`): la madera de puertas y cofres comparte tonos con las paredes, así que filtrar por color no alcanza. Al terminar comprueba que ningún píxel fuera de esos tiles cambió (puertas, cofres, llaves, monedas, pociones y antorchas quedan idénticos).
+
 ```
-python3 tools/retheme.py tilesets/Dungeon_Tileset.png tilesets/Dungeon_Tileset_ice.png  ice
-python3 tools/retheme.py tilesets/Dungeon_Tileset.png tilesets/Dungeon_Tileset_lava.png lava
-python3 tools/retheme.py tilesets/Dungeon_Tileset.png tilesets/Dungeon_Tileset_moss.png moss
-```
-
-> **Pendiente.** Los colores que se cambian (`ENV` en `retheme.py`) salen de la paleta 2.2 y de la imagen de muestra del pack. Para dejarlos exactos, sin teñir la madera de puertas y cofres, hacen falta `Dungeon_Tileset.png`, `dungeon_tileset.tres` y `level_builder.gd`. Con esos archivos genero los tres tilesets y dejo integrado el cambio de tema según el nivel.
-
-### Cambiar el tema según el nivel (esquema)
-
-```gdscript
-# level_builder.gd: los nombres son de ejemplo; hay que ajustarlos a como el builder arma el TileMap
-const THEMES := [
-    {"from": 1,  "id": &"dungeon", "tiles": "res://tilesets/Dungeon_Tileset.png"},
-    {"from": 5,  "id": &"ice",     "tiles": "res://tilesets/Dungeon_Tileset_ice.png"},
-    {"from": 9,  "id": &"lava",    "tiles": "res://tilesets/Dungeon_Tileset_lava.png"},
-    {"from": 13, "id": &"moss",    "tiles": "res://tilesets/Dungeon_Tileset_moss.png"},
-]
-
-static func theme_for_level(level: int) -> Dictionary:
-    var current: Dictionary = THEMES[0]
-    for t in THEMES:
-        if level >= t.from:
-            current = t
-    return current
-
-func _apply_theme(tile_map: TileMapLayer, level: int) -> void:
-    var theme := theme_for_level(level)
-    # duplicar para no modificar el recurso compartido en disco
-    var ts: TileSet = tile_map.tile_set.duplicate(true)
-    var src := ts.get_source(0) as TileSetAtlasSource
-    src.texture = load(theme.tiles)
-    tile_map.tile_set = ts
+D=assets/dungeon/character_and_tileset
+python3 tools/retheme.py $D/Dungeon_Tileset.png $D/Dungeon_Tileset_ice.png  ice
+python3 tools/retheme.py $D/Dungeon_Tileset.png $D/Dungeon_Tileset_lava.png lava
+python3 tools/retheme.py $D/Dungeon_Tileset.png $D/Dungeon_Tileset_moss.png moss
 ```
 
-Las antorchas, los estandartes y las decoraciones se eligen con el mismo `theme.id`, por ejemplo `"res://assets/dungeon_themes/%s/%s_torch_frames.tres" % [theme.id, theme.id]`. El tema `dungeon` sigue usando los objetos actuales.
+Los tilesets generados quedan junto al original porque son derivados de Pixel_Poem y siguen su licencia.
+
+## Integración en el juego
+
+- `scripts/dungeon_theme.gd` (`DungeonTheme`): tema de cada nivel en tramos de 4. Niveles 1–4 calabozo, 5–8 hielo, 9–12 lava, 13–16 musgo; el último nivel de cada tramo es el del jefe del tema. Desde el 17 los tramos siguen rotando (17–20 hielo, 21–24 lava...). `themed_tile_set()` duplica el `TileSet` del nivel y cambia la textura del atlas, sin tocar el recurso compartido ni copiar la definición de los tiles.
+- `scripts/theme_decor.gd` (`ThemeDecor`): cambia el tileset del mapa y del fondo y coloca la decoración, determinista con `hash([run_seed, nivel, "decoracion"])`. Las antorchas del tema van en las mismas celdas que las actuales (`LevelBuilder.torch_frames`). Nada se coloca sobre el inicio, la llave, la puerta, enemigos (con su patrulla), trampas ni monedas sueltas. El objeto grande (`prop`) tiene colisión y solo va en celdas rodeadas de suelo, separado de todo, así nunca corta un camino.
+- Las manchas y las runas de suelo quedan en los grupos `theme_floor_patches` y `theme_floor_runes`, para los jefes.

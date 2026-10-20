@@ -54,14 +54,13 @@ Las rutas dentro de los `.tres` son `res://assets/...` y `res://scripts/...`. Co
 - [ ] El arma inicial (`sword.tres`) funciona igual que antes.
 - [ ] Armas nuevas: rareza y `min_level` conectados al botín.
 - [ ] Jefes: barra de vida, fase 2 al 50 % y efectos de habilidades.
-- [ ] Tilesets de los 3 temas generados y cambio por nivel.
+- [x] Tilesets de los 3 temas generados y cambio por nivel.
 - [ ] Créditos agregados a `assets/CREDITS.md`.
 
 ## Pendiente
 
 | Qué | Por qué | Qué hace falta |
 |---|---|---|
-| Tilesets recoloreados de los 3 temas | hay que partir del tileset real para no teñir la madera de puertas y cofres | adjuntar `Dungeon_Tileset.png`, `dungeon_tileset.tres` y `level_builder.gd` |
 | Caballero sin espada en el sprite | `priest3` trae la espada dibujada en sus 4 frames | adjuntar esos 4 PNG |
 | Ajuste de stats | todos los números son propuestas | probar en juego y ajustar con `difficulty_playtest.csv` |
 
