@@ -3,7 +3,7 @@ class_name LevelBuilder
 extends RefCounted
 ## Dibuja un mapa generado (LevelGenerator.Layout) dentro de la escena del
 ## nivel: pinta los tiles de suelo y pared y crea las escenas de enemigos,
-## trampas y antorchas. No decide nada del mapa, solo lo traduce a nodos.
+## jefe temático, trampas y antorchas. No decide nada del mapa, solo lo traduce a nodos.
 ##
 ## Reutiliza los nodos que ya trae Level.tscn (Dungeon, Props, Decor, Traps,
 ## Enemies, Player, Key y ExitDoor): borra el contenido hecho a mano y coloca
@@ -74,6 +74,10 @@ func build(root: Node2D, layout: LevelGenerator.Layout) -> void:
 	for spawn in layout.enemies:
 		enemies_root.add_child(_make_enemy(spawn, tile_size))
 	var traps_root: Node = root.get_node("Traps")
+	if layout.boss != null:
+		var boss := make_boss(layout.boss, tile_size, traps_root)
+		if boss != null:
+			enemies_root.add_child(boss)
 	for spawn in layout.hazards:
 		traps_root.add_child(_make_trap(spawn, tile_size))
 	var decor_root: Node = root.get_node("Decor")
@@ -166,6 +170,22 @@ func _make_enemy(spawn: LevelGenerator.Spawn, tile_size: Vector2) -> Node2D:
 	if spawn.kind == LevelGenerator.SKELETON:
 		enemy.set("patrol_offset", Vector2(spawn.patrol) * tile_size)
 	return enemy
+
+
+## Jefe temático de layout.boss, con la escena de BossRegistry, o null si su
+## escena no existe. Sus efectos de suelo van a hazard_parent (Traps), que se
+## dibuja debajo del jugador.
+static func make_boss(spawn: LevelGenerator.Spawn, tile_size: Vector2, hazard_parent: Node2D) -> Node2D:
+	var scene := BossRegistry.load_scene(spawn.kind)
+	if scene == null:
+		push_error("LevelBuilder: el jefe %s no tiene escena" % spawn.kind)
+		return null
+	var boss: Node2D = scene.instantiate()
+	# Antes de entrar al árbol: el jefe toma su puesto en _ready.
+	boss.position = _cell_center(spawn.cell, tile_size)
+	if "hazard_parent" in boss:
+		boss.hazard_parent = hazard_parent
+	return boss
 
 
 func _make_trap(spawn: LevelGenerator.Spawn, tile_size: Vector2) -> Node2D:

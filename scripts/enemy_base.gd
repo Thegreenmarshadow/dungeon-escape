@@ -123,6 +123,17 @@ func apply_health_scale(multiplier: float) -> void:
 	health = max_health
 
 
+## Recupera amount de vida sin pasar de max_health (sección 9.5 de la biblia:
+## las vainas y el musgo curan al Guardián). No cura a un enemigo muriendo.
+## Devuelve cuánto curó de verdad.
+func heal(amount: int) -> int:
+	if is_dying or amount <= 0:
+		return 0
+	var before := health
+	health = mini(health + amount, max_health)
+	return health - before
+
+
 ## true mientras el enemigo va tras el jugador o prepara un ataque. El nivel lo
 ## usa para cambiar la música. Las subclases con ese comportamiento lo
 ## sobrescriben; por defecto un enemigo nunca está en alerta.

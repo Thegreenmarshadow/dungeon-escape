@@ -44,6 +44,12 @@ const WEIGHT_MIMIC := 2.5
 ## Mago del orbe: a distancia y con más vida que el arquero, aunque su orbe es
 ## más lento y se puede devolver con la espada.
 const WEIGHT_MAGE := 3.0
+## Jefe temático (Forjador, liche, Guardián; ver BossRegistry), el valor de la
+## sección 9.1 de la biblia. Reemplaza a la parca de la puerta en el último
+## nivel de cada tema. No entra en index_for: ese pico de un nivel cada cuatro
+## rompería la curva (el nivel siguiente bajaría), así que se informa aparte
+## en boss_index_for.
+const WEIGHT_THEME_BOSS := 10.0
 
 ## Probabilidad de esquivar de cada tipo: copia de dodge_chance de sus escenas
 ## (Skeleton, Vampire, Skull, Reaper, Archer, SkullTurret, Mimic y Mage.tscn);
@@ -61,6 +67,8 @@ const DODGE_ARCHER := 0.15
 const DODGE_SKULL_TURRET := 0.0
 const DODGE_MIMIC := 0.10
 const DODGE_MAGE := 0.15
+## Los jefes temáticos no esquivan (BossBase._can_dodge).
+const DODGE_THEME_BOSS := 0.0
 
 ## Crecimiento mínimo del índice respecto del nivel anterior para considerar
 ## que el nivel sube la dificultad de forma significativa (+10 %).
@@ -123,6 +131,17 @@ static func index_for_level(level: int) -> float:
 	return index_for(LevelGenerator.params_for_level(level))
 
 
+## Índice contando al jefe temático en lugar de la parca de la puerta. Sin
+## jefe es igual a index_for.
+static func boss_index_for(params: LevelGenerator.Params) -> float:
+	var index := index_for(params)
+	if params.theme_boss == &"":
+		return index
+	var swap := effective_weight(WEIGHT_THEME_BOSS, DODGE_THEME_BOSS) \
+			- effective_weight(WEIGHT_BOSS, DODGE_BOSS)
+	return index + swap * params.enemy_health_scale
+
+
 ## Crecimiento relativo del índice respecto del nivel anterior (0.1 = +10 %).
 ## El primer nivel generado no tiene anterior con el que compararse: devuelve
 ## NAN, igual que si el índice anterior fuera cero.
@@ -144,7 +163,8 @@ static func growth(level: int) -> float:
 ## level, enemies, skeletons, vampires, skulls, archers, skull_turrets, mimics,
 ## mages (los especiales no cuentan en enemies), bosses, hazards, grid, rooms,
 ## health_scale (multiplicador de vida de los enemigos), index, growth (NAN si no hay nivel anterior), meets_target (true si no hay
-## con qué comparar) y capped_params (Array[StringName]).
+## con qué comparar), capped_params (Array[StringName]), theme_boss (id del
+## jefe temático o &"") y boss_index (boss_index_for).
 static func report(first: int = LevelGenerator.FIRST_GENERATED_LEVEL, last: int = LAST_LEVEL) -> Array[Dictionary]:
 	var rows: Array[Dictionary] = []
 	for level in range(first, last + 1):
@@ -170,6 +190,8 @@ static func report(first: int = LevelGenerator.FIRST_GENERATED_LEVEL, last: int 
 			"growth": level_growth,
 			"meets_target": is_nan(level_growth) or level_growth >= TARGET_GROWTH,
 			"capped_params": capped_params(params),
+			"theme_boss": params.theme_boss,
+			"boss_index": boss_index_for(params),
 		})
 	return rows
 
@@ -241,7 +263,7 @@ static func save_csv(rows: Array[Dictionary], path: String = CSV_PATH) -> Error:
 		"level", "enemies", "skeletons", "vampires", "skulls",
 		"archers", "skull_turrets", "mimics", "mages", "bosses", "hazards",
 		"grid_x", "grid_y", "rooms", "health_scale", "index", "growth", "meets_target",
-		"capped_params"]))
+		"capped_params", "theme_boss", "boss_index"]))
 	for row in rows:
 		var grid: Vector2i = row["grid"]
 		var level_growth: float = row["growth"]
@@ -257,7 +279,9 @@ static func save_csv(rows: Array[Dictionary], path: String = CSV_PATH) -> Error:
 			"%.3f" % row["index"],
 			"" if is_nan(level_growth) else "%.4f" % level_growth,
 			str(row["meets_target"]),
-			";".join(caps)]))
+			";".join(caps),
+			str(row["theme_boss"]),
+			"%.3f" % row["boss_index"]]))
 	return OK
 
 
@@ -290,6 +314,8 @@ static func capacity_report(level: int, run_seed: int) -> Dictionary:
 			taken.append(enemy.cell + dir * step)
 	for hazard in layout.hazards:
 		taken.append(hazard.cell)
+	if layout.has_boss():
+		taken.append(layout.boss.cell)
 
 	var enemy_mask := _spacing_mask(layout.size, taken, LevelGenerator.ENEMY_SPACING)
 	var free_cells := 0
@@ -302,7 +328,8 @@ static func capacity_report(level: int, run_seed: int) -> Dictionary:
 		"seed": run_seed,
 		"requested_enemies": params.enemy_count + params.boss_count
 				+ LevelGenerator.special_total(params),
-		"placed_enemies": layout.enemies.size(),
+		# El jefe temático ocupa el lugar de la parca de la puerta (boss_count).
+		"placed_enemies": layout.enemies.size() + (1 if layout.has_boss() else 0),
 		"requested_hazards": params.hazard_count,
 		"placed_hazards": layout.hazards.size(),
 		"used_fallback": layout.used_fallback,

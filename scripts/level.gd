@@ -29,6 +29,8 @@ const COIN_DROP_OFFSET := Vector2(6, 2)
 var _enemies_total: int = 0
 var _enemies_killed: int = 0
 var _danger_left: float = 0.0
+## Reglas del nivel de jefe (el jefe lleva la llave); null si no hay jefe.
+var _boss_fight: BossFight
 
 
 func _ready() -> void:
@@ -76,9 +78,37 @@ func _ready() -> void:
 	player.died.connect(_on_player_died)
 	exit_door.player_escaped.connect(_on_player_escaped)
 	exit_door.locked_touched.connect(hud.show_message.bind("Necesitas la llave"))
-	hud.show_message("Nivel %d" % Game.current_level)
+	var boss := _setup_boss()
+	if boss != null:
+		hud.show_message("Nivel %d · Jefe: %s" % [Game.current_level, boss.display_name])
+	else:
+		hud.show_message("Nivel %d" % Game.current_level)
 	# Modo prueba: la sonda solo observa señales; el nivel no cambia.
 	if Game.test_mode: add_child(DifficultyProbe.new())
+
+
+func _exit_tree() -> void:
+	# Si el nivel termina con el jefe vivo, la llave que guardaba sigue fuera
+	# del árbol y hay que liberarla a mano.
+	if _boss_fight != null:
+		_boss_fight.dispose()
+
+
+## Nivel de jefe (lo pone LevelBuilder desde layout.boss): la barra de vida va
+## al HUD y el jefe se queda con la llave hasta morir, así la salida espera a
+## que lo derroten. Devuelve el jefe, o null si el nivel no tiene.
+func _setup_boss() -> BossBase:
+	var boss := get_tree().get_first_node_in_group(BossBase.GROUP) as BossBase
+	if boss == null:
+		return null
+	hud.track_boss(boss)
+	_boss_fight = BossFight.new(boss, get_node_or_null("Key"), self)
+	boss.died.connect(_on_boss_defeated)
+	return boss
+
+
+func _on_boss_defeated(boss: EnemyBase) -> void:
+	hud.show_message("¡%s derrotado! Recoge la llave" % (boss as BossBase).display_name)
 
 
 ## Cambia a la música de peligro mientras algún enemigo esté en alerta y vuelve
