@@ -46,6 +46,10 @@ const ENEMY_SCENES := {
 const SPIKE_TRAP_SCENE := preload("res://scenes/SpikeTrap.tscn")
 const TORCH_SCENE := preload("res://scenes/props/Torch.tscn")
 
+## Animaciones de las antorchas del tema del nivel (animación "default", ver
+## ThemeDecor.torch_frames). null deja las de Torch.tscn.
+var torch_frames: SpriteFrames = null
+
 
 ## Reemplaza el contenido del nivel por el del mapa generado. root es la
 ## escena Level; se llama desde su _ready, antes de que registre a los enemigos.
@@ -70,8 +74,12 @@ func build(root: Node2D, layout: LevelGenerator.Layout) -> void:
 		traps_root.add_child(_make_trap(spawn, tile_size))
 	var decor_root: Node = root.get_node("Decor")
 	for cell in layout.torches:
-		var torch: Node2D = TORCH_SCENE.instantiate()
+		var torch: AnimatedSprite2D = TORCH_SCENE.instantiate()
 		torch.position = _cell_center(cell, tile_size)
+		if torch_frames != null:
+			torch.sprite_frames = torch_frames
+			torch.animation = &"default"
+			torch.autoplay = "default"
 		decor_root.add_child(torch)
 
 
