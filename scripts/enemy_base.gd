@@ -76,6 +76,9 @@ var _is_hurt: bool = false
 var _knockback: Vector2 = Vector2.ZERO
 var _knockback_left: float = 0.0
 var _dodge_cooldown_left: float = 0.0
+# Multiplicador del retroceso del golpe que se está recibiendo (lo pasa el arma
+# del jugador en take_hit; 1 fuera de un golpe).
+var _hit_knockback_scale: float = 1.0
 
 @onready var sprite: AnimatedSprite2D = $AnimatedSprite2D
 @onready var body_shape: CollisionShape2D = $CollisionShape2D
@@ -143,14 +146,17 @@ static func should_dodge(chance: float, roll: float) -> bool:
 
 
 ## Recibe un golpe del jugador. from_position es desde dónde vino el golpe,
-## y se usa para empujar al enemigo en la dirección contraria. Antes de
-## recibirlo intenta esquivarlo.
-func take_hit(amount: int, from_position: Vector2) -> void:
+## y se usa para empujar al enemigo en la dirección contraria. knockback_scale
+## multiplica knockback_distance: lo da el arma (1 con la espada; negativo lo
+## jala hacia el jugador). Antes de recibirlo intenta esquivarlo.
+func take_hit(amount: int, from_position: Vector2, knockback_scale: float = 1.0) -> void:
 	if is_dying:
 		return
 	if try_dodge(from_position, randf()):
 		return
+	_hit_knockback_scale = knockback_scale
 	_receive_hit(amount, from_position)
+	_hit_knockback_scale = 1.0
 
 
 ## Intenta esquivar un golpe que viene desde from_position con la tirada roll
@@ -188,7 +194,7 @@ func _receive_hit(amount: int, from_position: Vector2) -> void:
 		_die()
 		return
 
-	_push_away(from_position, knockback_distance)
+	_push_away(from_position, hit_knockback_distance())
 	_is_hurt = true
 	# Reinicia la animación aunque ya estuviera reproduciéndose por otro golpe.
 	sprite.play(hurt_animation)
@@ -215,6 +221,12 @@ func _damage_touching_bodies() -> void:
 	for body in contact_area.get_overlapping_bodies():
 		if body.has_method("take_damage"):
 			body.take_damage(contact_damage, global_position)
+
+
+## Retroceso del golpe que se está recibiendo: knockback_distance por el
+## multiplicador del arma del jugador.
+func hit_knockback_distance() -> float:
+	return knockback_distance * _hit_knockback_scale
 
 
 ## Empuja al enemigo distance píxeles en dirección contraria a from_position.

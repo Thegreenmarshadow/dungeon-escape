@@ -57,5 +57,5 @@ func _receive_hit(amount: int, from_position: Vector2) -> void:
 	super(amount, from_position)
 	if is_dying:
 		return
-	_push_away(from_position, knockback_distance + guard_step_distance)
+	_push_away(from_position, hit_knockback_distance() + guard_step_distance)
 	_attack_cooldown_left = maxf(_attack_cooldown_left, guard_attack_delay)

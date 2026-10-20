@@ -9,7 +9,7 @@ extends McpTestSuite
 const ENEMY_BASE_SCRIPT := preload("res://scripts/enemy_base.gd")
 const CHASER_SCRIPT := preload("res://scripts/chaser_enemy.gd")
 const SKULL_SCRIPT := preload("res://scripts/skull_enemy.gd")
-const PLAYER_SCRIPT := preload("res://scripts/player.gd")
+const PLAYER_RIG := preload("res://tests/player_rig.gd")
 
 ## Esquiva de cada escena.
 const DODGE_BY_SCENE := {
@@ -190,23 +190,9 @@ func _make_enemy(script: GDScript) -> EnemyBase:
 	return enemy
 
 
-## Jugador armado como en test_player_knockback.
+## Jugador armado con PlayerRig, como en test_player_knockback.
 func _make_player() -> CharacterBody2D:
-	var source: Node = track(ResourceLoader.load("res://scenes/Player.tscn", "", ResourceLoader.CACHE_MODE_IGNORE).instantiate())
-	var player: CharacterBody2D = PLAYER_SCRIPT.new()
-	var sprite := AnimatedSprite2D.new()
-	sprite.name = "AnimatedSprite2D"
-	sprite.sprite_frames = source.get_node("AnimatedSprite2D").sprite_frames
-	player.add_child(sprite)
-	var pivot := Node2D.new()
-	pivot.name = "AttackPivot"
-	var hitbox := Area2D.new()
-	hitbox.name = "Hitbox"
-	pivot.add_child(hitbox)
-	var slash := Line2D.new()
-	slash.name = "Slash"
-	pivot.add_child(slash)
-	player.add_child(pivot)
+	var player: CharacterBody2D = PLAYER_RIG.make_player()
 	_add_to_tree(player)
 	return player
 

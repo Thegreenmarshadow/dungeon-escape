@@ -32,9 +32,12 @@ var enemies_killed: int = 0
 var score: int = 0
 ## Monedas para gastar en la tienda; se conservan entre niveles.
 var coins: int = 0
-## Daño extra de cada golpe de espada, comprado en la tienda. El nivel se lo
-## asigna al jugador al empezar.
+## Daño extra de cada golpe, comprado en la tienda. El nivel se lo asigna al
+## jugador al empezar.
 var damage_bonus: int = 0
+## Arma equipada (id de WeaponData). Se compra en la tienda, se conserva entre
+## niveles y el nivel se la da al jugador al empezar.
+var weapon_id: StringName = WeaponData.STARTING_ID
 ## Semilla de la partida. Junto con el número de nivel determina el mapa que
 ## se genera del nivel 2 en adelante, así un nivel se puede reproducir.
 var run_seed: int = 0
@@ -54,6 +57,7 @@ func new_game() -> void:
 	score = 0
 	coins = 0
 	damage_bonus = 0
+	weapon_id = WeaponData.STARTING_ID
 	run_seed = randi()
 	test_mode = false
 
