@@ -27,6 +27,8 @@ const LEVEL_SCENE := "res://scenes/Level.tscn"
 const DIFFICULTY_REPORT_SCENE := "res://scenes/DifficultyReport.tscn"
 const SANDBOX_SCENE := "res://scenes/Sandbox.tscn"
 const DEMO_SCENE := "res://scenes/DemoLevel.tscn"
+const PROFILE_SELECT_SCENE := "res://scenes/ProfileSelect.tscn"
+const SETTINGS_SCENE := "res://scenes/SettingsMenu.tscn"
 ## Vidas de la demo: más que en una partida normal, para que quien prueba el
 ## juego por primera vez no tenga que empezar de nuevo.
 const DEMO_LIVES := 5
@@ -59,6 +61,10 @@ var test_start_level: int = 1
 ## el juego). No guarda puntajes y RunTracker la registra con modo "demo". Nada
 ## de la demo pasa a una partida normal: new_game() lo reinicia todo.
 var demo_mode := false
+## Id de la partida para la telemetría y los perfiles (32 caracteres
+## hexadecimales). Lo crea new_game(); "Continuar" recupera el guardado, así
+## los niveles de una partida retomada quedan en la misma carpeta.
+var run_id: String = ""
 
 
 ## Reinicia todo el estado para empezar una partida desde el nivel 1.
@@ -73,6 +79,8 @@ func new_game() -> void:
 	run_seed = randi()
 	test_mode = false
 	demo_mode = false
+	# Crypto y no randi(): no consume el generador global del juego.
+	run_id = RunRecorder.new_run_id()
 
 
 func register_kill() -> void:
@@ -143,6 +151,27 @@ func start_new_game() -> void:
 	start_level()
 
 
+## "Continuar": retoma la partida guardada de un perfil (ver
+## ProfileStore.SAVE_KEYS) desde el principio del nivel en el que estaba, con
+## las vidas, el arma, las monedas, las mejoras y la semilla de ese momento.
+func continue_run(save: Dictionary) -> void:
+	new_game()
+	current_level = maxi(int(save.get("level", 1)), 1)
+	lives = maxi(int(save.get("lives", STARTING_LIVES)), 1)
+	coins = maxi(int(save.get("coins", 0)), 0)
+	damage_bonus = maxi(int(save.get("damage_bonus", 0)), 0)
+	var saved_weapon := StringName(str(save.get("weapon_id", WeaponData.STARTING_ID)))
+	if WeaponData.load_by_id(saved_weapon) != null:
+		weapon_id = saved_weapon
+	run_seed = int(save.get("run_seed", run_seed))
+	score = maxi(int(save.get("score", 0)), 0)
+	enemies_killed = maxi(int(save.get("enemies_killed", 0)), 0)
+	if not str(save.get("run_id", "")).is_empty():
+		run_id = str(save["run_id"])
+	run_started.emit()
+	start_level()
+
+
 ## Empieza una partida de prueba directamente en el nivel dado, con la sonda
 ## de dificultad activa. Los niveles siguientes también son de prueba.
 func start_test_run(level: int) -> void:
@@ -196,6 +225,16 @@ func go_to_menu() -> void:
 ## Abre la pantalla del modo prueba con el informe de la curva de dificultad.
 func go_to_difficulty_report() -> void:
 	_change_scene(DIFFICULTY_REPORT_SCENE)
+
+
+## Abre la pantalla de perfiles (elegir, crear o borrar).
+func go_to_profile_select() -> void:
+	_change_scene(PROFILE_SELECT_SCENE)
+
+
+## Abre los ajustes (telemetría).
+func go_to_settings() -> void:
+	_change_scene(SETTINGS_SCENE)
 
 
 ## Abre la zona de pruebas (solo en builds de depuración). No empieza ninguna

@@ -18,7 +18,10 @@ const SHOWN_SCORES := 5
 @onready var no_scores_label: Label = %NoScoresLabel
 @onready var last_column_header: Label = %DateHeader
 @onready var scores_source_label: Label = %ScoresSourceLabel
-@onready var player_name_edit: LineEdit = %PlayerNameEdit
+@onready var continue_button: Button = %ContinueButton
+@onready var settings_button: Button = %SettingsButton
+@onready var profile_label: Label = %ProfileLabel
+@onready var profile_button: Button = %ProfileButton
 
 
 func _ready() -> void:
@@ -32,12 +35,16 @@ func _ready() -> void:
 	sandbox_button.visible = OS.is_debug_build()
 	sandbox_button.pressed.connect(Game.go_to_sandbox)
 	quit_button.pressed.connect(get_tree().quit)
-	# Con el foco en "Jugar" el menú también se maneja con el teclado.
-	play_button.grab_focus()
-	player_name_edit.text = PlayerProfile.load_name()
-	player_name_edit.text_changed.connect(func(text: String) -> void: PlayerProfile.save_name(text))
-	player_name_edit.text_submitted.connect(_on_player_name_submitted)
-	player_name_edit.focus_exited.connect(_normalize_player_name)
+	continue_button.pressed.connect(Profiles.continue_saved_game)
+	settings_button.pressed.connect(Game.go_to_settings)
+	profile_button.pressed.connect(Game.go_to_profile_select)
+	_show_profile()
+	# Con el foco en "Continuar" (o en "Jugar" si no hay partida guardada) el
+	# menú también se maneja con el teclado.
+	if continue_button.disabled:
+		play_button.grab_focus()
+	else:
+		continue_button.grab_focus()
 	_show_scores()
 	_fetch_online_scores()
 	_fade_in()
@@ -96,16 +103,16 @@ func _fill_scores(rows: Array[PackedStringArray], best_level: int, last_column: 
 		_add_score_cell(row[2])
 
 
-## Con Enter se guarda el nombre y el foco vuelve a "Jugar".
-func _on_player_name_submitted(_text: String) -> void:
-	_normalize_player_name()
-	play_button.grab_focus()
-
-
-## Muestra el nombre tal como quedó guardado (sin espacios sobrantes; vacío
-## pasa a ser el nombre por defecto).
-func _normalize_player_name() -> void:
-	player_name_edit.text = PlayerProfile.save_name(player_name_edit.text)
+## Perfil elegido (lo crea si todavía no hay ninguno), su tiempo jugado y si
+## tiene una partida para continuar.
+func _show_profile() -> void:
+	var profile := Profiles.ensure_profile()
+	profile_label.text = "Perfil: %s · %s jugados" % [profile["name"],
+			ProfileStore.format_duration(profile["total_time_s"])]
+	var save: Dictionary = profile["save"]
+	continue_button.disabled = save.is_empty()
+	continue_button.tooltip_text = "Seguir la partida guardada de este perfil" if save.is_empty() \
+			else "Seguir desde el nivel %d" % save["level"]
 
 
 func _add_score_cell(text: String, alignment: HorizontalAlignment = HORIZONTAL_ALIGNMENT_LEFT) -> void:

@@ -48,7 +48,7 @@ func _notification(what: int) -> void:
 
 
 func _on_run_started() -> void:
-	recorder.start_run(RunRecorder.new_run_id(), PlayerProfile.load_name(), current_mode(),
+	recorder.start_run(RunRecorder.new_run_id(), PlayerProfile.current_name(), current_mode(),
 			Game.run_seed, Game.current_level)
 
 
