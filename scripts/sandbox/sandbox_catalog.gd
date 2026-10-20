@@ -18,6 +18,13 @@ const WEAPONS_DIR := "res://assets/weapons"
 ## estados, escudo...) todavía no están hechas.
 const FULL_MECHANICS_WEAPONS: Array[StringName] = [&"sword", &"dagger", &"spear"]
 
+## Nombre de cada jefe en su botón.
+const BOSS_NAMES := {
+	&"lich": "Reina liche de escarcha",
+	&"forge": "Forjador de magma",
+	&"warden": "Guardián musgoso",
+}
+
 ## Enemigos que se pueden hacer aparecer, en el orden de los botones (las teclas
 ## 1-9 hacen aparecer los nueve primeros). id es el de LevelGenerator.
 const ENEMIES: Array[Dictionary] = [
@@ -71,14 +78,15 @@ static func enemy_entries() -> Array[Dictionary]:
 	return entries
 
 
-## Jefes para la lista de enemigos, con el mismo formato que ENEMIES.
-##
-## GANCHO PARA LOS JEFES: cuando exista el registro de jefes (lo está haciendo
-## otra rama), esta función debe armar una entrada por jefe a partir de él, por
-## ejemplo:
-##     for boss in BossRegistry.all():
-##         entries.append({"id": boss.id, "name": boss.display_name, "scene": boss.scene_path})
-## Mientras tanto no hay jefes y la zona de pruebas no depende de ese registro.
+## Jefes para la lista de enemigos, con el mismo formato que ENEMIES. Salen de
+## BossRegistry: solo aparecen los que ya tienen escena.
 static func boss_entries() -> Array[Dictionary]:
 	var entries: Array[Dictionary] = []
+	for boss_id in BossRegistry.SCENES:
+		if BossRegistry.is_available(boss_id):
+			entries.append({
+				"id": boss_id,
+				"name": BOSS_NAMES.get(boss_id, String(boss_id)),
+				"scene": BossRegistry.scene_path(boss_id),
+			})
 	return entries

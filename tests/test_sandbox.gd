@@ -97,6 +97,15 @@ func test_every_level_enemy_is_in_the_list() -> void:
 		assert_contains(ids, kind, "falta %s en la zona de pruebas" % kind)
 
 
+func test_only_available_bosses_are_listed() -> void:
+	var ids: Array = SandboxCatalog.enemy_entries().map(func(entry: Dictionary) -> StringName: return entry["id"])
+	for boss_id in BossRegistry.SCENES:
+		if BossRegistry.is_available(boss_id):
+			assert_contains(ids, boss_id, "falta el jefe %s" % boss_id)
+		else:
+			assert_false(boss_id in ids, "%s todavía no tiene escena" % boss_id)
+
+
 # ----- escena -----
 
 func test_equipping_does_not_change_the_run_weapon() -> void:
