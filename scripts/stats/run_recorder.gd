@@ -20,7 +20,8 @@ extends RefCounted
 ##   heart_picked    {amount, lives}    vidas recuperadas (solo curan los corazones)
 ##   key_picked      {}
 ##   coin_picked     {amount}           monedas recogidas
-##   item_bought     {item, price}      compra en la tienda (damage o life); lleva
+##   item_bought     {item, price}      compra en la tienda (damage, life o el id
+##                                      de un arma: spear, dagger); lleva
 ##                                      el nivel recién superado
 ##   level_completed {duration_s, kills, enemies_total, score}
 ##   player_died     {score}

@@ -82,8 +82,11 @@ func level_scale() -> float:
 
 
 ## Veces que se compró item en esta partida. La vida no necesita contarse: su
-## precio no depende de cuántas se compraron.
+## precio no depende de cuántas se compraron. Un arma cuenta 1 si es la
+## equipada, así la tienda no la vuelve a ofrecer.
 func times_bought(item: StringName) -> int:
+	if Shop.is_weapon(item):
+		return 1 if item == weapon_id else 0
 	return damage_bonus if item == Shop.ITEM_DAMAGE else 0
 
 
@@ -94,8 +97,8 @@ func can_buy(item: StringName, max_lives: int) -> bool:
 
 
 ## Compra item si las reglas de Shop lo permiten: descuenta el precio y aplica
-## la mejora (más daño o una vida más). Devuelve false sin cambiar nada si no
-## se puede comprar.
+## la mejora (más daño, una vida más o el arma nueva). Devuelve false sin
+## cambiar nada si no se puede comprar.
 func buy(item: StringName, max_lives: int) -> bool:
 	if not can_buy(item, max_lives):
 		return false
@@ -106,6 +109,9 @@ func buy(item: StringName, max_lives: int) -> bool:
 			damage_bonus += 1
 		Shop.ITEM_LIFE:
 			lives += 1
+		_:
+			if Shop.is_weapon(item):
+				weapon_id = item
 	coins_changed.emit(coins)
 	item_bought.emit(item, price)
 	return true

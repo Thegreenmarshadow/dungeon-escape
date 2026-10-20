@@ -25,6 +25,8 @@ const ENEMY_LABELS = {
 const ITEM_LABELS = {
   damage: "Mejora de daño",
   life: "Vida extra",
+  spear: "Lanza",
+  dagger: "Daga",
 };
 
 const OUTCOME_LABELS = { died: "Murió", quit: "Abandonó", in_progress: "En curso" };
