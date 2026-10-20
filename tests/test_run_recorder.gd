@@ -73,27 +73,30 @@ func test_a_full_level_produces_events_in_order() -> void:
 	_recorder.start_level(1, 3, 4)
 	_recorder.advance(2.0)
 	_recorder.record_kill("Skeleton", 1, 10)
-	_recorder.record_lives(2)
+	_recorder.record_lives(2, "Skeleton")
 	_recorder.advance(1.0)
 	_recorder.record_lives(3)
 	_recorder.record_key()
+	_recorder.record_weapon("spear")
 	_recorder.advance(0.5)
 	_recorder.complete_level(110)
 
 	assert_eq(_sink.types(), [
-		"level_started", "enemy_killed", "damage_taken", "heart_picked", "key_picked", "level_completed"])
+		"level_started", "enemy_killed", "damage_taken", "heart_picked", "key_picked",
+		"weapon_changed", "level_completed"])
 	var seqs := []
 	for event in _sink.events:
 		seqs.append(event["seq"])
 		assert_eq(event["run_id"], RUN_ID)
 		assert_eq(event["level"], 1)
-	assert_eq(seqs, [0, 1, 2, 3, 4, 5])
+	assert_eq(seqs, [0, 1, 2, 3, 4, 5, 6])
 	assert_eq(_sink.events[0]["payload"], {"lives": 3, "enemies_total": 4})
 	assert_eq(_sink.events[1]["payload"], {"enemy": "Skeleton"})
 	assert_eq(_sink.events[1]["t_run_s"], 2.0)
-	assert_eq(_sink.events[2]["payload"], {"amount": 1, "lives": 2})
+	assert_eq(_sink.events[2]["payload"], {"amount": 1, "lives": 2, "source": "Skeleton"})
 	assert_eq(_sink.events[3]["payload"], {"amount": 1, "lives": 3})
-	var completed: Dictionary = _sink.events[5]["payload"]
+	assert_eq(_sink.events[5]["payload"], {"weapon": "spear"})
+	var completed: Dictionary = _sink.events[6]["payload"]
 	assert_eq(completed["duration_s"], 3.5)
 	assert_eq(completed["kills"], 1)
 	assert_eq(completed["enemies_total"], 4)
@@ -111,10 +114,11 @@ func test_death_ends_the_run_with_its_totals() -> void:
 	_recorder.start_level(2, 3, 5)
 	_recorder.advance(6.0)
 	_recorder.record_kill("Vampire", 1, 110)
-	_recorder.record_lives(0)
-	_recorder.record_death(110, 1)
+	_recorder.record_lives(0, "spikes")
+	_recorder.record_death(110, 1, "spikes")
 
 	assert_eq(_sink.types().slice(-2), ["damage_taken", "player_died"])
+	assert_eq(_sink.events[-1]["payload"], {"score": 110, "cause": "spikes"})
 	assert_eq(_sink.events[-1]["level"], 2)
 	assert_eq(_sink.summaries.size(), 1)
 	var summary := _sink.summaries[0]

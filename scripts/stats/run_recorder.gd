@@ -16,7 +16,9 @@ extends RefCounted
 ##   level_started   {lives, enemies_total}
 ##   enemy_killed    {enemy}            nombre de la escena: Skeleton, Vampire…
 ##   enemy_dodged    {enemy}            un enemigo esquivó un golpe del jugador
-##   damage_taken    {amount, lives}    vidas perdidas y las que quedan
+##   damage_taken    {amount, lives, source}  vidas perdidas, las que quedan y
+##                                      quién lastimó (Player.damaged: tipo de
+##                                      enemigo, "spikes", id del jefe...)
 ##   heart_picked    {amount, lives}    vidas recuperadas (solo curan los corazones)
 ##   key_picked      {}
 ##   coin_picked     {amount}           monedas recogidas
@@ -24,7 +26,8 @@ extends RefCounted
 ##                                      de un arma: spear, dagger); lleva
 ##                                      el nivel recién superado
 ##   level_completed {duration_s, kills, enemies_total, score}
-##   player_died     {score}
+##   player_died     {score, cause}     cause: source del último daño
+##   weapon_changed  {weapon}           id del arma nueva (pickup, demo)
 ##   player_respawned {lives}           la demo revivió al jugador en un punto
 ##                                      de control (no termina la partida)
 ##   run_quit        {score}            la partida terminó sin morir
@@ -50,6 +53,7 @@ const EVENT_LEVEL_COMPLETED := "level_completed"
 const EVENT_PLAYER_DIED := "player_died"
 const EVENT_RUN_QUIT := "run_quit"
 const EVENT_PLAYER_RESPAWNED := "player_respawned"
+const EVENT_WEAPON_CHANGED := "weapon_changed"
 
 var sink: StatsSink
 ## Partida en curso; vacío si no hay ninguna.
@@ -153,12 +157,13 @@ func record_dodge(kind: String) -> void:
 
 
 ## Recibe cada cambio de vidas del jugador: una baja es daño y una suba es un
-## corazón recogido (los corazones son lo único que cura).
-func record_lives(lives: int) -> void:
+## corazón recogido (los corazones son lo único que cura). source es quién hizo
+## el daño (Player.last_damage_source); vacío si no se sabe.
+func record_lives(lives: int, source: String = "") -> void:
 	if not _level_active:
 		return
 	if lives < _lives:
-		_emit(EVENT_DAMAGE_TAKEN, {"amount": _lives - lives, "lives": lives})
+		_emit(EVENT_DAMAGE_TAKEN, {"amount": _lives - lives, "lives": lives, "source": source})
 	elif lives > _lives:
 		_emit(EVENT_HEART_PICKED, {"amount": lives - _lives, "lives": lives})
 	_lives = lives
@@ -195,14 +200,21 @@ func complete_level(score: int) -> void:
 	_level_active = false
 
 
-## La muerte del jugador termina la partida.
-func record_death(score: int, total_kills: int) -> void:
+## La muerte del jugador termina la partida. cause es quién hizo el último
+## daño (Player.last_damage_source).
+func record_death(score: int, total_kills: int, cause: String = "") -> void:
 	if not _level_active:
 		return
 	_score = score
 	_kills = total_kills
-	_emit(EVENT_PLAYER_DIED, {"score": score})
+	_emit(EVENT_PLAYER_DIED, {"score": score, "cause": cause})
 	finish_run(OUTCOME_DIED)
+
+
+## El jugador cambió de arma (Player.weapon_changed) durante el nivel.
+func record_weapon(weapon: String) -> void:
+	if _level_active:
+		_emit(EVENT_WEAPON_CHANGED, {"weapon": weapon})
 
 
 ## La demo revivió al jugador con lives vidas: la partida sigue. Las vidas

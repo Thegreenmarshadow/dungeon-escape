@@ -15,7 +15,7 @@ extends Node
 ##     como abandonada ("quit").
 ##   - En cada nivel: Player.lives_changed, Player.key_collected,
 ##     Player.coins_collected, Player.died, Player.revived (puntos de control
-##     de la demo), Door.player_escaped, EnemyBase.died y EnemyBase.dodged.
+##     de la demo), Player.weapon_changed, Door.player_escaped, EnemyBase.died y EnemyBase.dodged.
 ##     La demo (Game.DEMO_SCENE) cuenta como nivel.
 ## Cerrar la ventana a mitad de partida también la cierra como abandonada.
 ##
@@ -81,10 +81,14 @@ func _on_level_ready(level: Node) -> void:
 
 	# El nivel conectó sus señales antes (en su _ready), así que cuando llegan
 	# acá Game ya tiene el puntaje y las muertes actualizados.
-	player.lives_changed.connect(recorder.record_lives)
+	# take_damage guarda last_damage_source antes de emitir lives_changed.
+	player.lives_changed.connect(func(lives: int) -> void:
+		recorder.record_lives(lives, String(player.last_damage_source)))
 	player.key_collected.connect(recorder.record_key)
 	player.coins_collected.connect(recorder.record_coins)
-	player.died.connect(func() -> void: recorder.record_death(Game.score, Game.enemies_killed))
+	player.died.connect(func() -> void:
+		recorder.record_death(Game.score, Game.enemies_killed, String(player.last_damage_source)))
+	player.weapon_changed.connect(func(weapon_id: StringName) -> void: recorder.record_weapon(String(weapon_id)))
 	player.revived.connect(recorder.record_respawn)
 	level.get_node("ExitDoor").player_escaped.connect(func() -> void: recorder.complete_level(Game.score))
 	for enemy in enemies:
