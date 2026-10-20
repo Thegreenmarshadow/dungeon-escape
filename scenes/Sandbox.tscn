@@ -1,0 +1,172 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://scripts/sandbox/sandbox.gd" id="1_script"]
+[ext_resource type="PackedScene" uid="uid://dx16xfv0mqe6p" path="res://scenes/LevelBackground.tscn" id="2_background"]
+[ext_resource type="TileSet" uid="uid://kw3l5ccu66c7" path="res://tilesets/dungeon_tileset.tres" id="3_tileset"]
+[ext_resource type="PackedScene" path="res://scenes/Player.tscn" id="4_player"]
+[ext_resource type="PackedScene" path="res://scenes/PauseMenu.tscn" id="5_pause"]
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_panel"]
+content_margin_left = 12.0
+content_margin_top = 12.0
+content_margin_right = 12.0
+content_margin_bottom = 12.0
+bg_color = Color(0.08, 0.06, 0.11, 0.88)
+border_width_left = 3
+border_color = Color(0.5, 0.36, 0.18, 1)
+
+[node name="Sandbox" type="Node2D"]
+script = ExtResource("1_script")
+
+[node name="Background" parent="." instance=ExtResource("2_background")]
+
+[node name="Dungeon" type="TileMapLayer" parent="."]
+tile_set = ExtResource("3_tileset")
+
+[node name="Spawned" type="Node2D" parent="."]
+
+[node name="Player" parent="." instance=ExtResource("4_player")]
+
+[node name="PauseMenu" parent="." instance=ExtResource("5_pause")]
+listens_level_end = false
+
+[node name="Panel" type="CanvasLayer" parent="."]
+layer = 10
+
+[node name="PanelRoot" type="PanelContainer" parent="Panel"]
+anchors_preset = 11
+anchor_left = 1.0
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = -360.0
+grow_horizontal = 0
+grow_vertical = 2
+theme_override_styles/panel = SubResource("StyleBoxFlat_panel")
+
+[node name="Scroll" type="ScrollContainer" parent="Panel/PanelRoot"]
+layout_mode = 2
+horizontal_scroll_mode = 0
+
+[node name="VBox" type="VBoxContainer" parent="Panel/PanelRoot/Scroll"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/separation = 6
+
+[node name="Title" type="Label" parent="Panel/PanelRoot/Scroll/VBox"]
+layout_mode = 2
+theme_override_colors/font_color = Color(1, 0.86, 0.5, 1)
+theme_override_font_sizes/font_size = 22
+text = "Zona de pruebas"
+
+[node name="StatusLabel" type="Label" parent="Panel/PanelRoot/Scroll/VBox"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_font_sizes/font_size = 14
+
+[node name="BackButton" type="Button" parent="Panel/PanelRoot/Scroll/VBox"]
+unique_name_in_owner = true
+layout_mode = 2
+focus_mode = 0
+theme_override_font_sizes/font_size = 14
+text = "Volver al menú"
+
+[node name="WeaponsHeader" type="Label" parent="Panel/PanelRoot/Scroll/VBox"]
+layout_mode = 2
+theme_override_colors/font_color = Color(1, 0.86, 0.5, 1)
+theme_override_font_sizes/font_size = 16
+text = "Armas (Q / E) · ★ = mecánicas completas"
+
+[node name="WeaponInfoLabel" type="Label" parent="Panel/PanelRoot/Scroll/VBox"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(300, 0)
+layout_mode = 2
+theme_override_colors/font_color = Color(0.8, 0.78, 0.72, 1)
+theme_override_font_sizes/font_size = 12
+autowrap_mode = 3
+
+[node name="WeaponGrid" type="GridContainer" parent="Panel/PanelRoot/Scroll/VBox"]
+unique_name_in_owner = true
+layout_mode = 2
+columns = 2
+
+[node name="EnemiesHeader" type="Label" parent="Panel/PanelRoot/Scroll/VBox"]
+layout_mode = 2
+theme_override_colors/font_color = Color(1, 0.86, 0.5, 1)
+theme_override_font_sizes/font_size = 16
+text = "Enemigos (1-9): aparecen delante"
+
+[node name="EnemyGrid" type="GridContainer" parent="Panel/PanelRoot/Scroll/VBox"]
+unique_name_in_owner = true
+layout_mode = 2
+columns = 2
+
+[node name="EnemyActions" type="HBoxContainer" parent="Panel/PanelRoot/Scroll/VBox"]
+layout_mode = 2
+
+[node name="KillAllButton" type="Button" parent="Panel/PanelRoot/Scroll/VBox/EnemyActions"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+focus_mode = 0
+theme_override_font_sizes/font_size = 14
+text = "Matar todos (K)"
+
+[node name="ClearButton" type="Button" parent="Panel/PanelRoot/Scroll/VBox/EnemyActions"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+focus_mode = 0
+theme_override_font_sizes/font_size = 14
+text = "Limpiar (L)"
+
+[node name="OptionsHeader" type="Label" parent="Panel/PanelRoot/Scroll/VBox"]
+layout_mode = 2
+theme_override_colors/font_color = Color(1, 0.86, 0.5, 1)
+theme_override_font_sizes/font_size = 16
+text = "Opciones"
+
+[node name="InvincibleCheck" type="CheckButton" parent="Panel/PanelRoot/Scroll/VBox"]
+unique_name_in_owner = true
+layout_mode = 2
+focus_mode = 0
+theme_override_font_sizes/font_size = 14
+text = "Invencible (I)"
+
+[node name="FreezeCheck" type="CheckButton" parent="Panel/PanelRoot/Scroll/VBox"]
+unique_name_in_owner = true
+layout_mode = 2
+focus_mode = 0
+theme_override_font_sizes/font_size = 14
+text = "Enemigos quietos (F)"
+
+[node name="HitboxesCheck" type="CheckButton" parent="Panel/PanelRoot/Scroll/VBox"]
+unique_name_in_owner = true
+layout_mode = 2
+focus_mode = 0
+theme_override_font_sizes/font_size = 14
+text = "Ver hitboxes (H)"
+
+[node name="SlowCheck" type="CheckButton" parent="Panel/PanelRoot/Scroll/VBox"]
+unique_name_in_owner = true
+layout_mode = 2
+focus_mode = 0
+theme_override_font_sizes/font_size = 14
+text = "Cámara lenta ×0.25 (T)"
+
+[node name="ThemeHeader" type="Label" parent="Panel/PanelRoot/Scroll/VBox"]
+layout_mode = 2
+theme_override_colors/font_color = Color(1, 0.86, 0.5, 1)
+theme_override_font_sizes/font_size = 16
+text = "Tema de la sala (Y)"
+
+[node name="ThemeBox" type="HBoxContainer" parent="Panel/PanelRoot/Scroll/VBox"]
+unique_name_in_owner = true
+layout_mode = 2
+
+[node name="HelpLabel" type="Label" parent="Panel/PanelRoot/Scroll/VBox"]
+custom_minimum_size = Vector2(300, 0)
+layout_mode = 2
+theme_override_colors/font_color = Color(0.7, 0.68, 0.62, 1)
+theme_override_font_sizes/font_size = 12
+text = "Mover: WASD o flechas · Atacar: Espacio o J · Pausa: Esc"
+autowrap_mode = 3
