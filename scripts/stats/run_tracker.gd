@@ -5,14 +5,18 @@ extends Node
 ## envía con un HttpStatsSink (cola en disco, nunca bloquea).
 ##
 ## Señales que observa:
-##   - Game.run_started: partida nueva (normal o de prueba, según Game.test_mode).
+##   - Game.run_started: partida nueva (normal, de prueba o la demo, según
+##     Game.test_mode y Game.demo_mode).
 ##   - Game.item_bought: compra en la tienda entre niveles.
+##   - Game.returning_to_menu: volver al menú cierra la partida como abandonada
+##     ("quit") antes de que Game reinicie el estado de la demo.
 ##   - SceneTree.node_added: carga de un nivel o de otra pantalla. Una pantalla
 ##     que no es un nivel (menú, modo prueba) con una partida en curso la cierra
 ##     como abandonada ("quit").
 ##   - En cada nivel: Player.lives_changed, Player.key_collected,
-##     Player.coins_collected, Player.died, Door.player_escaped, EnemyBase.died
-##     y EnemyBase.dodged.
+##     Player.coins_collected, Player.died, Player.revived (puntos de control
+##     de la demo), Door.player_escaped, EnemyBase.died y EnemyBase.dodged.
+##     La demo (Game.DEMO_SCENE) cuenta como nivel.
 ## Cerrar la ventana a mitad de partida también la cierra como abandonada.
 ##
 ## Sin class_name a propósito: chocaría con el nombre del Autoload.
@@ -28,6 +32,7 @@ func _ready() -> void:
 	recorder = RunRecorder.new(sink)
 	Game.run_started.connect(_on_run_started)
 	Game.item_bought.connect(_on_item_bought)
+	Game.returning_to_menu.connect(_quit_current_run)
 	get_tree().node_added.connect(_on_node_added)
 
 
@@ -43,9 +48,15 @@ func _notification(what: int) -> void:
 
 
 func _on_run_started() -> void:
-	var mode := RunRecorder.MODE_TEST if Game.test_mode else RunRecorder.MODE_NORMAL
-	recorder.start_run(RunRecorder.new_run_id(), PlayerProfile.load_name(), mode,
+	recorder.start_run(RunRecorder.new_run_id(), PlayerProfile.load_name(), current_mode(),
 			Game.run_seed, Game.current_level)
+
+
+## Modo con el que se registra la partida que empieza según Game.
+func current_mode() -> String:
+	if Game.demo_mode:
+		return RunRecorder.MODE_DEMO
+	return RunRecorder.MODE_TEST if Game.test_mode else RunRecorder.MODE_NORMAL
 
 
 ## Solo interesan las escenas principales (hijas directas de la raíz que vienen
@@ -53,7 +64,7 @@ func _on_run_started() -> void:
 func _on_node_added(node: Node) -> void:
 	if node.get_parent() != get_tree().root or node.scene_file_path.is_empty():
 		return
-	if node.scene_file_path == Game.LEVEL_SCENE:
+	if node.scene_file_path in [Game.LEVEL_SCENE, Game.DEMO_SCENE]:
 		# Hasta su _ready el nivel no generó el mapa ni hay enemigos en el grupo.
 		node.ready.connect(_on_level_ready.bind(node), CONNECT_ONE_SHOT)
 	else:
@@ -74,6 +85,7 @@ func _on_level_ready(level: Node) -> void:
 	player.key_collected.connect(recorder.record_key)
 	player.coins_collected.connect(recorder.record_coins)
 	player.died.connect(func() -> void: recorder.record_death(Game.score, Game.enemies_killed))
+	player.revived.connect(recorder.record_respawn)
 	level.get_node("ExitDoor").player_escaped.connect(func() -> void: recorder.complete_level(Game.score))
 	for enemy in enemies:
 		enemy.died.connect(_on_enemy_died)

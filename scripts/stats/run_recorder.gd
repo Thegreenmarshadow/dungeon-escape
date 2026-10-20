@@ -25,11 +25,16 @@ extends RefCounted
 ##                                      el nivel recién superado
 ##   level_completed {duration_s, kills, enemies_total, score}
 ##   player_died     {score}
+##   player_respawned {lives}           la demo revivió al jugador en un punto
+##                                      de control (no termina la partida)
 ##   run_quit        {score}            la partida terminó sin morir
 ## El servidor acepta cualquier otro tipo, así se pueden sumar más adelante.
 
 const MODE_NORMAL := "normal"
 const MODE_TEST := "test"
+## La demo hecha a mano (Game.demo_mode). El servidor la deja fuera de la tabla
+## de puntajes.
+const MODE_DEMO := "demo"
 const OUTCOME_DIED := "died"
 const OUTCOME_QUIT := "quit"
 
@@ -44,6 +49,7 @@ const EVENT_ITEM_BOUGHT := "item_bought"
 const EVENT_LEVEL_COMPLETED := "level_completed"
 const EVENT_PLAYER_DIED := "player_died"
 const EVENT_RUN_QUIT := "run_quit"
+const EVENT_PLAYER_RESPAWNED := "player_respawned"
 
 var sink: StatsSink
 ## Partida en curso; vacío si no hay ninguna.
@@ -197,6 +203,15 @@ func record_death(score: int, total_kills: int) -> void:
 	_kills = total_kills
 	_emit(EVENT_PLAYER_DIED, {"score": score})
 	finish_run(OUTCOME_DIED)
+
+
+## La demo revivió al jugador con lives vidas: la partida sigue. Las vidas
+## recuperadas no cuentan como corazones.
+func record_respawn(lives: int) -> void:
+	if not _level_active:
+		return
+	_lives = lives
+	_emit(EVENT_PLAYER_RESPAWNED, {"lives": lives})
 
 
 ## Cierra la partida en curso. score y total_kills negativos usan los últimos

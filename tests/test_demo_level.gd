@@ -255,6 +255,30 @@ func test_escaping_shows_the_thank_you_screen() -> void:
 	assert_eq(_scores_file(), scores_before, "no se guarda ningún puntaje")
 
 
+func test_demo_runs_are_recorded_with_mode_demo() -> void:
+	var demo := _make_demo()
+	if demo == null:
+		return
+	var tracker := _tree.root.get_node("RunTracker")
+	assert_eq(tracker.current_mode(), RunRecorder.MODE_DEMO)
+	tracker._on_run_started()
+	assert_eq(_sink.runs.size(), 1)
+	assert_eq(_sink.runs[0]["mode"], "demo")
+	_game().demo_mode = false
+	assert_eq(tracker.current_mode(), RunRecorder.MODE_NORMAL, "una partida normal sigue siendo normal")
+
+
+func test_respawn_is_recorded_without_counting_a_heart() -> void:
+	var sink := RecordingSink.new()
+	var recorder := RunRecorder.new(sink)
+	recorder.start_run("demo-run", "Ana", RunRecorder.MODE_DEMO, 1, 1)
+	recorder.start_level(1, 5, 8)
+	recorder.record_lives(0)
+	recorder.record_respawn(5)
+	recorder.record_lives(4)
+	var types: Array = sink.events.map(func(e: Dictionary) -> String: return e["type"])
+	assert_eq(types, ["level_started", "damage_taken", "player_respawned", "damage_taken"])
+	assert_true(recorder.is_running(), "reaparecer no termina la partida")
 
 
 # ----- Game -----
