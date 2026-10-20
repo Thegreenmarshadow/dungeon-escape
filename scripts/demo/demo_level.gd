@@ -81,6 +81,7 @@ func _process(delta: float) -> void:
 
 func _build_map() -> int:
 	demo_map = DemoMap.create()
+	map_layout = demo_map.layout
 	LevelBuilder.new().build(self, demo_map.layout)
 	_split_lava_tiles()
 	_add_decor()

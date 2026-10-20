@@ -31,6 +31,9 @@ var _enemies_killed: int = 0
 var _danger_left: float = 0.0
 ## Reglas del nivel de jefe (el jefe lleva la llave); null si no hay jefe.
 var _boss_fight: BossFight
+## Mapa del nivel si salió de un Layout (generado o la demo); null en el
+## nivel 1 hecho a mano. Solo lo lee la telemetría (LevelSnapshot).
+var map_layout: LevelGenerator.Layout
 
 
 func _ready() -> void:
@@ -138,6 +141,7 @@ func _build_map() -> int:
 ## dibuja en esta escena.
 func _build_generated_level() -> void:
 	var layout := LevelGenerator.generate(Game.current_level, Game.run_seed)
+	map_layout = layout
 	var theme := DungeonTheme.for_level(Game.current_level)
 	var builder := LevelBuilder.new()
 	builder.torch_frames = ThemeDecor.torch_frames(theme)
