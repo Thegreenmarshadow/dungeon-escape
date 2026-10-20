@@ -32,7 +32,7 @@ const THEME_BOSSES := {
 const SCENES := {
 	LICH: "",  # TODO paso 2: "res://scenes/bosses/lich/Lich.tscn"
 	FORGE: "res://scenes/bosses/forge/Forge.tscn",
-	WARDEN: "",  # TODO paso 2: "res://scenes/bosses/warden/Warden.tscn"
+	WARDEN: "res://scenes/bosses/warden/Warden.tscn",
 }
 
 

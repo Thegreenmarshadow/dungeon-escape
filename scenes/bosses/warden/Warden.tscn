@@ -1,0 +1,45 @@
+[gd_scene load_steps=5 format=3]
+
+[ext_resource type="Script" path="res://scripts/bosses/warden_boss.gd" id="1_script"]
+[ext_resource type="SpriteFrames" path="res://assets/bosses/warden/warden_frames.tres" id="2_frames"]
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_body"]
+size = Vector2(20, 10)
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_contact"]
+size = Vector2(24, 26)
+
+[node name="Warden" type="CharacterBody2D"]
+collision_layer = 4
+motion_mode = 1
+script = ExtResource("1_script")
+max_health = 14
+speed = 18.0
+knockback_distance = 2.0
+heart_drop_chance = 1.0
+coin_drop_chance = 1.0
+coin_min_value = 8
+coin_max_value = 12
+dodge_chance = 0.0
+boss_id = &"warden"
+display_name = "Guardián musgoso"
+detect_radius = 110.0
+leash_radius = 150.0
+
+[node name="AnimatedSprite2D" type="AnimatedSprite2D" parent="."]
+offset = Vector2(0, -12)
+sprite_frames = ExtResource("2_frames")
+animation = &"idle"
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="."]
+position = Vector2(0, 3)
+shape = SubResource("RectangleShape2D_body")
+
+[node name="ContactArea" type="Area2D" parent="."]
+collision_layer = 0
+collision_mask = 2
+monitorable = false
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="ContactArea"]
+position = Vector2(0, -4)
+shape = SubResource("RectangleShape2D_contact")
