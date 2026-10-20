@@ -6,7 +6,7 @@ from fastapi import FastAPI
 from fastapi.staticfiles import StaticFiles
 
 from . import database
-from .api import leaderboard, players, runs, stats
+from .api import analytics, leaderboard, players, runs, stats
 
 WEB_DIR = database.SERVER_DIR / "web"
 
@@ -27,6 +27,7 @@ def create_app(db_path: Path | None = None) -> FastAPI:
     app.include_router(runs.router)
     app.include_router(leaderboard.router)
     app.include_router(stats.router)
+    app.include_router(analytics.router)
     # Mounted last so the /api routes take precedence.
     app.mount("/", StaticFiles(directory=WEB_DIR, html=True), name="web")
     return app
