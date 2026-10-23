@@ -48,8 +48,14 @@ func _notification(what: int) -> void:
 
 
 func _on_run_started() -> void:
-	recorder.start_run(RunRecorder.new_run_id(), PlayerProfile.current_name(), current_mode(),
+	recorder.start_run(RunRecorder.new_run_id(), player_name(), current_mode(),
 			Game.run_seed, Game.current_level)
+
+
+## Nombre con el que se registra la partida: el del perfil elegido en la misma
+## carpeta que usa Profiles (y Telemetry); sin perfil, el de player.cfg.
+func player_name() -> String:
+	return PlayerProfile.current_name(Profiles.store.base_dir)
 
 
 ## Modo con el que se registra la partida que empieza según Game.

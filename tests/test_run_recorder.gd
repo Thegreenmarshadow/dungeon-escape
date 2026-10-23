@@ -2,11 +2,13 @@
 extends McpTestSuite
 ## Pruebas de RunRecorder: qué eventos y qué resumen produce cada momento de
 ## una partida. Usa un destino que solo anota (RecordingSink), sin red. También
-## cubre el nombre del jugador (PlayerProfile) y la lectura de la tabla en
-## línea (OnlineLeaderboard.parse_response).
+## cubre el nombre del jugador (PlayerProfile y el perfil elegido con el que
+## RunTracker empieza la partida) y la lectura de la tabla en línea
+## (OnlineLeaderboard.parse_response).
 
 const RUN_ID := "0123456789abcdef0123456789abcdef"
 const TEMP_DIR := "user://test_run_recorder"
+const RUN_TRACKER_SCRIPT := "res://scripts/stats/run_tracker.gd"
 
 
 ## Destino falso: guarda todo lo que recibe.
@@ -36,6 +38,9 @@ class RecordingSink:
 
 var _sink: RecordingSink
 var _recorder: RunRecorder
+# Autoload Profiles y su ProfileStore real, para devolverlo en teardown.
+var _profiles: Node
+var _previous_store: ProfileStore
 
 
 func suite_name() -> String:
@@ -48,11 +53,11 @@ func setup() -> void:
 
 
 func teardown() -> void:
-	if not DirAccess.dir_exists_absolute(TEMP_DIR):
-		return
-	for file_name in DirAccess.get_files_at(TEMP_DIR):
-		DirAccess.remove_absolute(TEMP_DIR.path_join(file_name))
-	DirAccess.remove_absolute(TEMP_DIR)
+	if _profiles != null:
+		_profiles.store = _previous_store
+		_profiles = null
+		_previous_store = null
+	JsonFile.remove_tree(TEMP_DIR)
 
 
 func test_start_run_sends_the_run_data() -> void:
@@ -249,6 +254,37 @@ func test_player_name_is_sanitized_and_persisted() -> void:
 	assert_eq(PlayerProfile.sanitize("   "), PlayerProfile.DEFAULT_NAME)
 	assert_eq(PlayerProfile.sanitize("x".repeat(40)).length(), PlayerProfile.MAX_NAME_LENGTH)
 	assert_eq(PlayerProfile.sanitize("Iñaki Núñez"), "Iñaki Núñez")
+
+
+func test_current_name_is_the_selected_profile() -> void:
+	var store := ProfileStore.new(TEMP_DIR.path_join("profiles"))
+	var ana := store.create_profile("  Ana  ")
+	var long_name := store.create_profile("x".repeat(40))
+	store.select_profile(ana["slug"])
+	assert_eq(PlayerProfile.current_name(store.base_dir), "Ana")
+	store.select_profile(long_name["slug"])
+	assert_eq(PlayerProfile.current_name(store.base_dir).length(), PlayerProfile.MAX_NAME_LENGTH,
+			"entra en el player_name del servidor (32 como máximo)")
+
+
+func test_run_tracker_starts_the_run_with_the_selected_profile_name() -> void:
+	var root := (Engine.get_main_loop() as SceneTree).root
+	var profiles := root.get_node_or_null("Profiles")
+	if profiles == null or root.get_node_or_null("Game") == null:
+		skip("necesita los Autoload Profiles y Game")
+		return
+	_profiles = profiles
+	_previous_store = profiles.store
+	_profiles.store = ProfileStore.new(TEMP_DIR.path_join("profiles"))
+	_profiles.store.create_profile("Ana")
+	var beto: Dictionary = _profiles.store.create_profile("Beto")
+	_profiles.store.select_profile(beto["slug"])
+
+	var tracker: Node = track(load(RUN_TRACKER_SCRIPT).new())
+	tracker.recorder = _recorder
+	tracker._on_run_started()
+	assert_eq(_sink.runs.size(), 1)
+	assert_eq(_sink.runs[0]["player_name"], "Beto", "el perfil elegido, no el primero ni player.cfg")
 
 
 func test_online_leaderboard_parses_valid_responses_only() -> void:
