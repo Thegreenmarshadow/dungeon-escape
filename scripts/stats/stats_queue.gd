@@ -75,6 +75,14 @@ func next_batch(max_events: int) -> Array[Dictionary]:
 	return batch
 
 
+## true si el inicio de la partida run_id todavía no llegó al servidor (sigue
+## en la cola, también mientras se está enviando). LevelUploader espera a que
+## no esté para subir los niveles de esa partida.
+func has_run_start(run_id: String) -> bool:
+	return items.any(func(item: Dictionary) -> bool:
+		return item["kind"] == KIND_RUN_STARTED and item["run_id"] == run_id)
+
+
 ## Quita de la cola los elementos del lote (por id). Los que ya no estén, por
 ## ejemplo descartados por el tope mientras se enviaban, se ignoran.
 func remove(batch: Array[Dictionary]) -> void:
