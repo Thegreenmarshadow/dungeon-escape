@@ -57,8 +57,9 @@ func test_records_player_events_with_position_and_writes_on_death() -> void:
 	telemetry._process(0.3)
 	assert_eq(telemetry.current_path().size(), 3, "por distancia y por tiempo")
 
-	player.take_damage(1, Vector2(30, 40), &"Skeleton")
-	player.heal(1)
+	# Medios corazones en el juego, corazones en el archivo: 3 medios = 1.5.
+	player.take_damage(3, Vector2(30, 40), &"Skeleton")
+	player.heal(2)
 	player.collect_key()
 	player._try_attack()
 	for i in 4:
@@ -76,7 +77,8 @@ func test_records_player_events_with_position_and_writes_on_death() -> void:
 			"door", "damage", "death"])
 	var events: Array = data["events"]
 	assert_eq(events[0]["source"], "Skeleton")
-	assert_eq(events[0]["amount"], 1)
+	assert_eq(events[0]["amount"], 1.5)
+	assert_eq(events[1]["amount"], 1.0, "el corazón curó uno entero")
 	assert_eq([events[0]["x"], events[0]["y"]], [60.0, 40.0], "donde estaba el jugador")
 	assert_eq(events[3]["hit"], false)
 	assert_eq(events[5]["enemy"], "Skeleton")
@@ -97,7 +99,8 @@ func test_records_player_events_with_position_and_writes_on_death() -> void:
 	assert_eq(loaded.size(), 1)
 	assert_eq(loaded[0]["events"].size(), 9)
 	assert_eq(loaded[0]["seed"], 77)
-	assert_eq(typeof(loaded[0]["events"][0]["amount"]), TYPE_INT)
+	assert_eq(typeof(loaded[0]["events"][0]["amount"]), TYPE_FLOAT, "en corazones, puede tener medio")
+	assert_eq(loaded[0]["events"][0]["amount"], 1.5)
 	assert_true(store.load_levels({"level": 3}).is_empty(), "el filtro de nivel descarta")
 	var floor_cells := TelemetryStore.decode_floor(loaded[0]["map"])
 	assert_eq(floor_cells, _small_layout().floor_cells, "el mapa vuelve igual")
@@ -122,7 +125,8 @@ func test_level_file_missing_fields_loads_with_defaults() -> void:
 	assert_eq(data["difficulty_index"], null, "los archivos viejos no lo tienen")
 	assert_eq(data["path"], [[1.5, 20.0, 30.0]], "descarta los puntos malformados")
 	assert_eq(data["events"].size(), 1)
-	assert_eq(data["events"][0]["amount"], 2)
+	assert_eq(data["events"][0]["amount"], 2.0, "un archivo viejo en corazones enteros se lee igual")
+	assert_eq(typeof(data["events"][0]["amount"]), TYPE_FLOAT)
 	assert_eq(data["events"][0]["t"], 0.0)
 	assert_eq(data["map"]["cell_px"], 16)
 	assert_eq(data["map"]["door"], null)

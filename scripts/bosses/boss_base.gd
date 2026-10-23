@@ -140,6 +140,20 @@ func apply_health_scale(multiplier: float) -> void:
 	health_changed.emit(health, max_health)
 
 
+## Igual que la vida: el daño de la escena es el pensado para el primer nivel
+## del jefe, así que solo suma el bonus que ganaron los enemigos desde ese
+## nivel. Hoy los tres jefes aparecen antes del primer escalón de daño
+## (LevelGenerator.DAMAGE_FIRST_LEVEL), así que en sus vueltas desde el nivel
+## 25 suman lo mismo que el resto, con el mismo tope de
+## LevelGenerator.MAX_SCALED_HIT. Cubre su contacto y sus efectos de suelo
+## (spawn_hazard); las criaturas que crea no lastiman.
+func apply_damage_bonus(bonus: int) -> void:
+	var first_level := BossRegistry.first_level(boss_id)
+	if first_level > 0:
+		bonus -= LevelGenerator.enemy_damage_bonus(first_level)
+	super(bonus)
+
+
 func heal(amount: int) -> int:
 	var healed := super(amount)
 	if healed > 0:
@@ -251,11 +265,14 @@ static func move_windup_seconds(frames: SpriteFrames, animation: StringName, imp
 ## Crea un efecto de suelo (normalmente un BossHazard) en la posición global
 ## at. Se agrega al momento: un Node2D sin física se puede agregar incluso
 ## durante un callback de física. Si tiene la propiedad target se le pasa el
-## jugador. Se borra solo cuando el jefe muere.
+## jugador, y si tiene damage se le suma el bonus de daño del jefe
+## (scaled_damage). Se borra solo cuando el jefe muere.
 func spawn_hazard(scene: PackedScene, at: Vector2) -> Node2D:
 	var hazard: Node2D = scene.instantiate()
 	if "target" in hazard:
 		hazard.target = _player
+	if "damage" in hazard:
+		hazard.damage = scaled_damage(hazard.damage)
 	if "source" in hazard and boss_id != &"":
 		hazard.source = boss_id
 	var parent := hazard_parent if is_instance_valid(hazard_parent) else get_parent() as Node2D

@@ -12,14 +12,18 @@ extends RefCounted
 ##
 ## Cada evento lleva seq (orden dentro de la partida, desde 0), type, level,
 ## t_run_s (segundos jugados desde el inicio, sin contar las pausas), payload y
-## at (fecha UTC). Tipos que se envían hoy:
+## at (fecha UTC). La vida del jugador (lives) y el daño o la curación
+## (amount) van en corazones, la unidad de siempre, aunque el juego los cuente
+## en medios corazones: pueden ser fraccionarios (0.5, 2.5) y los datos viejos
+## (vidas enteras) siguen siendo comparables. Tipos que se envían hoy:
 ##   level_started   {lives, enemies_total}
 ##   enemy_killed    {enemy}            nombre de la escena: Skeleton, Vampire…
 ##   enemy_dodged    {enemy}            un enemigo esquivó un golpe del jugador
-##   damage_taken    {amount, lives, source}  vidas perdidas, las que quedan y
-##                                      quién lastimó (Player.damaged: tipo de
-##                                      enemigo, "spikes", id del jefe...)
-##   heart_picked    {amount, lives}    vidas recuperadas (solo curan los corazones)
+##   damage_taken    {amount, lives, source}  corazones perdidos, los que quedan
+##                                      y quién lastimó (Player.damaged: tipo
+##                                      de enemigo, "spikes", id del jefe...)
+##   heart_picked    {amount, lives}    corazones recuperados (en un nivel solo
+##                                      curan los corazones del suelo)
 ##   key_picked      {}
 ##   coin_picked     {amount}           monedas recogidas
 ##   item_bought     {item, price}      compra en la tienda (damage, life o el id
@@ -65,7 +69,8 @@ var _level_time := 0.0
 var _level := 0
 var _level_reached := 0
 var _level_active := false
-var _lives := 0
+# Vida del jugador en medios corazones (Player.health).
+var _health := 0
 var _level_kills := 0
 var _enemies_total := 0
 # Últimos totales conocidos de la partida, para cerrarla sin el estado global.
@@ -120,17 +125,18 @@ func start_run(new_run_id: String, player_name: String, mode: String, run_seed: 
 	})
 
 
-func start_level(level: int, lives: int, enemies_total: int) -> void:
+## health es la vida del jugador al empezar, en medios corazones.
+func start_level(level: int, health: int, enemies_total: int) -> void:
 	if not is_running():
 		return
 	_level = level
 	_level_reached = maxi(_level_reached, level)
 	_level_active = true
 	_level_time = 0.0
-	_lives = lives
+	_health = health
 	_level_kills = 0
 	_enemies_total = enemies_total
-	_emit(EVENT_LEVEL_STARTED, {"lives": lives, "enemies_total": enemies_total})
+	_emit(EVENT_LEVEL_STARTED, {"lives": Heart.to_hearts(health), "enemies_total": enemies_total})
 
 
 ## Suma tiempo jugado. Solo cuenta mientras hay un nivel activo.
@@ -156,17 +162,20 @@ func record_dodge(kind: String) -> void:
 		_emit(EVENT_ENEMY_DODGED, {"enemy": kind})
 
 
-## Recibe cada cambio de vidas del jugador: una baja es daño y una suba es un
-## corazón recogido (los corazones son lo único que cura). source es quién hizo
-## el daño (Player.last_damage_source); vacío si no se sabe.
-func record_lives(lives: int, source: String = "") -> void:
+## Recibe cada cambio de vida del jugador (Player.health_changed, en medios
+## corazones): una baja es daño y una suba es un corazón recogido (los
+## corazones son lo único que cura en un nivel). source es quién hizo el daño
+## (Player.last_damage_source); vacío si no se sabe. El evento lleva corazones.
+func record_health(health: int, source: String = "") -> void:
 	if not _level_active:
 		return
-	if lives < _lives:
-		_emit(EVENT_DAMAGE_TAKEN, {"amount": _lives - lives, "lives": lives, "source": source})
-	elif lives > _lives:
-		_emit(EVENT_HEART_PICKED, {"amount": lives - _lives, "lives": lives})
-	_lives = lives
+	if health < _health:
+		_emit(EVENT_DAMAGE_TAKEN, {"amount": Heart.to_hearts(_health - health),
+				"lives": Heart.to_hearts(health), "source": source})
+	elif health > _health:
+		_emit(EVENT_HEART_PICKED, {"amount": Heart.to_hearts(health - _health),
+				"lives": Heart.to_hearts(health)})
+	_health = health
 
 
 func record_key() -> void:
@@ -217,13 +226,13 @@ func record_weapon(weapon: String) -> void:
 		_emit(EVENT_WEAPON_CHANGED, {"weapon": weapon})
 
 
-## La demo revivió al jugador con lives vidas: la partida sigue. Las vidas
-## recuperadas no cuentan como corazones.
-func record_respawn(lives: int) -> void:
+## La demo revivió al jugador con health medios corazones: la partida sigue.
+## La vida recuperada no cuenta como corazones recogidos.
+func record_respawn(health: int) -> void:
 	if not _level_active:
 		return
-	_lives = lives
-	_emit(EVENT_PLAYER_RESPAWNED, {"lives": lives})
+	_health = health
+	_emit(EVENT_PLAYER_RESPAWNED, {"lives": Heart.to_hearts(health)})
 
 
 ## Cierra la partida en curso. score y total_kills negativos usan los últimos

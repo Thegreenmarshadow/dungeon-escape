@@ -178,13 +178,13 @@ func test_spike_hurts_after_its_crack() -> void:
 	hazard.sprite.frame = 1
 	assert_eq(player.damage_taken, 0, "grieta")
 	hazard.sprite.frame = 2
-	assert_eq(player.damage_taken, 1, "pico")
+	assert_eq(player.damage_taken, Heart.HALF_HEARTS_PER_HEART, "pico")
 	hazard.sprite.frame = 3
-	assert_eq(player.damage_taken, 1, "una sola vez")
+	assert_eq(player.damage_taken, Heart.HALF_HEARTS_PER_HEART, "una sola vez")
 	player.position = Vector2(10, 0)
 	var other := BossRig.make_hazard(self, ICE_SPIKE_SCENE, player)
 	other.sprite.frame = 2
-	assert_eq(player.damage_taken, 1, "a 10 px de costado no lo alcanza")
+	assert_eq(player.damage_taken, Heart.HALF_HEARTS_PER_HEART, "a 10 px de costado no lo alcanza")
 
 
 func test_spikes_recover_and_cool_down() -> void:
@@ -225,7 +225,7 @@ func test_nova_freezes_a_player_who_stays_close() -> void:
 	nova.sprite.frame = 2
 	assert_eq(lich._player.damage_taken, 0, "el anillo todavía crece")
 	nova.sprite.frame = 3
-	assert_eq(lich._player.damage_taken, 1)
+	assert_eq(lich._player.damage_taken, Heart.HALF_HEARTS_PER_HEART)
 	assert_eq(lich._player.slow_calls, 1, "frío")
 	assert_eq(lich._player.last_slow_factor, 0.5, "al 50 % de velocidad")
 

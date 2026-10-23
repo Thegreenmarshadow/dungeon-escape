@@ -15,8 +15,9 @@ signal returning_to_menu
 ## Lo escucha RunTracker para registrar la compra.
 signal item_bought(item: StringName, price: int)
 
-## Vidas con las que empieza cada partida nueva.
-const STARTING_LIVES := 3
+## Vida con la que empieza cada partida nueva, en medios corazones (ver
+## Heart.HALF_HEARTS_PER_HEART): 3 corazones.
+const STARTING_HEALTH := 3 * Heart.HALF_HEARTS_PER_HEART
 ## Puntos por cada enemigo eliminado.
 const POINTS_PER_KILL := 10
 ## Puntos por cada nivel superado.
@@ -29,14 +30,15 @@ const SANDBOX_SCENE := "res://scenes/Sandbox.tscn"
 const DEMO_SCENE := "res://scenes/DemoLevel.tscn"
 const PROFILE_SELECT_SCENE := "res://scenes/ProfileSelect.tscn"
 const SETTINGS_SCENE := "res://scenes/SettingsMenu.tscn"
-## Vidas de la demo: más que en una partida normal, para que quien prueba el
-## juego por primera vez no tenga que empezar de nuevo.
-const DEMO_LIVES := 5
+## Vida de la demo, en medios corazones: 5 corazones, más que en una partida
+## normal, para que quien prueba el juego por primera vez no tenga que
+## empezar de nuevo.
+const DEMO_HEALTH := 5 * Heart.HALF_HEARTS_PER_HEART
 
 ## Nivel que se está jugando, empezando en 1.
 var current_level: int = 1
-## Vidas restantes; se conservan entre niveles.
-var lives: int = STARTING_LIVES
+## Vida restante del jugador, en medios corazones; se conserva entre niveles.
+var health: int = STARTING_HEALTH
 ## Enemigos eliminados en toda la partida.
 var enemies_killed: int = 0
 var score: int = 0
@@ -70,7 +72,7 @@ var run_id: String = ""
 ## Reinicia todo el estado para empezar una partida desde el nivel 1.
 func new_game() -> void:
 	current_level = 1
-	lives = STARTING_LIVES
+	health = STARTING_HEALTH
 	enemies_killed = 0
 	score = 0
 	coins = 0
@@ -111,17 +113,17 @@ func times_bought(item: StringName) -> int:
 	return damage_bonus if item == Shop.ITEM_DAMAGE else 0
 
 
-## true si ahora se puede comprar item. max_lives es el tope de vidas del
-## jugador, que Game no conoce.
-func can_buy(item: StringName, max_lives: int) -> bool:
-	return Shop.can_buy(item, coins, times_bought(item), lives, max_lives, level_scale())
+## true si ahora se puede comprar item. max_health es la vida máxima del
+## jugador (medios corazones), que Game no conoce.
+func can_buy(item: StringName, max_health: int) -> bool:
+	return Shop.can_buy(item, coins, times_bought(item), health, max_health, level_scale())
 
 
 ## Compra item si las reglas de Shop lo permiten: descuenta el precio y aplica
-## la mejora (más daño, una vida más o el arma nueva). Devuelve false sin
-## cambiar nada si no se puede comprar.
-func buy(item: StringName, max_lives: int) -> bool:
-	if not can_buy(item, max_lives):
+## la mejora (más daño, un corazón más de vida sin pasar de max_health o el
+## arma nueva). Devuelve false sin cambiar nada si no se puede comprar.
+func buy(item: StringName, max_health: int) -> bool:
+	if not can_buy(item, max_health):
 		return false
 	var price := Shop.price_for(item, times_bought(item), level_scale())
 	coins -= price
@@ -129,7 +131,7 @@ func buy(item: StringName, max_lives: int) -> bool:
 		Shop.ITEM_DAMAGE:
 			damage_bonus += 1
 		Shop.ITEM_LIFE:
-			lives += 1
+			health = mini(health + Shop.LIFE_HEAL, max_health)
 		_:
 			if Shop.is_weapon(item):
 				weapon_id = item
@@ -153,11 +155,13 @@ func start_new_game() -> void:
 
 ## "Continuar": retoma la partida guardada de un perfil (ver
 ## ProfileStore.SAVE_KEYS) desde el principio del nivel en el que estaba, con
-## las vidas, el arma, las monedas, las mejoras y la semilla de ese momento.
+## la vida, el arma, las monedas, las mejoras y la semilla de ese momento. Una
+## partida guardada antes de los medios corazones (vidas enteras) se
+## convierte con ProfileStore.saved_health.
 func continue_run(save: Dictionary) -> void:
 	new_game()
 	current_level = maxi(int(save.get("level", 1)), 1)
-	lives = maxi(int(save.get("lives", STARTING_LIVES)), 1)
+	health = ProfileStore.saved_health(save, STARTING_HEALTH)
 	coins = maxi(int(save.get("coins", 0)), 0)
 	damage_bonus = maxi(int(save.get("damage_bonus", 0)), 0)
 	var saved_weapon := StringName(str(save.get("weapon_id", WeaponData.STARTING_ID)))
@@ -183,13 +187,13 @@ func start_test_run(level: int) -> void:
 	start_level()
 
 
-## Empieza la demo desde su primera sala, con DEMO_LIVES vidas y la espada.
+## Empieza la demo desde su primera sala, con DEMO_HEALTH de vida y la espada.
 ## Es un nivel aparte (DEMO_SCENE): current_level queda en 1, así los enemigos
 ## tienen su vida base.
 func start_demo() -> void:
 	new_game()
 	demo_mode = true
-	lives = DEMO_LIVES
+	health = DEMO_HEALTH
 	run_started.emit()
 	_change_scene(DEMO_SCENE)
 
@@ -213,7 +217,7 @@ func start_level() -> void:
 	_change_scene(LEVEL_SCENE)
 
 
-## Vuelve al menú. Al salir de la demo se reinicia todo el estado (vidas, arma,
+## Vuelve al menú. Al salir de la demo se reinicia todo el estado (vida, arma,
 ## monedas...), así nada de la demo llega a la próxima partida.
 func go_to_menu() -> void:
 	returning_to_menu.emit()

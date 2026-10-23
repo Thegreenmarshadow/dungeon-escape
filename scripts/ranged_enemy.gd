@@ -206,10 +206,13 @@ func _on_sprite_frame_changed() -> void:
 
 
 ## Crea el proyectil junto al enemigo (no como hijo, así no se mueve con él).
+## El daño al jugador es el de la escena del proyectil con el bonus de daño
+## del nivel (scaled_damage); el que hace devuelto a un enemigo no cambia.
 func _fire() -> Projectile:
 	if projectile_scene == null or get_parent() == null:
 		return null
 	var projectile: Projectile = projectile_scene.instantiate()
+	projectile.damage = scaled_damage(projectile.damage)
 	projectile.shooter = self
 	projectile.source = damage_source()
 	get_parent().add_child(projectile)

@@ -164,17 +164,18 @@ static func subtitle_for(level_data: Dictionary) -> String:
 static func stats_for(level_data: Dictionary) -> String:
 	if level_data.is_empty():
 		return "La telemetría no registró este nivel."
-	var damage := 0
+	# El daño de la telemetría está en corazones y puede tener medios.
+	var damage := 0.0
 	var sources := {}
 	for event: Dictionary in TelemetryStore.events_of_type(level_data, TelemetryStore.EVENT_DAMAGE):
-		var amount := int(event.get("amount", 1))
+		var amount := JsonFile.to_float(event.get("amount", 1.0))
 		var source := source_name(str(event.get("source", "")))
 		damage += amount
-		sources[source] = int(sources.get(source, 0)) + amount
+		sources[source] = float(sources.get(source, 0.0)) + amount
 	var lines: Array[String] = ["Tiempo: %s" % format_time(float(level_data.get("duration_s", 0.0)))]
-	lines.append("Daño recibido: %d" % damage)
+	lines.append("Daño recibido: %s %s" % [Heart.format_heart_amount(damage), "corazón" if damage == 1.0 else "corazones"])
 	for source: String in sources:
-		lines.append("   %s: %d" % [source, sources[source]])
+		lines.append("   %s: %s" % [source, Heart.format_heart_amount(sources[source])])
 	lines.append("Enemigos eliminados: %d" % TelemetryStore.events_of_type(level_data, TelemetryStore.EVENT_ENEMY_KILLED).size())
 	var hearts := TelemetryStore.events_of_type(level_data, TelemetryStore.EVENT_HEART).size()
 	if hearts > 0:

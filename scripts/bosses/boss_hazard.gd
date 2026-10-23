@@ -27,8 +27,9 @@ signal struck(target: Node2D)
 ## Fuente del daño (Player.damaged) de un efecto sin source asignado.
 const DEFAULT_SOURCE := &"boss_hazard"
 
-## Daño que hace.
-@export var damage: int = 1
+## Daño que hace al jugador, en medios corazones (2 = un corazón). El jefe le
+## suma su bonus de daño al crearlo (BossBase.spawn_hazard).
+@export var damage: int = 2
 ## Radio en píxeles alrededor del efecto en el que alcanza al jugador.
 @export var radius: float = 12.0
 ## Primer y último frame (incluidos) en los que lastima. Los anteriores son el

@@ -9,7 +9,7 @@ extends Node
 ##   pausan con el árbol) y lo guarda en el perfil y en la partida al terminar
 ##   el nivel, al morir, al volver al menú y al cerrar la ventana.
 ## - Partida guardada: al empezar cada nivel de una partida normal (no de
-##   prueba ni la demo) guarda nivel, vidas, arma, semilla, monedas y mejoras;
+##   prueba ni la demo) guarda nivel, vida, arma, semilla, monedas y mejoras;
 ##   morir la borra. continue_saved_game() la retoma ("Continuar").
 ##
 ## Solo observa señales que ya existen (Game.run_started,
@@ -147,7 +147,7 @@ func _on_level_ready(level: Node) -> void:
 	if _mode == RunRecorder.MODE_NORMAL:
 		store.set_save(_run_slug, {
 			"level": Game.current_level,
-			"lives": Game.lives,
+			"health": Game.health,
 			"weapon_id": String(Game.weapon_id),
 			"run_seed": Game.run_seed,
 			"coins": Game.coins,

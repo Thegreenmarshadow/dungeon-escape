@@ -2,7 +2,7 @@ class_name DifficultyProbe
 extends Node
 ## Sonda del modo prueba. El nivel la agrega solo cuando Game.test_mode está
 ## activo; no cambia nada del juego, solo escucha señales que ya existen:
-##   - Player.lives_changed: daño recibido (vidas perdidas) y curaciones.
+##   - Player.health_changed: daño recibido y curaciones.
 ##   - Player.died y Door.player_escaped: fin del nivel y resultado.
 ##   - EnemyBase.died: enemigos eliminados.
 ##   - EnemyBase.dodged: golpes esquivados (solo en la superposición).
@@ -11,10 +11,16 @@ extends Node
 ## dificultad y las métricas en vivo, y al terminar el nivel agrega una fila a
 ## PLAYTEST_CSV_PATH.
 ##
+## La vida perdida y curada (lives_lost, hearts_healed, damage_per_min,
+## damage_sources) va en corazones, como cuando se contaban vidas enteras, así
+## las filas viejas y las nuevas se comparan; desde los medios corazones puede
+## tener medios ("1.5"). enemies son los comunes que se colocan (sin los
+## convertidos en especiales).
+##
 ## Columnas medidas (agregadas al final para no romper los archivos ya
 ## acumulados; un archivo con el encabezado viejo se completa con celdas
 ## vacías al escribir la primera fila nueva):
-##   damage_per_min  vidas perdidas por minuto jugado (como LevelStats)
+##   damage_per_min  corazones perdidos por minuto jugado (como LevelStats)
 ##   damage_sources  daño por fuente, "fuente:cantidad" separados por ";"
 ##   death_cause     fuente del último daño si el resultado es died
 
@@ -36,9 +42,10 @@ var _level := 0
 var _params: LevelGenerator.Params
 var _index := 0.0
 var _seconds := 0.0
-var _lives := 0
-var _lives_lost := 0
-var _hearts_healed := 0
+# Vida, vida perdida y curada, en medios corazones.
+var _health := 0
+var _health_lost := 0
+var _health_healed := 0
 var _kills := 0
 var _dodges := 0
 var _enemies_total := 0
@@ -59,8 +66,8 @@ func _ready() -> void:
 	var level := get_parent()
 	var player: Node = level.get_node("Player")
 	_player = player
-	_lives = player.lives
-	player.lives_changed.connect(_on_lives_changed)
+	_health = player.health
+	player.health_changed.connect(_on_health_changed)
 	player.damaged.connect(_on_player_damaged)
 	player.died.connect(_on_player_died)
 	level.get_node("ExitDoor").player_escaped.connect(_finish.bind(OUTCOME_ESCAPED))
@@ -88,12 +95,12 @@ func _exit_tree() -> void:
 		_finish(OUTCOME_ABANDONED)
 
 
-func _on_lives_changed(lives: int) -> void:
-	if lives < _lives:
-		_lives_lost += _lives - lives
-	elif lives > _lives:
-		_hearts_healed += lives - _lives
-	_lives = lives
+func _on_health_changed(health: int) -> void:
+	if health < _health:
+		_health_lost += _health - health
+	elif health > _health:
+		_health_healed += health - _health
+	_health = health
 	_update_overlay()
 
 
@@ -133,13 +140,13 @@ func _append_row(outcome: String) -> Error:
 	var keys := _damage_by_source.keys()
 	keys.sort()
 	for source: String in keys:
-		sources.append("%s:%d" % [source, _damage_by_source[source]])
-	var damage_per_min := _lives_lost / (_seconds / 60.0) if _seconds > 0.0 else 0.0
+		sources.append("%s:%s" % [source, Heart.format_hearts(_damage_by_source[source])])
+	var damage_per_min := Heart.to_hearts(_health_lost) / (_seconds / 60.0) if _seconds > 0.0 else 0.0
 	return append_playtest_row(PLAYTEST_CSV_PATH, PackedStringArray([
 		Time.get_datetime_string_from_system(), str(Game.run_seed), str(_level),
-		"%.3f" % _index, str(_params.enemy_count), str(_params.boss_count),
-		str(_params.hazard_count), "%.1f" % _seconds, str(_lives_lost),
-		str(_hearts_healed), str(_kills), str(_enemies_total), outcome,
+		"%.3f" % _index, str(LevelGenerator.common_count(_params)), str(_params.boss_count),
+		str(_params.hazard_count), "%.1f" % _seconds, Heart.format_hearts(_health_lost),
+		Heart.format_hearts(_health_healed), str(_kills), str(_enemies_total), outcome,
 		"%.3f" % damage_per_min, ";".join(sources),
 		_death_cause if outcome == OUTCOME_DIED else "",
 	]))
@@ -221,12 +228,16 @@ func _update_overlay(outcome: String = "") -> void:
 	var p := _params
 	var lines := PackedStringArray([
 		"MODO PRUEBA · nivel %d · índice %.1f" % [_level, _index],
-		"Enemigos %d (perseguidores %d, calaveras %d) · jefes %d · trampas %d · vida ×%.1f" % [
-			p.enemy_count, LevelGenerator.chaser_count(p), p.skull_count, p.boss_count, p.hazard_count,
-			p.enemy_health_scale],
-		"Grilla %dx%d · salas %d" % [p.grid_size.x, p.grid_size.y, p.room_count],
-		"Tiempo %.1f s · vidas perdidas %d · eliminados %d/%d · esquivas %d" % [
-			_seconds, _lives_lost, _kills, _enemies_total, _dodges],
+		"Comunes %d (esqueletos %d, vampiros %d, calaveras %d) · especiales %d (%d convertidos) · jefes %d · trampas %d" % [
+			LevelGenerator.common_count(p), LevelGenerator.skeleton_count(p), LevelGenerator.vampire_count(p),
+			p.skull_count, LevelGenerator.special_total(p), p.converted_skeletons + p.converted_vampires,
+			p.boss_count, p.hazard_count],
+		"Vida ×%.1f · golpe %s corazones (+%d medios) · grilla %dx%d · salas %d" % [
+			p.enemy_health_scale,
+			Heart.format_hearts(LevelGenerator.scaled_hit(LevelGenerator.BASE_ENEMY_HIT, p.enemy_damage_bonus)),
+			p.enemy_damage_bonus, p.grid_size.x, p.grid_size.y, p.room_count],
+		"Tiempo %.1f s · corazones perdidos %s · eliminados %d/%d · esquivas %d" % [
+			_seconds, Heart.format_hearts(_health_lost), _kills, _enemies_total, _dodges],
 	])
 	if not outcome.is_empty():
 		lines.append("Resultado: %s (guardado en %s)" % [outcome, PLAYTEST_CSV_PATH])

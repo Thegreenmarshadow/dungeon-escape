@@ -5,10 +5,13 @@ files (map, route and events), so every section of the web page has data.
 Routes are walked on real level maps: seed_maps.json holds the maps of the
 level files in tests/fixtures, and the deeper levels reuse them mirrored.
 
-The data follows the game's rules (Game.STARTING_LIVES, POINTS_PER_KILL,
+The data follows the game's rules (Game.STARTING_HEALTH, POINTS_PER_KILL,
 POINTS_PER_LEVEL, the shop prices) and the formats of RunRecorder (events)
 and Telemetry (level files), so the run events and the level files of a run
-tell the same story. It is deterministic: the same database comes out every
+tell the same story. Both formats report the player's health and damage in
+hearts ("lives", "amount"), although the game counts them in half hearts; the
+sample stays on levels 1 to 6, where every hit takes a whole heart (the
+damage bonus starts at level 25), so it only uses whole hearts. It is deterministic: the same database comes out every
 time, except for the dates, which are relative to now.
 
 Every sample run id starts with "seed-", so the sample can be removed later
@@ -47,7 +50,8 @@ HISTORY_DAYS = 30
 NEW_VERSION_DAYS = 12
 OLD_VERSION, NEW_VERSION = "0.9.0", "1.0.0"
 
-# Game rules (scripts/game.gd and scripts/shop.gd).
+# Game rules (scripts/game.gd and scripts/shop.gd), in hearts: the game's
+# STARTING_HEALTH and DEMO_HEALTH are these times Heart.HALF_HEARTS_PER_HEART.
 STARTING_LIVES = 3
 DEMO_LIVES = 5
 MAX_LIVES = 5
@@ -83,8 +87,10 @@ LEVELS: dict[int, dict[str, Any]] = {
 }
 SPIKE_DEATH_SHARE = {3: 0.7}
 DEFAULT_SPIKE_DEATH_SHARE = 0.25
-# Planned difficulty (DifficultyCurve.index_for); level 1 is hand-made.
-PLANNED_INDEX = {2: 6.0, 3: 7.5, 4: 11.5, 5: 15.0, 6: 19.5}
+# Planned difficulty (DifficultyCurve.index_for_level, rounded to 3 decimals);
+# level 1 is hand-made. tests/test_difficulty_curve.gd in the game checks the
+# same values.
+PLANNED_INDEX = {2: 20.629, 3: 35.76, 4: 44.685, 5: 56.756, 6: 81.035}
 # Maps of each level: (name in seed_maps.json, mirrored, level seed, weight).
 LEVEL_MAPS: dict[int, list[tuple[str, bool, str | None, int]]] = {
     1: [("level_1", False, None, 1)],

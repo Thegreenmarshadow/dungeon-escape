@@ -12,7 +12,7 @@ extends RefCounted
 ##
 ## Dificultad medida (0–1) de un nivel L, entre los niveles analizados juntos:
 ##   muertes_por_intento(L) = eventos "death" de L / intentos de L
-##   daño_por_minuto(L)     = suma de "amount" de los eventos "damage" de L
+##   daño_por_minuto(L)     = suma de "amount" (corazones) de los eventos "damage" de L
 ##                            / (suma de duration_s de L / 60)
 ##   muertes_norm(L) = muertes_por_intento(L) / máximo de muertes_por_intento
 ##   daño_norm(L)    = daño_por_minuto(L) / máximo de daño_por_minuto
@@ -49,7 +49,8 @@ const _EVENT_DEATH := "death"
 ##   completion_rate, death_rate, abandon_rate (0–1, sobre los intentos),
 ##   deaths (eventos "death", incluye los knock-out que no terminan el nivel),
 ##   deaths_by_cause {causa: n}, total_time_s, mean_time_s,
-##   damage_total, damage_per_min, damage_by_source {fuente: daño},
+##   damage_total, damage_per_min, damage_by_source {fuente: daño} (el daño
+##   en corazones, como en la telemetría: puede tener medios),
 ##   weapons_used (Array[String], en orden de primera aparición),
 ##   deaths_per_attempt, deaths_norm, damage_norm, measured_difficulty.
 ## Ignora los archivos "in_progress" y los modos de excluded_modes.
@@ -181,7 +182,7 @@ static func _empty_row(level: int) -> Dictionary:
 		"deaths": 0,
 		"deaths_by_cause": {},
 		"total_time_s": 0.0,
-		"damage_total": 0,
+		"damage_total": 0.0,
 		"damage_by_source": {},
 		"weapons_used": [] as Array[String],
 	}
@@ -204,10 +205,10 @@ static func _add_level_file(row: Dictionary, data: Dictionary) -> void:
 				continue
 			match str(event.get("type", "")):
 				_EVENT_DAMAGE:
-					var amount := int(event.get("amount", 0))
+					var amount := JsonFile.to_float(event.get("amount", 0.0))
 					var source := source_name(event.get("source", ""))
 					row["damage_total"] += amount
-					row["damage_by_source"][source] = row["damage_by_source"].get(source, 0) + amount
+					row["damage_by_source"][source] = row["damage_by_source"].get(source, 0.0) + amount
 				_EVENT_DEATH:
 					var cause := source_name(event.get("cause", ""))
 					row["deaths"] += 1

@@ -24,8 +24,9 @@ extends EnemyBase
 ## Distancia máxima al jugador a la que el golpe lo alcanza. Es mayor que
 ## attack_range para que un paso atrás corto no lo salve si ya está a mitad.
 @export var attack_reach: float = 26.0
-## Daño que hace el golpe.
-@export var attack_damage: int = 1
+## Daño que hace el golpe, en medios corazones (2 = un corazón). Es el de la
+## escena: apply_damage_bonus le suma el bonus del nivel.
+@export var attack_damage: int = 2
 ## Primer y último frame de la animación en los que el golpe puede lastimar.
 ## Los anteriores son la anticipación (el jugador tiene tiempo de esquivar) y
 ## los posteriores la recuperación.
@@ -39,6 +40,8 @@ var _player: Node2D
 var _attacking: bool = false
 var _attack_hit_done: bool = false
 var _attack_cooldown_left: float = 0.0
+# Daño del golpe de la escena antes del bonus; -1 hasta la primera vez.
+var _base_attack_damage: int = -1
 
 
 func _ready() -> void:
@@ -47,6 +50,14 @@ func _ready() -> void:
 	_home = global_position
 	_player = get_tree().get_first_node_in_group("player")
 	sprite.frame_changed.connect(_on_sprite_frame_changed)
+
+
+## El bonus de daño del nivel también va al golpe del ataque.
+func apply_damage_bonus(bonus: int) -> void:
+	super(bonus)
+	if _base_attack_damage < 0:
+		_base_attack_damage = attack_damage
+	attack_damage = scaled_damage(_base_attack_damage)
 
 
 func _get_move_velocity(delta: float) -> Vector2:

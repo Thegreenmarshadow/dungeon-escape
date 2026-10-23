@@ -24,7 +24,7 @@ extends Node
 ##
 ## Señales que observa: Game.run_started, Game.returning_to_menu,
 ## SceneTree.node_added (como RunTracker), y en cada nivel Player.damaged,
-## lives_changed, key_collected, attacked, weapon_changed, died, knocked_out,
+## health_changed, key_collected, attacked, weapon_changed, died, knocked_out,
 ## revived, ExitDoor.player_escaped y locked_touched, EnemyBase.died.
 ##
 ## Sin class_name a propósito: chocaría con el nombre del Autoload.
@@ -58,7 +58,8 @@ var stats_run_id := ""
 var _run: Dictionary = {}
 var _level: Node
 var _player: Node2D
-var _lives := 0
+# Vida del jugador en medios corazones (Player.health).
+var _health := 0
 
 
 func _ready() -> void:
@@ -145,7 +146,7 @@ func attach_level(level: Node, player: Node2D, door: Node, enemies: Array, map: 
 	abandon()
 	_level = level
 	_player = player
-	_lives = player.lives
+	_health = player.health
 	var meta := _run.duplicate()
 	meta["level"] = level_number
 	# Texto: la semilla de un mapa generado no entra en un double de JSON.
@@ -154,7 +155,7 @@ func attach_level(level: Node, player: Node2D, door: Node, enemies: Array, map: 
 	recorder.start(meta, map, player.global_position, String(player.weapon.id) if player.weapon else "")
 
 	player.damaged.connect(_on_damaged)
-	player.lives_changed.connect(_on_lives_changed)
+	player.health_changed.connect(_on_health_changed)
 	player.key_collected.connect(_record.bind(TelemetryStore.EVENT_KEY))
 	player.attacked.connect(_on_attacked)
 	player.weapon_changed.connect(_on_weapon_changed)
@@ -265,15 +266,17 @@ func _record(type: String, fields: Dictionary = {}, at: Vector2 = Vector2.INF) -
 		event_recorded.emit(event)
 
 
+## amount llega en medios corazones y se registra en corazones (ver
+## TelemetryStore).
 func _on_damaged(amount: int, source: StringName) -> void:
-	_record(TelemetryStore.EVENT_DAMAGE, {"amount": amount, "source": String(source)})
+	_record(TelemetryStore.EVENT_DAMAGE, {"amount": Heart.to_hearts(amount), "source": String(source)})
 
 
 ## Las bajas ya llegan con damaged; una suba es un corazón (lo único que cura).
-func _on_lives_changed(lives: int) -> void:
-	if lives > _lives:
-		_record(TelemetryStore.EVENT_HEART, {"amount": lives - _lives})
-	_lives = lives
+func _on_health_changed(health: int) -> void:
+	if health > _health:
+		_record(TelemetryStore.EVENT_HEART, {"amount": Heart.to_hearts(health - _health)})
+	_health = health
 
 
 func _on_attacked(hit: bool) -> void:
@@ -304,17 +307,17 @@ func _on_died() -> void:
 	finish_level(TelemetryRecorder.OUTCOME_DIED)
 
 
-## La demo no termina al quedarse sin vidas: lo revive (revive) más tarde.
+## La demo no termina al quedarse sin vida: lo revive (revive) más tarde.
 func _on_knocked_out() -> void:
 	_record(TelemetryStore.EVENT_DEATH, {"cause": _death_cause(), "final": false})
 
 
-func _on_revived(lives: int) -> void:
+func _on_revived(health: int) -> void:
 	if not recorder.is_active() or not is_instance_valid(_player):
 		return
-	_lives = lives
+	_health = health
 	var index := recorder.break_path(_player.global_position)
-	_record(TelemetryStore.EVENT_REVIVE, {"lives": lives, "path_index": index})
+	_record(TelemetryStore.EVENT_REVIVE, {"lives": Heart.to_hearts(health), "path_index": index})
 
 
 func _death_cause() -> String:
@@ -325,7 +328,7 @@ func _disconnect_player() -> void:
 	if not is_instance_valid(_player):
 		return
 	for connection: Array in [
-		[&"damaged", _on_damaged], [&"lives_changed", _on_lives_changed],
+		[&"damaged", _on_damaged], [&"health_changed", _on_health_changed],
 		[&"attacked", _on_attacked], [&"weapon_changed", _on_weapon_changed],
 		[&"died", _on_died], [&"knocked_out", _on_knocked_out], [&"revived", _on_revived],
 	]:

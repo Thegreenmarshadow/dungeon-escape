@@ -42,32 +42,37 @@ func _ready() -> void:
 	# Debe ocurrir antes de contar a los enemigos.
 	_fit_camera_to_map(_build_map())
 
-	# Las vidas vienen del estado global, así se conservan entre niveles.
-	# Se asignan acá porque el jugador ya ejecutó su _ready: Godot inicializa
-	# a los hijos antes que al padre.
-	player.lives = Game.lives
+	# La vida viene del estado global, así se conserva entre niveles. Se
+	# asigna acá porque el jugador ya ejecutó su _ready: Godot inicializa a
+	# los hijos antes que al padre.
+	player.health = Game.health
 	# Igual con las mejoras compradas en la tienda.
 	player.damage_bonus = Game.damage_bonus
 	player.equip_weapon(WeaponData.load_by_id(Game.weapon_id))
 
 	# Estado inicial de la interfaz.
-	hud.set_lives(player.lives, player.max_lives)
+	hud.set_health(player.health, player.max_health)
 	hud.set_has_key(player.has_key)
 	hud.set_coins(Game.coins)
 
-	# Cada enemigo se agrega al grupo "enemies" en EnemyBase._ready. La vida se
-	# escala acá, después de ese _ready, según el nivel (×1 en el nivel 1).
+	# Cada enemigo se agrega al grupo "enemies" en EnemyBase._ready. La vida y
+	# el daño se escalan acá, después de ese _ready, según el nivel (×1 y +0
+	# en el nivel 1). El daño cubre a comunes, especiales, la parca y los
+	# proyectiles que disparan; las trampas de picos no son enemigos y
+	# conservan su daño base.
 	var enemies := get_tree().get_nodes_in_group("enemies")
 	_enemies_total = enemies.size()
 	var health_scale := LevelGenerator.enemy_health_scale(Game.current_level)
+	var damage_bonus := LevelGenerator.enemy_damage_bonus(Game.current_level)
 	for enemy in enemies:
 		enemy.apply_health_scale(health_scale)
+		enemy.apply_damage_bonus(damage_bonus)
 		enemy.died.connect(_on_enemy_died)
 		enemy.died.connect(_try_drop_heart)
 		enemy.died.connect(_try_drop_coin)
 	hud.set_kills(_enemies_killed, _enemies_total)
 
-	player.lives_changed.connect(_on_lives_changed)
+	player.health_changed.connect(_on_health_changed)
 	player.key_collected.connect(hud.set_has_key.bind(true))
 	player.coins_collected.connect(Game.add_coins)
 	# La conexión se borra sola cuando la HUD se libera al cambiar de escena.
@@ -165,9 +170,9 @@ func _scatter_loose_coins(layout: LevelGenerator.Layout) -> Array[Vector2i]:
 	return cells
 
 
-func _on_lives_changed(lives: int) -> void:
-	Game.lives = lives
-	hud.set_lives(lives, player.max_lives)
+func _on_health_changed(health: int) -> void:
+	Game.health = health
+	hud.set_health(health, player.max_health)
 
 
 func _on_enemy_died(_enemy: EnemyBase) -> void:
@@ -216,7 +221,7 @@ func _spawn_coin(at: Vector2, value: int) -> void:
 func _on_player_died() -> void:
 	# Los niveles no terminan nunca: la derrota es el único fin de una partida,
 	# así que acá se registra en la tabla de puntajes. El jugador emite died
-	# una sola vez (take_damage se ignora con 0 vidas). Las partidas del modo
+	# una sola vez (take_damage se ignora sin vida). Las partidas del modo
 	# prueba no se registran: empiezan en cualquier nivel y darían récords falsos.
 	var run := ScoreBoard.unrecorded_run() if Game.test_mode \
 			else ScoreBoard.record_run(Game.score, Game.current_level, Game.enemies_killed)
@@ -257,12 +262,12 @@ func _on_player_escaped() -> void:
 
 
 ## Compra pedida desde la tienda de la HUD. Game aplica las reglas de Shop; acá
-## solo se actualiza lo que se ve. La vida comprada queda en Game.lives y el
+## solo se actualiza lo que se ve. La vida comprada queda en Game.health y el
 ## próximo nivel se la da al jugador.
 func _on_buy_pressed(item: StringName) -> void:
-	if not Game.buy(item, player.max_lives):
+	if not Game.buy(item, player.max_health):
 		return
-	hud.set_lives(Game.lives, player.max_lives)
+	hud.set_health(Game.health, player.max_health)
 	_refresh_shop()
 
 
@@ -274,8 +279,8 @@ func _refresh_shop() -> void:
 		offers.append({
 			"item": item,
 			"price": Shop.price_for(item, times, Game.level_scale()),
-			"available": Shop.is_available(item, times, Game.lives, player.max_lives),
-			"affordable": Game.can_buy(item, player.max_lives),
+			"available": Shop.is_available(item, times, Game.health, player.max_health),
+			"affordable": Game.can_buy(item, player.max_health),
 		})
 	hud.show_shop(Game.coins, offers)
 

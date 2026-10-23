@@ -133,7 +133,8 @@ static func weighted_points(data: Dictionary, layer: String) -> Array:
 					points.append([Vector2(path[i][1], path[i][2]), weight])
 		LAYER_DAMAGE:
 			for event: Dictionary in TelemetryStore.events_of_type(data, TelemetryStore.EVENT_DAMAGE):
-				points.append([_event_position(event), float(maxi(int(event.get("amount", 1)), 1))])
+				# Corazones perdidos; al menos medio corazón por golpe.
+				points.append([_event_position(event), maxf(JsonFile.to_float(event.get("amount", 1.0)), 0.5)])
 		LAYER_DEATHS:
 			for event: Dictionary in TelemetryStore.events_of_type(data, TelemetryStore.EVENT_DEATH):
 				points.append([_event_position(event), 1.0])

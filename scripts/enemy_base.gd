@@ -23,8 +23,9 @@ signal dodged(enemy: EnemyBase)
 @export var max_health: int = 2
 ## Velocidad de movimiento en píxeles por segundo.
 @export var speed: float = 35.0
-## Daño que hace al jugador al tocarlo.
-@export var contact_damage: int = 1
+## Daño que hace al jugador al tocarlo, en medios corazones (2 = un corazón).
+## Es el de la escena: el nivel le suma su bonus (apply_damage_bonus).
+@export var contact_damage: int = 2
 ## Distancia en píxeles que retrocede al recibir un golpe.
 @export var knockback_distance: float = 10.0
 ## Probabilidad (de 0 a 1) de soltar un corazón al morir. El nivel la consulta
@@ -68,8 +69,14 @@ const DODGE_TEXT_TIME := 0.6
 var health: int
 var is_dying: bool = false
 
+## Medios corazones que el nivel suma a cada golpe de este enemigo al jugador
+## (apply_damage_bonus). 0 hasta que se aplica.
+var damage_bonus: int = 0
+
 # Vida de la escena antes de escalarla; -1 hasta la primera vez que se escala.
 var _base_health: int = -1
+# Daño por contacto de la escena antes del bonus; -1 hasta la primera vez.
+var _base_contact_damage: int = -1
 
 # Mientras es true el enemigo está aturdido: no se mueve ni hace daño.
 var _is_hurt: bool = false
@@ -121,6 +128,25 @@ func apply_health_scale(multiplier: float) -> void:
 		_base_health = max_health
 	max_health = maxi(roundi(_base_health * multiplier), _base_health)
 	health = max_health
+
+
+## Suma bonus medios corazones a cada golpe de este enemigo al jugador
+## (LevelGenerator.enemy_damage_bonus del nivel), con el tope de
+## LevelGenerator.scaled_hit. Igual que apply_health_scale: el enemigo no sabe
+## de niveles y llamarla otra vez parte del daño de la escena. Las subclases
+## que lastiman de otra forma (ataque, proyectiles, efectos) usan
+## scaled_damage con el daño base de cada golpe.
+func apply_damage_bonus(bonus: int) -> void:
+	if _base_contact_damage < 0:
+		_base_contact_damage = contact_damage
+	damage_bonus = maxi(bonus, 0)
+	contact_damage = scaled_damage(_base_contact_damage)
+
+
+## Daño al jugador de un golpe de base medios corazones con el bonus de este
+## enemigo (ver LevelGenerator.scaled_hit).
+func scaled_damage(base: int) -> int:
+	return LevelGenerator.scaled_hit(base, damage_bonus)
 
 
 ## Recupera amount de vida sin pasar de max_health (sección 9.5 de la biblia:

@@ -4,7 +4,7 @@
 // the icons of the events. The slider and "Reproducir" replay the level.
 
 import {
-  formatDuration, h, hideTooltip, icon, outcomeBadge, showTooltip, sourceIcon, weaponIcons,
+  formatDuration, formatHearts, h, heartsText, hideTooltip, icon, outcomeBadge, showTooltip, sourceIcon, weaponIcons,
 } from "./dom.js";
 import { ENEMY_LABELS, EVENT_LABELS, WEAPON_LABELS, sourceLabel } from "./labels.js";
 import { cellCenter, drawMap, fit, hiDpiCanvas, mapImage, mapRect } from "./map-canvas.js";
@@ -229,12 +229,12 @@ export function routeLegend(sprites) {
 
 function eventText(event) {
   switch (event.type) {
-    case "damage": return `-${event.amount ?? 1} · ${sourceLabel(event.source)}`;
+    case "damage": return `-${formatHearts(event.amount ?? 1)} · ${sourceLabel(event.source)}`;
     case "death": return `por ${sourceLabel(event.cause)}${event.final === false ? " (reaparece)" : ""}`;
     case "enemy_killed": return ENEMY_LABELS[event.enemy] || event.enemy || "";
-    case "heart": return `+${event.amount ?? 1} vida`;
+    case "heart": return `+${heartsText(event.amount ?? 1)}`;
     case "weapon_changed": return WEAPON_LABELS[event.weapon] || event.weapon || "";
-    case "revive": return `${event.lives ?? "?"} vidas`;
+    case "revive": return event.lives === undefined ? "? corazones" : heartsText(event.lives);
     case "door": return event.state === "escaped" ? "escapó" : event.state === "locked" ? "cerrada, sin llave" : "";
     default: return "";
   }

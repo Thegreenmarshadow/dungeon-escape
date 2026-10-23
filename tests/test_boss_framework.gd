@@ -216,6 +216,37 @@ func test_boss_has_base_health_on_its_first_level() -> void:
 	assert_eq(BossRegistry.first_level(&"warden"), 16)
 
 
+func test_boss_damage_only_adds_the_bonus_gained_since_its_first_level() -> void:
+	# Como la vida: el daño de la escena es el de su primer nivel (8, 12, 16),
+	# todos antes del primer escalón de daño (25), así que en sus vueltas
+	# siguientes suman el mismo bonus que el resto de los enemigos, con el tope
+	# de LevelGenerator.MAX_SCALED_HIT.
+	for boss_id in [&"forge", &"warden"]:
+		var boss: BossBase = track(load(BossRegistry.scene_path(boss_id)).instantiate())
+		var base: int = boss.contact_damage
+		assert_eq(base, Heart.HALF_HEARTS_PER_HEART, "%s: un corazón por contacto" % boss_id)
+		var first := BossRegistry.first_level(boss_id)
+		boss.apply_damage_bonus(LevelGenerator.enemy_damage_bonus(first))
+		assert_eq(boss.contact_damage, base, "%s en el nivel %d" % [boss_id, first])
+		boss.apply_damage_bonus(LevelGenerator.enemy_damage_bonus(28))
+		assert_eq(boss.contact_damage, base + 1, "%s en el nivel 28: +medio corazón" % boss_id)
+		boss.apply_damage_bonus(LevelGenerator.enemy_damage_bonus(100))
+		assert_eq(boss.contact_damage, LevelGenerator.MAX_SCALED_HIT, "%s en el nivel 100: tope" % boss_id)
+	var lich: BossBase = track(load(BossRegistry.scene_path(&"lich")).instantiate())
+	lich.apply_damage_bonus(LevelGenerator.enemy_damage_bonus(100))
+	assert_eq(lich.contact_damage, 0, "la liche no lastima por contacto en ningún nivel")
+
+
+func test_boss_hazards_carry_the_damage_bonus() -> void:
+	var boss := _make_forge(Vector2(500, 0))
+	boss.apply_damage_bonus(LevelGenerator.enemy_damage_bonus(45))
+	var mark: BossHazard = boss.spawn_hazard(BossRig.load_fresh(EMBER_MARK_SCENE), Vector2(-300, 0))
+	assert_eq(mark.damage, Heart.HALF_HEARTS_PER_HEART + 2, "nivel 45: un corazón + 2 medios")
+	var frost: BossHazard = boss.spawn_hazard(BossRig.load_fresh("res://scenes/bosses/lich/FrostMark.tscn"),
+			Vector2(-300, 0))
+	assert_eq(frost.damage, 0, "un aviso que no lastima sigue sin lastimar")
+
+
 # ----- fase 2 -----
 
 func test_phase_two_starts_at_half_health_once() -> void:
@@ -324,10 +355,10 @@ func test_one_shot_hazard_hurts_only_in_its_active_frames() -> void:
 		mark.sprite.frame = frame
 	assert_eq(target.damage_taken, 0, "el aviso no lastima")
 	mark.sprite.frame = 4
-	assert_eq(target.damage_taken, 1, "estalla")
+	assert_eq(target.damage_taken, Heart.HALF_HEARTS_PER_HEART, "estalla: un corazón")
 	mark.sprite.frame = 5
 	assert_false(mark.try_strike(), "una sola vez")
-	assert_eq(target.damage_taken, 1)
+	assert_eq(target.damage_taken, Heart.HALF_HEARTS_PER_HEART)
 
 
 func test_hazard_misses_outside_its_radius() -> void:
@@ -344,13 +375,13 @@ func test_continuous_hazard_hurts_while_active() -> void:
 	assert_eq(pool.lifetime, 4.0, "dura 4 s")
 	assert_true(pool.try_strike())
 	assert_true(pool.try_strike(), "lastima cada vez (la invulnerabilidad del jugador lo frena)")
-	assert_eq(target.damage_taken, 2)
+	assert_eq(target.damage_taken, 2 * Heart.HALF_HEARTS_PER_HEART)
 	pool.slow_factor = 0.5
 	pool.damage = 0
 	pool.try_strike()
 	assert_eq(target.slow_calls, 1, "con slow_factor frena al jugador")
 	assert_eq(target.last_slow_factor, 0.5)
-	assert_eq(target.damage_taken, 2, "con damage 0 no lastima")
+	assert_eq(target.damage_taken, 2 * Heart.HALF_HEARTS_PER_HEART, "con damage 0 no lastima")
 
 
 # ----- la llave -----

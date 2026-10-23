@@ -20,8 +20,13 @@ signal finished(projectile: Projectile)
 
 ## Velocidad en píxeles por segundo (la sección 6.1 de la biblia pide ≤ 140).
 @export var speed: float = 120.0
-## Daño que hace al jugador (o al enemigo, si lo devolvieron).
-@export var damage: int = 1
+## Daño que hace al jugador, en medios corazones (2 = un corazón). RangedEnemy
+## le suma el bonus de daño del nivel al dispararlo.
+@export var damage: int = 2
+## Daño que hace a un enemigo si el jugador lo devolvió, en golpes de la vida
+## del enemigo (la misma unidad que el arma del jugador). No cambia con el
+## nivel ni con los medios corazones.
+@export var reflected_damage: int = 1
 ## Distancia máxima que recorre antes de desaparecer.
 @export var max_range: float = 200.0
 ## Si es true el sprite gira para apuntar en la dirección de vuelo (flecha).
@@ -109,7 +114,7 @@ func _on_body_entered(body: Node) -> void:
 		return
 	if is_reflected:
 		if body is EnemyBase:
-			body.take_hit(damage, global_position)
+			body.take_hit(reflected_damage, global_position)
 	elif body.has_method("take_damage"):
 		body.take_damage(damage, global_position, source if source != &"" else DEFAULT_SOURCE)
 	# Lo que sea que haya tocado (jugador, enemigo o pared) lo detiene.

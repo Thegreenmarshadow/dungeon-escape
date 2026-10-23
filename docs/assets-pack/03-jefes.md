@@ -196,4 +196,4 @@ La sala del jefe necesita al menos 9 × 9 celdas libres y va delante de la puert
 | Objetivos prioritarios | cristales, vainas | enemigos que no cuentan para el HUD (mismo problema que 5.6) |
 | Curación del jefe | vainas, musgo | `EnemyBase.heal(amount)` con tope en `max_health` |
 
-Las tres cumplen las reglas de la sección 6.1: todo lo que apunta al jugador avisa al menos 600 ms y las áreas cumplen `r / 80 + 0.25`. El daño es siempre 1, y cada jefe tiene una ventana de castigo de 750 a 1200 ms.
+Las tres cumplen las reglas de la sección 6.1: todo lo que apunta al jugador avisa al menos 600 ms y las áreas cumplen `r / 80 + 0.25`. El daño es siempre 1 corazón (2 medios corazones en el código, donde se cuenta la vida del jugador) en el primer nivel de cada jefe; en sus vueltas desde el nivel 25 suma el mismo bonus de daño que el resto de los enemigos, con un tope de 2.5 corazones por golpe (`BossBase.apply_damage_bonus`). Cada jefe tiene una ventana de castigo de 750 a 1200 ms.

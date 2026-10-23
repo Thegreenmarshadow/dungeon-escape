@@ -30,7 +30,7 @@ func test_scene_uses_the_guide_stats() -> void:
 	assert_eq(warden.get("display_name"), "Guardián musgoso")
 	assert_eq(warden.get("max_health"), 14)
 	assert_eq(warden.get("speed"), 18.0)
-	assert_eq(warden.get("contact_damage"), 1)
+	assert_eq(warden.get("contact_damage"), Heart.HALF_HEARTS_PER_HEART)
 	assert_eq(warden.get("detect_radius"), 110.0)
 	assert_eq(warden.get("leash_radius"), 150.0)
 	assert_eq(warden.get("roots_cooldown"), 2.5)
@@ -168,7 +168,7 @@ func test_root_spike_hits_a_player_who_stays_after_the_crack() -> void:
 	assert_eq(warden._player.damage_taken, 0, "todavía es grieta")
 	for spike in BossRig.spawned_from(warden, warden.root_spike_scene):
 		spike.sprite.frame = 2
-	assert_eq(warden._player.damage_taken, 1, "la raíz de abajo lo pincha una vez")
+	assert_eq(warden._player.damage_taken, Heart.HALF_HEARTS_PER_HEART, "la raíz de abajo lo pincha una vez")
 
 
 func test_rune_window_makes_hits_stronger() -> void:

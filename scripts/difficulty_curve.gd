@@ -4,9 +4,11 @@ extends RefCounted
 ## Análisis de la curva de dificultad de los niveles generados.
 ##
 ## Resume los números de LevelGenerator.params_for_level en un índice de
-## dificultad por nivel y mide cuánto crece de un nivel al siguiente. Se
-## considera que un nivel sube la dificultad de forma significativa cuando su
-## índice crece al menos TARGET_GROWTH respecto del nivel anterior.
+## dificultad por nivel y mide cuánto crece de un nivel al siguiente. El
+## objetivo de diseño tiene dos tramos: hasta TARGET_GROWTH_LAST_LEVEL cada
+## nivel sube el índice al menos TARGET_GROWTH respecto del anterior; después
+## cada nivel sube algo y la curva sigue escalando hasta LAST_LEVEL (ver
+## ESCALATION_TARGET).
 ##
 ## Es lógica pura y sin estado (solo funciones estáticas), igual que
 ## LevelGenerator: la usan la pantalla del modo prueba y las pruebas.
@@ -71,8 +73,19 @@ const DODGE_MAGE := 0.15
 const DODGE_THEME_BOSS := 0.0
 
 ## Crecimiento mínimo del índice respecto del nivel anterior para considerar
-## que el nivel sube la dificultad de forma significativa (+10 %).
+## que el nivel sube la dificultad de forma significativa (+10 %). Se pide
+## hasta TARGET_GROWTH_LAST_LEVEL: ahí el cupo de comunes y la grilla ya
+## llegaron a su tope y el mapa deja de crecer.
 const TARGET_GROWTH := 0.10
+const TARGET_GROWTH_LAST_LEVEL := 14
+## Después de TARGET_GROWTH_LAST_LEVEL ya no se pide +10 % por nivel (solo la
+## vida crece de forma continua y su crecimiento relativo baja con el nivel),
+## sino que cada nivel suba algo y que la curva siga escalando: el índice de
+## LAST_LEVEL tiene que ser al menos ESCALATION_TARGET veces el de
+## TARGET_GROWTH_LAST_LEVEL (×10, unos +2.7 % por nivel en promedio). Lo
+## logran la vida, la conversión de comunes en especiales, los escalones de
+## daño y los topes de especiales y trampas más altos.
+const ESCALATION_TARGET := 10.0
 ## Por debajo de este crecimiento se considera que la curva está en meseta.
 const PLATEAU_GROWTH := 0.01
 ## Último nivel que cubre el análisis.
@@ -86,6 +99,7 @@ const CAP_CHASER_SHARE := &"CHASER_SHARE_MAX"
 const CAP_HAZARDS := &"HAZARDS_MAX"
 const CAP_GRID := &"GRID_MAX"
 const CAP_ROOMS := &"ROOM_COUNT_MAX"
+const CAP_DAMAGE := &"DAMAGE_BONUS_MAX"
 
 
 # ---------------------------------------------------------------------------
@@ -95,7 +109,9 @@ const CAP_ROOMS := &"ROOM_COUNT_MAX"
 ## Índice de dificultad de un conjunto de parámetros: suma de enemigos por
 ## tipo y jefes, cada uno con su peso efectivo (effective_weight, que suma la
 ## esquiva), multiplicada por el multiplicador de vida de los enemigos (cuantos
-## más golpes aguantan, más peligrosos), más las trampas, que no se escalan.
+## más golpes aguantan, más peligrosos) y por damage_factor (cuanto más quita
+## cada golpe, más peligrosos), más las trampas, que no se escalan (sus picos
+## no suben de daño).
 static func index_for(params: LevelGenerator.Params) -> float:
 	var counts := _enemy_counts(params)
 	var enemies: float = counts["skeletons"] * effective_weight(WEIGHT_SKELETON, DODGE_SKELETON) \
@@ -104,7 +120,16 @@ static func index_for(params: LevelGenerator.Params) -> float:
 			+ params.boss_count * effective_weight(WEIGHT_BOSS, DODGE_BOSS)
 	for kind: StringName in params.special_counts:
 		enemies += params.special_counts[kind] * special_effective_weight(kind)
-	return enemies * params.enemy_health_scale + params.hazard_count * WEIGHT_HAZARD
+	return enemies * params.enemy_health_scale * damage_factor(params) + params.hazard_count * WEIGHT_HAZARD
+
+
+## Cuánto más quita un golpe de enemigo con el bonus del nivel que el golpe
+## base: (golpe base + bonus) / golpe base, con el golpe base de
+## LevelGenerator.BASE_ENEMY_HIT (2 medios corazones). 1.0 hasta el nivel 24;
+## 1.5, 2.0 y 2.5 desde los niveles 25, 45 y 65.
+static func damage_factor(params: LevelGenerator.Params) -> float:
+	var hit := LevelGenerator.scaled_hit(LevelGenerator.BASE_ENEMY_HIT, params.enemy_damage_bonus)
+	return float(hit) / LevelGenerator.BASE_ENEMY_HIT
 
 
 ## Peso de un enemigo contando su esquiva como vida extra: weight / (1 - dodge).
@@ -131,15 +156,16 @@ static func index_for_level(level: int) -> float:
 	return index_for(LevelGenerator.params_for_level(level))
 
 
-## Índice contando al jefe temático en lugar de la parca de la puerta. Sin
-## jefe es igual a index_for.
+## Índice contando al jefe temático en lugar de la parca de la puerta, con la
+## misma vida y el mismo damage_factor que el resto de los enemigos. Sin jefe
+## es igual a index_for.
 static func boss_index_for(params: LevelGenerator.Params) -> float:
 	var index := index_for(params)
 	if params.theme_boss == &"":
 		return index
 	var swap := effective_weight(WEIGHT_THEME_BOSS, DODGE_THEME_BOSS) \
 			- effective_weight(WEIGHT_BOSS, DODGE_BOSS)
-	return index + swap * params.enemy_health_scale
+	return index + swap * params.enemy_health_scale * damage_factor(params)
 
 
 ## Crecimiento relativo del índice respecto del nivel anterior (0.1 = +10 %).
@@ -154,17 +180,38 @@ static func growth(level: int) -> float:
 	return index_for_level(level) / previous - 1.0
 
 
+## Cuántas veces el índice de last supera al de first (por defecto, de
+## TARGET_GROWTH_LAST_LEVEL a LAST_LEVEL; ver ESCALATION_TARGET).
+static func escalation(first: int = TARGET_GROWTH_LAST_LEVEL, last: int = LAST_LEVEL) -> float:
+	return index_for_level(last) / index_for_level(first)
+
+
+## true si el crecimiento del nivel cumple el objetivo de su tramo: al menos
+## TARGET_GROWTH hasta TARGET_GROWTH_LAST_LEVEL y mayor que cero después. Sin
+## nivel anterior (NAN) no hay objetivo que incumplir.
+static func meets_target(level: int, level_growth: float) -> bool:
+	if is_nan(level_growth):
+		return true
+	if level <= TARGET_GROWTH_LAST_LEVEL:
+		return level_growth >= TARGET_GROWTH
+	return level_growth > 0.0
+
+
 # ---------------------------------------------------------------------------
 # Informe por nivel
 # ---------------------------------------------------------------------------
 
 ## Una fila por nivel entre first y last (incluidos) con la composición del
 ## nivel, su índice, su crecimiento y los topes que ya alcanzó. Claves:
-## level, enemies, skeletons, vampires, skulls, archers, skull_turrets, mimics,
-## mages (los especiales no cuentan en enemies), bosses, hazards, grid, rooms,
-## health_scale (multiplicador de vida de los enemigos), index, growth (NAN si no hay nivel anterior), meets_target (true si no hay
-## con qué comparar), capped_params (Array[StringName]), theme_boss (id del
-## jefe temático o &"") y boss_index (boss_index_for).
+## level, enemies (comunes que se colocan), skeletons, vampires, skulls,
+## archers, skull_turrets, mimics, mages (los especiales no cuentan en
+## enemies; incluyen los convertidos), converted (comunes convertidos en
+## especiales), bosses, hazards, grid, rooms, health_scale (multiplicador de
+## vida de los enemigos), damage_bonus y hit (bonus de daño y golpe base
+## escalado, en medios corazones), index, growth (NAN si no hay nivel
+## anterior), meets_target (ver meets_target), capped_params
+## (Array[StringName]), theme_boss (id del jefe temático o &"") y boss_index
+## (boss_index_for).
 static func report(first: int = LevelGenerator.FIRST_GENERATED_LEVEL, last: int = LAST_LEVEL) -> Array[Dictionary]:
 	var rows: Array[Dictionary] = []
 	for level in range(first, last + 1):
@@ -173,7 +220,7 @@ static func report(first: int = LevelGenerator.FIRST_GENERATED_LEVEL, last: int 
 		var level_growth := growth(level)
 		rows.append({
 			"level": level,
-			"enemies": params.enemy_count,
+			"enemies": LevelGenerator.common_count(params),
 			"skeletons": counts["skeletons"],
 			"vampires": counts["vampires"],
 			"skulls": counts["skulls"],
@@ -181,14 +228,17 @@ static func report(first: int = LevelGenerator.FIRST_GENERATED_LEVEL, last: int 
 			"skull_turrets": counts["skull_turrets"],
 			"mimics": counts["mimics"],
 			"mages": counts["mages"],
+			"converted": params.converted_skeletons + params.converted_vampires,
 			"bosses": params.boss_count,
 			"hazards": params.hazard_count,
 			"grid": params.grid_size,
 			"rooms": params.room_count,
 			"health_scale": params.enemy_health_scale,
+			"damage_bonus": params.enemy_damage_bonus,
+			"hit": LevelGenerator.scaled_hit(LevelGenerator.BASE_ENEMY_HIT, params.enemy_damage_bonus),
 			"index": index_for(params),
 			"growth": level_growth,
-			"meets_target": is_nan(level_growth) or level_growth >= TARGET_GROWTH,
+			"meets_target": meets_target(level, level_growth),
 			"capped_params": capped_params(params),
 			"theme_boss": params.theme_boss,
 			"boss_index": boss_index_for(params),
@@ -210,10 +260,12 @@ static func capped_params(params: LevelGenerator.Params) -> Array[StringName]:
 		caps.append(CAP_GRID)
 	if params.room_count >= LevelGenerator.ROOM_COUNT_MAX:
 		caps.append(CAP_ROOMS)
+	if params.enemy_damage_bonus >= LevelGenerator.DAMAGE_BONUS_MAX:
+		caps.append(CAP_DAMAGE)
 	return caps
 
 
-## Niveles del informe cuyo crecimiento queda por debajo de TARGET_GROWTH.
+## Niveles del informe que no cumplen el objetivo de su tramo (meets_target).
 static func failing_levels(rows: Array[Dictionary]) -> Array[int]:
 	var out: Array[int] = []
 	for row in rows:
@@ -222,7 +274,8 @@ static func failing_levels(rows: Array[Dictionary]) -> Array[int]:
 	return out
 
 
-## Primer nivel del informe que no alcanza TARGET_GROWTH, o -1 si todos lo alcanzan.
+## Primer nivel del informe que no cumple el objetivo de su tramo, o -1 si
+## todos lo cumplen.
 static func first_below_target(rows: Array[Dictionary]) -> int:
 	var failing := failing_levels(rows)
 	return failing[0] if not failing.is_empty() else -1
@@ -261,8 +314,8 @@ static func save_csv(rows: Array[Dictionary], path: String = CSV_PATH) -> Error:
 		return FileAccess.get_open_error()
 	file.store_csv_line(PackedStringArray([
 		"level", "enemies", "skeletons", "vampires", "skulls",
-		"archers", "skull_turrets", "mimics", "mages", "bosses", "hazards",
-		"grid_x", "grid_y", "rooms", "health_scale", "index", "growth", "meets_target",
+		"archers", "skull_turrets", "mimics", "mages", "converted", "bosses", "hazards",
+		"grid_x", "grid_y", "rooms", "health_scale", "damage_bonus", "hit", "index", "growth", "meets_target",
 		"capped_params", "theme_boss", "boss_index"]))
 	for row in rows:
 		var grid: Vector2i = row["grid"]
@@ -273,9 +326,9 @@ static func save_csv(rows: Array[Dictionary], path: String = CSV_PATH) -> Error:
 		file.store_csv_line(PackedStringArray([
 			str(row["level"]), str(row["enemies"]), str(row["skeletons"]), str(row["vampires"]),
 			str(row["skulls"]), str(row["archers"]), str(row["skull_turrets"]),
-			str(row["mimics"]), str(row["mages"]), str(row["bosses"]), str(row["hazards"]),
-			str(grid.x), str(grid.y), str(row["rooms"]),
-			"%.2f" % row["health_scale"],
+			str(row["mimics"]), str(row["mages"]), str(row["converted"]), str(row["bosses"]),
+			str(row["hazards"]), str(grid.x), str(grid.y), str(row["rooms"]),
+			"%.2f" % row["health_scale"], str(row["damage_bonus"]), str(row["hit"]),
 			"%.3f" % row["index"],
 			"" if is_nan(level_growth) else "%.4f" % level_growth,
 			str(row["meets_target"]),
@@ -326,7 +379,7 @@ static func capacity_report(level: int, run_seed: int) -> Dictionary:
 	return {
 		"level": level,
 		"seed": run_seed,
-		"requested_enemies": params.enemy_count + params.boss_count
+		"requested_enemies": LevelGenerator.common_count(params) + params.boss_count
 				+ LevelGenerator.special_total(params),
 		# El jefe temático ocupa el lugar de la parca de la puerta (boss_count).
 		"placed_enemies": layout.enemies.size() + (1 if layout.has_boss() else 0),
@@ -347,12 +400,12 @@ static func capacity_report(level: int, run_seed: int) -> Dictionary:
 # ---------------------------------------------------------------------------
 
 ## Cuántos enemigos de cada tipo pide el nivel: los comunes con el mismo
-## reparto que LevelGenerator._place_enemies, y los especiales.
+## reparto que LevelGenerator._place_enemies (sin los convertidos), y los
+## especiales como LevelGenerator._place_special_enemies (con ellos).
 static func _enemy_counts(params: LevelGenerator.Params) -> Dictionary:
-	var chasers := LevelGenerator.chaser_count(params)
 	return {
-		"skeletons": params.enemy_count - chasers,
-		"vampires": chasers - params.skull_count,
+		"skeletons": LevelGenerator.skeleton_count(params),
+		"vampires": LevelGenerator.vampire_count(params),
 		"skulls": params.skull_count,
 		"archers": params.special_counts.get(LevelGenerator.ARCHER, 0),
 		"skull_turrets": params.special_counts.get(LevelGenerator.SKULL_TURRET, 0),

@@ -59,6 +59,17 @@ export function formatNumber(value, digits = 0) {
   return Number(value || 0).toLocaleString("es", { maximumFractionDigits: digits, minimumFractionDigits: digits });
 }
 
+/** Hearts of the player's health or damage, which can have a half since the
+ * game counts health in half hearts: 2 -> "2", 1.5 -> "1,5". */
+export function formatHearts(value) {
+  return Number(value || 0).toLocaleString("es", { maximumFractionDigits: 1 });
+}
+
+/** 1 -> "1 corazón", 2.5 -> "2,5 corazones". */
+export function heartsText(value) {
+  return `${formatHearts(value)} ${Number(value) === 1 ? "corazón" : "corazones"}`;
+}
+
 /** 0.48 -> "48 %", like the game's reports. */
 export function formatPercent(rate) {
   return `${Math.round((rate || 0) * 100)} %`;

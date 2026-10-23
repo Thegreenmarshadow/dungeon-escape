@@ -57,7 +57,7 @@ func test_stays_disguised_when_player_is_far() -> void:
 
 func test_does_not_hurt_while_disguised() -> void:
 	var mimic := _make(Vector2(60, 0))
-	mimic.contact_damage = 1
+	mimic.contact_damage = Heart.HALF_HEARTS_PER_HEART
 	# Sin el área de contacto el daño de la base fallaría: que no falle prueba
 	# que disfrazado ni siquiera la consulta.
 	mimic.contact_area = null
@@ -97,9 +97,9 @@ func test_bites_only_on_strike_frames() -> void:
 		mimic.sprite.frame = frame
 	assert_eq(mimic._player.damage_taken, 0, "la anticipación no lastima")
 	mimic.sprite.frame = mimic.attack_hit_frames.x
-	assert_eq(mimic._player.damage_taken, 1)
+	assert_eq(mimic._player.damage_taken, mimic.attack_damage)
 	mimic.sprite.frame = mimic.attack_hit_frames.y
-	assert_eq(mimic._player.damage_taken, 1, "una vez por mordisco")
+	assert_eq(mimic._player.damage_taken, mimic.attack_damage, "una vez por mordisco")
 
 
 func test_hit_while_disguised_wakes_it_and_cannot_be_dodged() -> void:

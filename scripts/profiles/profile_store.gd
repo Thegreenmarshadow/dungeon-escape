@@ -20,7 +20,9 @@ extends RefCounted
 ##   runs            {run_id: {time_s, mode, started_at}}: tiempo de cada partida
 ##   save            partida guardada (ver SAVE_KEYS) o {} si no hay
 ## Cargar un archivo viejo o incompleto nunca falla: lo que falta toma el valor
-## por defecto.
+## por defecto. Una partida guardada antes de los medios corazones tiene
+## "lives" (vidas enteras) en lugar de "health": se convierte al cargarla (ver
+## saved_health).
 
 const DEFAULT_BASE_DIR := "user://profiles"
 const SCHEMA_VERSION := 1
@@ -30,11 +32,17 @@ const INDEX_FILE := "profiles.cfg"
 const MAX_SLUG_LENGTH := 32
 ## Carpeta de un nombre sin letras ni números ("???").
 const FALLBACK_SLUG := "perfil"
-## Datos de la partida guardada. level, lives, weapon_id, run_seed, coins,
+## Datos de la partida guardada. level, health, weapon_id, run_seed, coins,
 ## damage_bonus y mode son los que restaura "Continuar"; score,
 ## enemies_killed y run_id conservan el puntaje y la carpeta de telemetría.
-const SAVE_KEYS: Array[String] = ["level", "lives", "weapon_id", "run_seed", "coins",
+## health es la vida en medios corazones; el nombre de la clave es también la
+## marca de unidad: las partidas viejas guardaban LEGACY_LIVES_KEY en vidas
+## enteras (ver saved_health).
+const SAVE_KEYS: Array[String] = ["level", "health", "weapon_id", "run_seed", "coins",
 		"damage_bonus", "mode", "score", "enemies_killed", "run_id"]
+## Clave de la vida en las partidas guardadas antes de los medios corazones:
+## vidas enteras, cada una de Heart.HALF_HEARTS_PER_HEART medios corazones.
+const LEGACY_LIVES_KEY := "lives"
 const _INDEX_SECTION := "profiles"
 ## Letras con tilde que el slug pasa a su forma simple.
 const _ACCENTS := {
@@ -279,7 +287,7 @@ static func normalize_save(raw: Variant) -> Dictionary:
 		return {}
 	return {
 		"level": maxi(JsonFile.to_int(raw.get("level"), 1), 1),
-		"lives": maxi(JsonFile.to_int(raw.get("lives"), 1), 1),
+		"health": saved_health(raw),
 		"weapon_id": str(raw.get("weapon_id", WeaponData.STARTING_ID)),
 		"run_seed": JsonFile.to_int(raw.get("run_seed")),
 		"coins": maxi(JsonFile.to_int(raw.get("coins")), 0),
@@ -289,6 +297,19 @@ static func normalize_save(raw: Variant) -> Dictionary:
 		"enemies_killed": maxi(JsonFile.to_int(raw.get("enemies_killed")), 0),
 		"run_id": str(raw.get("run_id", "")),
 	}
+
+
+## Vida (medios corazones, al menos 1) de una partida guardada. Si tiene
+## "health" ya está en medios corazones. Si solo tiene LEGACY_LIVES_KEY es de
+## antes de los medios corazones: cada vida entera vale
+## Heart.HALF_HEARTS_PER_HEART (3 vidas -> 6). Sin ninguna de las dos devuelve
+## default.
+static func saved_health(save: Dictionary, default: int = Heart.HALF_HEARTS_PER_HEART) -> int:
+	if save.has("health"):
+		return maxi(JsonFile.to_int(save["health"], default), 1)
+	if save.has(LEGACY_LIVES_KEY):
+		return maxi(JsonFile.to_int(save[LEGACY_LIVES_KEY], 1), 1) * Heart.HALF_HEARTS_PER_HEART
+	return maxi(default, 1)
 
 
 ## Guarda la partida del perfil (ver SAVE_KEYS).

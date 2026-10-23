@@ -62,7 +62,7 @@ export const WEAPON_LABELS = {
 
 export const ITEM_LABELS = {
   damage: "Mejora de daño",
-  life: "Vida extra",
+  life: "Corazón extra",
   ...WEAPON_LABELS,
 };
 

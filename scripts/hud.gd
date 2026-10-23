@@ -1,5 +1,5 @@
 extends CanvasLayer
-## Interfaz del jugador: vidas, indicador de llave, enemigos eliminados,
+## Interfaz del jugador: vida (corazones llenos, medios y vacíos), indicador de llave, enemigos eliminados,
 ## monedas, barra de vida del jefe, minimapa, mensajes, pantallas de fin de
 ## partida, el resumen del nivel (RunSummary) y la tienda entre niveles.
 ## Solo muestra información; el nivel decide cuándo actualizarla y qué pasa al
@@ -19,11 +19,14 @@ signal buy_pressed(item: StringName)
 const GAME_OVER_FADE_TIME := 0.5
 ## Tamaño de cada corazón de vida: el dibujo de 9x8 escalado x3.
 const LIFE_ICON_SIZE := Vector2(27, 24)
+## Opacidad de la parte vacía de un corazón (la vida perdida), igual que la
+## llave que todavía no se tiene.
+const EMPTY_HEART_ALPHA := 0.25
 ## Nombre de cada artículo de la tienda y el texto que se muestra cuando no está
 ## disponible. Las armas muestran además su ícono.
-const ITEM_NAMES := {Shop.ITEM_DAMAGE: "+1 daño", Shop.ITEM_LIFE: "+1 vida",
+const ITEM_NAMES := {Shop.ITEM_DAMAGE: "+1 daño", Shop.ITEM_LIFE: "+1 corazón",
 		Shop.ITEM_SPEAR: "Lanza", Shop.ITEM_DAGGER: "Daga"}
-const ITEM_UNAVAILABLE_TEXT := {Shop.ITEM_DAMAGE: "al máximo", Shop.ITEM_LIFE: "vidas completas",
+const ITEM_UNAVAILABLE_TEXT := {Shop.ITEM_DAMAGE: "al máximo", Shop.ITEM_LIFE: "vida completa",
 		Shop.ITEM_SPEAR: "equipada", Shop.ITEM_DAGGER: "equipada"}
 ## Ancho del ícono de las armas en los botones de la tienda (16 px escalado x2).
 const ITEM_ICON_WIDTH := 32
@@ -86,28 +89,57 @@ func _ready() -> void:
 		telemetry.level_finished.connect(_on_level_finished)
 
 
-## Muestra un corazón por cada vida máxima: llenos los que quedan y apagados
-## los perdidos, igual que la llave.
-func set_lives(lives: int, max_lives: int) -> void:
-	var count := maxi(lives, max_lives)
-	while lives_hearts.get_child_count() < count:
+## Muestra la vida (health y max_health en medios corazones) con un corazón
+## por cada HALF_HEARTS_PER_HEART de la vida máxima: llenos, medios o vacíos
+## según heart_fills. La parte vacía se ve apagada, igual que la llave.
+func set_health(health: int, max_health: int) -> void:
+	var fills := heart_fills(health, max_health)
+	while lives_hearts.get_child_count() < fills.size():
 		lives_hearts.add_child(_make_life_icon())
-	while lives_hearts.get_child_count() > count:
+	while lives_hearts.get_child_count() > fills.size():
 		var extra := lives_hearts.get_child(lives_hearts.get_child_count() - 1)
 		lives_hearts.remove_child(extra)
 		extra.queue_free()
+	for i in fills.size():
+		var fill: TextureRect = lives_hearts.get_child(i).get_child(0)
+		fill.visible = fills[i] > 0
+		fill.texture = Heart.get_texture() if fills[i] >= Heart.HALF_HEARTS_PER_HEART \
+				else Heart.get_half_texture()
+
+
+## Medios corazones llenos de cada corazón de la HUD, de izquierda a derecha:
+## HALF_HEARTS_PER_HEART (lleno), 1 (medio) o 0 (vacío). Hay un corazón por
+## cada corazón de la vida máxima, o de la vida si la supera (la demo empieza
+## con más). Con 5 de 6: [2, 2, 1].
+static func heart_fills(health: int, max_health: int) -> Array[int]:
+	var per_heart := Heart.HALF_HEARTS_PER_HEART
+	var count := ceili(maxi(maxi(health, max_health), 0) / float(per_heart))
+	var fills: Array[int] = []
 	for i in count:
-		var icon: TextureRect = lives_hearts.get_child(i)
-		icon.modulate = Color.WHITE if i < lives else Color(1, 1, 1, 0.25)
+		fills.append(clampi(health - i * per_heart, 0, per_heart))
+	return fills
 
 
+## Un corazón de la HUD: el dibujo entero apagado (la parte vacía) y encima,
+## como hijo, el lleno o el medio corazón opacos. El apagado va en
+## self_modulate para no apagar también al hijo.
 func _make_life_icon() -> TextureRect:
-	var icon := TextureRect.new()
-	icon.texture = Heart.get_texture()
+	var icon := _make_heart_rect(Heart.get_texture())
 	icon.custom_minimum_size = LIFE_ICON_SIZE
-	icon.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
-	icon.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+	icon.self_modulate = Color(1, 1, 1, EMPTY_HEART_ALPHA)
+	var fill := _make_heart_rect(Heart.get_texture())
+	fill.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	fill.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	icon.add_child(fill)
 	return icon
+
+
+func _make_heart_rect(texture: Texture2D) -> TextureRect:
+	var rect := TextureRect.new()
+	rect.texture = texture
+	rect.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	rect.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+	return rect
 
 
 ## Muestra la llave opaca si el jugador la tiene y apagada si no.

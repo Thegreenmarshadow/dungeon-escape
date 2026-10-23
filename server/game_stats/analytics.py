@@ -27,6 +27,11 @@ UNKNOWN_SOURCE = "unknown"
 CHART_MIN_LAST_LEVEL = 10
 LAST_LEVEL = 100  # DifficultyCurve.LAST_LEVEL
 FINISHED_OUTCOMES = ("completed", "died", "abandoned")
+# The player's damage and healing ("amount") and health ("lives") come in
+# hearts. Since the game counts health in half hearts they can be fractional
+# (0.5, 1.5); older files have whole hearts, so both stay comparable. A damage
+# event counts at least half a heart.
+MIN_DAMAGE_HEARTS = 0.5
 
 # --- AnalyticsInsights thresholds ---------------------------------------------
 
@@ -107,6 +112,12 @@ def _int(value: Any, default: int = 0) -> int:
     return int(_num(value, default))
 
 
+def _event_hearts(event: dict[str, Any]) -> float:
+    """Hearts lost (damage event) or healed (heart event): its amount, 1 if it
+    has none and at least MIN_DAMAGE_HEARTS."""
+    return max(_num(event.get("amount"), 1.0), MIN_DAMAGE_HEARTS)
+
+
 # --- Per-level stats -----------------------------------------------------------
 
 
@@ -136,7 +147,7 @@ def _empty_row(level: int) -> dict[str, Any]:
         "deaths": 0,
         "deaths_by_cause": {},
         "total_time_s": 0.0,
-        "damage_total": 0,
+        "damage_total": 0.0,
         "damage_by_source": {},
         "weapons_used": [],
     }
@@ -151,7 +162,7 @@ def _add_level_file(row: dict[str, Any], data: dict[str, Any]) -> None:
     for event in _events(data):
         kind = event.get("type")
         if kind == "damage":
-            amount = _int(event.get("amount"))
+            amount = _num(event.get("amount"))
             source = source_name(event.get("source"))
             row["damage_total"] += amount
             row["damage_by_source"][source] = row["damage_by_source"].get(source, 0) + amount
@@ -328,7 +339,7 @@ def weighted_points(data: dict[str, Any], layer: str) -> list[tuple[float, float
     elif layer == LAYER_DAMAGE:
         for event in _events(data):
             if event.get("type") == "damage":
-                points.append((_num(event.get("x")), _num(event.get("y")), float(max(_int(event.get("amount"), 1), 1))))
+                points.append((_num(event.get("x")), _num(event.get("y")), _event_hearts(event)))
     elif layer == LAYER_DEATHS:
         for event in _events(data):
             if event.get("type") == "death":
@@ -404,21 +415,21 @@ def heatmaps(levels: list[dict[str, Any]], max_groups: int = MAX_HEATMAP_GROUPS)
 
 def track_summary(data: dict[str, Any]) -> dict[str, Any]:
     """Side panel of the route view: damage by source, death causes and counts."""
-    damage: dict[str, int] = {}
+    damage: dict[str, float] = {}
     causes: dict[str, int] = {}
-    counts = {"kills": 0, "hearts": 0, "attacks": 0, "hits": 0, "keys": 0}
+    counts: dict[str, float] = {"kills": 0, "hearts": 0, "attacks": 0, "hits": 0, "keys": 0}
     for event in _events(data):
         kind = event.get("type")
         if kind == "damage":
             source = source_name(event.get("source"))
-            damage[source] = damage.get(source, 0) + max(_int(event.get("amount"), 1), 1)
+            damage[source] = damage.get(source, 0) + _event_hearts(event)
         elif kind == "death":
             cause = source_name(event.get("cause"))
             causes[cause] = causes.get(cause, 0) + 1
         elif kind == "enemy_killed":
             counts["kills"] += 1
         elif kind == "heart":
-            counts["hearts"] += max(_int(event.get("amount"), 1), 1)
+            counts["hearts"] += _event_hearts(event)
         elif kind == "key":
             counts["keys"] += 1
         elif kind == "attack":
@@ -431,7 +442,7 @@ def track_summary(data: dict[str, Any]) -> dict[str, Any]:
     }
 
 
-def _labelled(values: dict[str, int]) -> list[dict[str, Any]]:
+def _labelled(values: dict[str, int] | dict[str, float]) -> list[dict[str, Any]]:
     """[{source, label, count}] from most to least, then by name."""
     return [
         {"source": source, "label": source_label(source), "count": count}

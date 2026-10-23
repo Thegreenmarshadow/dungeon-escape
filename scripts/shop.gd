@@ -10,8 +10,10 @@ extends RefCounted
 ##   damage  +1 de daño en cada golpe de espada. El precio sube con cada
 ##           compra (10, 20, 30...) y se puede comprar como mucho
 ##           MAX_DAMAGE_BONUS veces por partida.
-##   life    +1 vida. Solo si al jugador le faltan vidas: nunca supera
-##           max_lives, igual que los corazones.
+##   life    +1 corazón de vida (LIFE_HEAL medios corazones). Solo si al
+##           jugador le falta vida: nunca supera max_health, igual que los
+##           corazones del suelo. El id sigue siendo "life" para que las
+##           compras viejas y nuevas cuenten juntas en las estadísticas.
 ##   spear,  armas (el artículo es el id de WeaponData). Reemplazan al arma
 ##   dagger  equipada hasta el final de la partida, a precio fijo. No se
 ##           ofrece la que ya está equipada: para las armas, times_bought es 1
@@ -38,6 +40,8 @@ const DAMAGE_PRICE_STEP := 10
 ## espada pega 11, suficiente para los enemigos de los niveles más altos.
 const MAX_DAMAGE_BONUS := 10
 const LIFE_PRICE := 6
+## Medios corazones que cura la vida comprada: un corazón, como los del suelo.
+const LIFE_HEAL := Heart.HALF_HEARTS_PER_HEART
 ## Precio de cada arma. No sigue la escala del nivel, igual que el daño. La
 ## lanza alcanza más pero pega más lento; la daga pega el doble de seguido que
 ## la espada (el doble de daño por segundo, pero de cerca), por eso cuesta más.
@@ -65,20 +69,21 @@ static func is_weapon(item: StringName) -> bool:
 
 
 ## true si item se puede ofrecer, sin mirar las monedas: la mejora de daño no
-## llegó a su tope; para la vida, el jugador está vivo y le faltan vidas; y un
-## arma, si no es la equipada (times_bought en 0).
-static func is_available(item: StringName, times_bought: int, lives: int, max_lives: int) -> bool:
+## llegó a su tope; para la vida, el jugador está vivo y le falta vida (health
+## y max_health en medios corazones); y un arma, si no es la equipada
+## (times_bought en 0).
+static func is_available(item: StringName, times_bought: int, health: int, max_health: int) -> bool:
 	match item:
 		ITEM_DAMAGE:
 			return times_bought < MAX_DAMAGE_BONUS
 		ITEM_LIFE:
-			return lives > 0 and lives < max_lives
+			return health > 0 and health < max_health
 	return is_weapon(item) and times_bought == 0
 
 
 ## true si item está disponible y coins alcanza para pagarlo (scale como en
 ## price_for).
-static func can_buy(item: StringName, coins: int, times_bought: int, lives: int,
-		max_lives: int, scale: float = 1.0) -> bool:
-	return is_available(item, times_bought, lives, max_lives) \
+static func can_buy(item: StringName, coins: int, times_bought: int, health: int,
+		max_health: int, scale: float = 1.0) -> bool:
+	return is_available(item, times_bought, health, max_health) \
 			and coins >= price_for(item, times_bought, scale)

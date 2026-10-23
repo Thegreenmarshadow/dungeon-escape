@@ -37,7 +37,7 @@ func test_vampire_scene_has_attack_and_no_contact_damage() -> void:
 func test_reaper_keeps_contact_damage_and_does_not_attack() -> void:
 	var reaper: Node = track(_load_fresh("res://scenes/Reaper.tscn").instantiate())
 	assert_eq(reaper.attack_animation, &"")
-	assert_eq(reaper.contact_damage, 1)
+	assert_eq(reaper.contact_damage, Heart.HALF_HEARTS_PER_HEART, "un corazón por contacto")
 
 
 func test_bite_hurts_only_on_strike_frames_and_once() -> void:

@@ -75,12 +75,13 @@ func test_start_run_sends_the_run_data() -> void:
 
 func test_a_full_level_produces_events_in_order() -> void:
 	_recorder.start_run(RUN_ID, "Ana", RunRecorder.MODE_NORMAL, 1, 1)
-	_recorder.start_level(1, 3, 4)
+	# La vida llega en medios corazones (6 = 3 corazones) y sale en corazones.
+	_recorder.start_level(1, 6, 4)
 	_recorder.advance(2.0)
 	_recorder.record_kill("Skeleton", 1, 10)
-	_recorder.record_lives(2, "Skeleton")
+	_recorder.record_health(4, "Skeleton")
 	_recorder.advance(1.0)
-	_recorder.record_lives(3)
+	_recorder.record_health(6)
 	_recorder.record_key()
 	_recorder.record_weapon("spear")
 	_recorder.advance(0.5)
@@ -95,11 +96,11 @@ func test_a_full_level_produces_events_in_order() -> void:
 		assert_eq(event["run_id"], RUN_ID)
 		assert_eq(event["level"], 1)
 	assert_eq(seqs, [0, 1, 2, 3, 4, 5, 6])
-	assert_eq(_sink.events[0]["payload"], {"lives": 3, "enemies_total": 4})
+	assert_eq(_sink.events[0]["payload"], {"lives": 3.0, "enemies_total": 4})
 	assert_eq(_sink.events[1]["payload"], {"enemy": "Skeleton"})
 	assert_eq(_sink.events[1]["t_run_s"], 2.0)
-	assert_eq(_sink.events[2]["payload"], {"amount": 1, "lives": 2, "source": "Skeleton"})
-	assert_eq(_sink.events[3]["payload"], {"amount": 1, "lives": 3})
+	assert_eq(_sink.events[2]["payload"], {"amount": 1.0, "lives": 2.0, "source": "Skeleton"})
+	assert_eq(_sink.events[3]["payload"], {"amount": 1.0, "lives": 3.0})
 	assert_eq(_sink.events[5]["payload"], {"weapon": "spear"})
 	var completed: Dictionary = _sink.events[6]["payload"]
 	assert_eq(completed["duration_s"], 3.5)
@@ -112,14 +113,14 @@ func test_a_full_level_produces_events_in_order() -> void:
 
 func test_death_ends_the_run_with_its_totals() -> void:
 	_recorder.start_run(RUN_ID, "Ana", RunRecorder.MODE_NORMAL, 1, 1)
-	_recorder.start_level(1, 3, 2)
+	_recorder.start_level(1, 6, 2)
 	_recorder.advance(4.0)
 	_recorder.complete_level(100)
 	_recorder.advance(9.0)  # Entre niveles (pantalla de nivel superado) no cuenta.
-	_recorder.start_level(2, 3, 5)
+	_recorder.start_level(2, 6, 5)
 	_recorder.advance(6.0)
 	_recorder.record_kill("Vampire", 1, 110)
-	_recorder.record_lives(0, "spikes")
+	_recorder.record_health(0, "spikes")
 	_recorder.record_death(110, 1, "spikes")
 
 	assert_eq(_sink.types().slice(-2), ["damage_taken", "player_died"])
@@ -138,7 +139,7 @@ func test_death_ends_the_run_with_its_totals() -> void:
 
 func test_quit_uses_the_given_totals_and_adds_a_quit_event() -> void:
 	_recorder.start_run(RUN_ID, "Ana", RunRecorder.MODE_NORMAL, 1, 3)
-	_recorder.start_level(3, 2, 6)
+	_recorder.start_level(3, 4, 6)
 	_recorder.finish_run(RunRecorder.OUTCOME_QUIT, 40, 4)
 
 	assert_eq(_sink.types()[-1], "run_quit")
@@ -152,7 +153,7 @@ func test_quit_uses_the_given_totals_and_adds_a_quit_event() -> void:
 
 func test_starting_a_run_while_another_is_running_closes_the_old_one() -> void:
 	_recorder.start_run(RUN_ID, "Ana", RunRecorder.MODE_NORMAL, 1, 1)
-	_recorder.start_level(1, 3, 2)
+	_recorder.start_level(1, 6, 2)
 	_recorder.record_kill("Skeleton", 1, 10)
 	_recorder.start_run("ffffffffffffffff", "Ana", RunRecorder.MODE_NORMAL, 2, 1)
 
@@ -164,7 +165,7 @@ func test_starting_a_run_while_another_is_running_closes_the_old_one() -> void:
 
 
 func test_nothing_is_sent_without_a_run_or_outside_a_level() -> void:
-	_recorder.start_level(1, 3, 2)
+	_recorder.start_level(1, 6, 2)
 	_recorder.record_kill("Skeleton", 1, 10)
 	_recorder.finish_run(RunRecorder.OUTCOME_QUIT)
 	assert_true(_sink.events.is_empty())
@@ -172,22 +173,36 @@ func test_nothing_is_sent_without_a_run_or_outside_a_level() -> void:
 
 	_recorder.start_run(RUN_ID, "Ana", RunRecorder.MODE_NORMAL, 1, 1)
 	_recorder.record_key()
-	_recorder.record_lives(1)
+	_recorder.record_health(1)
 	_recorder.record_death(0, 0)
 	assert_true(_sink.events.is_empty(), "sin nivel activo no hay eventos")
 	assert_true(_recorder.is_running())
 
 
-func test_unchanged_lives_produce_no_event() -> void:
+func test_unchanged_health_produces_no_event() -> void:
 	_recorder.start_run(RUN_ID, "Ana", RunRecorder.MODE_NORMAL, 1, 1)
-	_recorder.start_level(1, 3, 0)
-	_recorder.record_lives(3)
+	_recorder.start_level(1, 6, 0)
+	_recorder.record_health(6)
 	assert_eq(_sink.types(), ["level_started"])
+
+
+func test_half_hearts_are_reported_as_fractional_hearts() -> void:
+	# Un golpe con el bonus de daño quita 3 medios corazones: 1.5 corazones.
+	_recorder.start_run(RUN_ID, "Ana", RunRecorder.MODE_NORMAL, 1, 25)
+	_recorder.start_level(25, 5, 0)
+	_recorder.record_health(2, "Archer")
+	_recorder.record_health(4)
+	_recorder.record_respawn(6)
+	assert_eq(_sink.types(), ["level_started", "damage_taken", "heart_picked", "player_respawned"])
+	assert_eq(_sink.events[0]["payload"], {"lives": 2.5, "enemies_total": 0})
+	assert_eq(_sink.events[1]["payload"], {"amount": 1.5, "lives": 1.0, "source": "Archer"})
+	assert_eq(_sink.events[2]["payload"], {"amount": 1.0, "lives": 2.0})
+	assert_eq(_sink.events[3]["payload"], {"lives": 3.0})
 
 
 func test_coins_picked_in_a_level_are_recorded() -> void:
 	_recorder.start_run(RUN_ID, "Ana", RunRecorder.MODE_NORMAL, 1, 1)
-	_recorder.start_level(1, 3, 2)
+	_recorder.start_level(1, 6, 2)
 	_recorder.record_coins(2)
 	_recorder.record_coins(0)
 	assert_eq(_sink.types(), ["level_started", "coin_picked"], "cero monedas no es un evento")
@@ -201,7 +216,7 @@ func test_enemy_dodges_in_a_level_are_recorded() -> void:
 	_recorder.start_run(RUN_ID, "Ana", RunRecorder.MODE_NORMAL, 1, 1)
 	_recorder.record_dodge("Skeleton")
 	assert_true(_sink.events.is_empty(), "antes del nivel no se registran esquivas")
-	_recorder.start_level(1, 3, 2)
+	_recorder.start_level(1, 6, 2)
 	_recorder.record_dodge("Skeleton")
 	assert_eq(_sink.types(), ["level_started", "enemy_dodged"])
 	assert_eq(_sink.events[1]["type"], RunRecorder.EVENT_ENEMY_DODGED)
@@ -214,7 +229,7 @@ func test_enemy_dodges_in_a_level_are_recorded() -> void:
 
 func test_purchases_between_levels_are_recorded_with_the_completed_level() -> void:
 	_recorder.start_run(RUN_ID, "Ana", RunRecorder.MODE_NORMAL, 1, 2)
-	_recorder.start_level(2, 3, 4)
+	_recorder.start_level(2, 6, 4)
 	_recorder.complete_level(100)
 	_recorder.record_purchase("damage", 10)
 	_recorder.record_purchase("life", 6)

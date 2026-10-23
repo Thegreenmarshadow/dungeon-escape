@@ -4,7 +4,7 @@
 
 import { hbars, responsive, svg } from "./charts.js";
 import {
-  api, emptyState, fill, formatDuration, formatNumber, formatPercent, h, hideTooltip, icon, meter,
+  api, emptyState, fill, formatDuration, formatHearts, formatNumber, formatPercent, h, hideTooltip, icon, meter,
   showTooltip, sortableTable, sourceIcon, weaponIcons,
 } from "./dom.js";
 import { sourceLabel } from "./labels.js";
@@ -13,7 +13,7 @@ import { setParams } from "./state.js";
 
 const LAYERS = [
   { id: "time", label: "Tiempo", unit: (v) => `${v.toFixed(1)} s`, total: (v) => formatDuration(v) },
-  { id: "damage", label: "Daño recibido", unit: (v) => `${Math.round(v)} de daño`, total: (v) => formatNumber(v) },
+  { id: "damage", label: "Daño recibido", unit: (v) => `${formatHearts(v)} corazones de daño`, total: (v) => formatHearts(v) },
   { id: "deaths", label: "Muertes", unit: (v) => `${Math.round(v)} muertes`, total: (v) => formatNumber(v) },
 ];
 // HeatmapView's colors, from little to a lot (translucent over the floor). The

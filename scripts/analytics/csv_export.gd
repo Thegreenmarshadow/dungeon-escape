@@ -83,14 +83,14 @@ static func levels_table(rows: Array[Dictionary]) -> Array[PackedStringArray]:
 			number(row["completion_rate"] * 100.0, 1),
 			str(row["deaths"]), number(row["deaths_per_attempt"], 3),
 			number(row["mean_time_s"], 2), number(row["total_time_s"], 2),
-			str(row["damage_total"]), number(row["damage_per_min"], 3),
+			hearts(row["damage_total"]), number(row["damage_per_min"], 3),
 			number(row["measured_difficulty"], 3),
 			number(LevelStats.planned_index(row["level"]), 3),
 			LIST_SEPARATOR.join(PackedStringArray(row["weapons_used"])),
 		])
 		var by_source: Dictionary = row["damage_by_source"]
 		for source in sources:
-			line.append(str(by_source.get(source, 0)))
+			line.append(hearts(by_source.get(source, 0.0)))
 		table.append(line)
 	return table
 
@@ -149,7 +149,7 @@ static func runs_table(levels: Array) -> Array[PackedStringArray]:
 			run["profile"], run["run_id"], run["mode"], run["game_version"], str(run["seed"]),
 			run["started_at"], str(run["levels_played"]), str(run["first_level"]),
 			str(run["last_level"]), str(run["levels_completed"]), str(run["deaths"]),
-			number(run["total_time_s"], 2), str(run["damage_total"]), run["last_outcome"],
+			number(run["total_time_s"], 2), hearts(run["damage_total"]), run["last_outcome"],
 			LIST_SEPARATOR.join(PackedStringArray(run["weapons_used"])),
 		]))
 	return table
@@ -196,6 +196,13 @@ static func number(value: float, decimals: int) -> String:
 	return String.num(value, decimals) if decimals > 0 else str(roundi(value))
 
 
+## Daño en corazones sin decimales de más: "3", "1.5".
+static func hearts(value: float) -> String:
+	if is_nan(value) or is_inf(value):
+		return ""
+	return Heart.format_heart_amount(value)
+
+
 static func _run_summary(files: Array) -> Dictionary:
 	var first: Dictionary = files[0]
 	var summary := {
@@ -211,7 +218,7 @@ static func _run_summary(files: Array) -> Dictionary:
 		"levels_completed": 0,
 		"deaths": 0,
 		"total_time_s": 0.0,
-		"damage_total": 0,
+		"damage_total": 0.0,
 		"last_outcome": "",
 		"weapons_used": [] as Array[String],
 	}
@@ -232,7 +239,7 @@ static func _run_summary(files: Array) -> Dictionary:
 			if event.get("type") == TelemetryStore.EVENT_DEATH:
 				summary["deaths"] += 1
 			elif event.get("type") == TelemetryStore.EVENT_DAMAGE:
-				summary["damage_total"] += int(event.get("amount", 0))
+				summary["damage_total"] += JsonFile.to_float(event.get("amount", 0.0))
 		for weapon: Variant in data.get("weapons_used", []):
 			var id := str(weapon)
 			if not id.is_empty() and id not in summary["weapons_used"]:

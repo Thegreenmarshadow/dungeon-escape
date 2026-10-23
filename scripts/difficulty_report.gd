@@ -11,7 +11,7 @@ extends Control
 @export var analytics_dir := CsvExport.DEFAULT_DIR
 
 ## Niveles y semillas de muestra para el análisis de capacidad.
-const CAPACITY_LEVELS: Array[int] = [2, 5, 10, 20, 50, 100]
+const CAPACITY_LEVELS: Array[int] = [2, 5, 10, 20, 30, 50, 100]
 const CAPACITY_SEEDS: Array[int] = [1, 2, 3]
 ## Niveles cuyo índice se resume en la parte superior.
 const SUMMARY_LEVELS: Array[int] = [10, 25, 50, 100]
@@ -21,8 +21,8 @@ const HEADER_COLOR := Color(1.0, 0.86, 0.5)
 
 ## Columnas de la tabla: título y ancho mínimo. La última se estira.
 const COLUMNS := [
-	["Nivel", 44], ["Enemigos", 70], ["Esq/Vamp/Cal", 100], ["Jefes", 44],
-	["Trampas", 64], ["Vida", 52], ["Índice", 56], ["Δ%", 64], ["Topes", 0],
+	["Nivel", 44], ["Comunes", 64], ["Esq/Vamp/Cal", 100], ["Especiales", 84], ["Jefes", 44],
+	["Trampas", 64], ["Vida", 52], ["Golpe", 52], ["Índice", 56], ["Δ%", 64], ["Topes", 0],
 ]
 ## Nombre abreviado de cada tope de LevelGenerator (la leyenda está en la
 ## línea de estado).
@@ -32,6 +32,7 @@ const CAP_LABELS := {
 	DifficultyCurve.CAP_HAZARDS: "T",
 	DifficultyCurve.CAP_GRID: "G",
 	DifficultyCurve.CAP_ROOMS: "S",
+	DifficultyCurve.CAP_DAMAGE: "D",
 }
 const CAPACITY_HEADERS := ["Nivel", "Sem.", "Enem.", "Tramp.", "Libres", "+Enem.", "+Tramp."]
 const CAPACITY_FONT_SIZE := 12
@@ -77,9 +78,11 @@ func _ready() -> void:
 	export_button.pressed.connect(_export_csv)
 	analytics_export_button.pressed.connect(export_analytics)
 	back_button.pressed.connect(Game.go_to_menu)
-	status_label.text = ("Las filas en rojo crecen menos del %d %% respecto del nivel anterior. "
-			+ "Vida: multiplicador de la vida de los enemigos. Topes: E enemigos, P proporción de perseguidores, T trampas, G grilla, S salas.") % roundi(
-			DifficultyCurve.TARGET_GROWTH * 100.0)
+	status_label.text = ("Las filas en rojo no cumplen el objetivo de su tramo: +%d %% respecto del nivel anterior hasta el nivel %d, crecer algo después. "
+			+ "Especiales: total (comunes convertidos). Vida: multiplicador de la vida de los enemigos. "
+			+ "Golpe: corazones que quita un golpe común. "
+			+ "Topes: E enemigos, P proporción de perseguidores, T trampas, G grilla, S salas, D daño.") % [
+			roundi(DifficultyCurve.TARGET_GROWTH * 100.0), DifficultyCurve.TARGET_GROWTH_LAST_LEVEL]
 	play_level_button.grab_focus()
 
 
@@ -93,9 +96,14 @@ func _show_summary() -> void:
 	var failing := DifficultyCurve.failing_levels(_rows)
 	var first_below := DifficultyCurve.first_below_target(_rows)
 	var plateau := DifficultyCurve.plateau_start(_rows)
+	var escalation := DifficultyCurve.escalation()
 	var lines := PackedStringArray()
-	lines.append("Objetivo: +%d %% por nivel · Primer nivel bajo el %d %%: %s · Meseta (crecimiento < %d %%) desde el nivel %s" % [
-		roundi(DifficultyCurve.TARGET_GROWTH * 100.0), roundi(DifficultyCurve.TARGET_GROWTH * 100.0),
+	lines.append("Objetivo: +%d %% por nivel hasta el %d; después crecer en cada nivel y llegar a ×%d del %d al %d (hoy ×%.1f, %s)" % [
+		roundi(DifficultyCurve.TARGET_GROWTH * 100.0), DifficultyCurve.TARGET_GROWTH_LAST_LEVEL,
+		roundi(DifficultyCurve.ESCALATION_TARGET), DifficultyCurve.TARGET_GROWTH_LAST_LEVEL,
+		DifficultyCurve.LAST_LEVEL, escalation,
+		"cumple" if escalation >= DifficultyCurve.ESCALATION_TARGET else "no cumple"])
+	lines.append("Primer nivel bajo el objetivo: %s · Meseta (crecimiento < %d %%) desde el nivel %s" % [
 		str(first_below) if first_below > 0 else "ninguno",
 		roundi(DifficultyCurve.PLATEAU_GROWTH * 100.0),
 		str(plateau) if plateau > 0 else "ninguno"])
@@ -122,9 +130,11 @@ func _fill_table() -> void:
 			str(row["level"]),
 			str(row["enemies"]),
 			"%d/%d/%d" % [row["skeletons"], row["vampires"], row["skulls"]],
+			"%d (%d)" % [row["archers"] + row["skull_turrets"] + row["mimics"] + row["mages"], row["converted"]],
 			str(row["bosses"]),
 			str(row["hazards"]),
 			"×%.1f" % row["health_scale"],
+			Heart.format_hearts(row["hit"]),
 			"%.1f" % row["index"],
 			"—" if is_nan(level_growth) else "%+.1f%%" % (level_growth * 100.0),
 			" ".join(caps),

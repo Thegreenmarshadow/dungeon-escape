@@ -236,19 +236,26 @@ func test_special_enemies_appear_from_their_configured_level() -> void:
 
 
 func test_special_enemies_grow_up_to_their_cap() -> void:
+	# La regla de cada tipo (special_count) llega a su tope; los comunes
+	# convertidos desde el nivel 15 se suman aparte en special_counts.
 	for kind: StringName in LevelGenerator.SPECIAL_ENEMIES:
 		var cap: int = LevelGenerator.SPECIAL_ENEMIES[kind]["max"]
 		var previous := 0
+		var previous_total := 0
 		for level in range(LevelGenerator.FIRST_GENERATED_LEVEL, 41):
-			var count: int = LevelGenerator.params_for_level(level).special_counts[kind]
+			var count := LevelGenerator.special_count(kind, level)
+			var total: int = LevelGenerator.params_for_level(level).special_counts[kind]
 			assert_true(count >= previous, "%s baja en el nivel %d" % [kind, level])
 			assert_true(count <= cap, "%s supera su tope en el nivel %d" % [kind, level])
+			assert_true(total >= count and total >= previous_total,
+					"%s: los convertidos se suman y no bajan, nivel %d" % [kind, level])
 			previous = count
+			previous_total = total
 		assert_eq(previous, cap, "%s llega a su tope" % kind)
 
 
 func test_special_enemies_do_not_replace_common_ones() -> void:
-	# Se suman a los comunes: el mapa coloca enemy_count + jefes + especiales.
+	# Se suman a los comunes: el mapa coloca los comunes + jefes + especiales.
 	for run_seed in 10:
 		var layout := _gen(12, run_seed)
 		var p := LevelGenerator.params_for_level(12)
@@ -257,7 +264,7 @@ func test_special_enemies_do_not_replace_common_ones() -> void:
 			specials += _count_kind(layout, kind)
 		assert_eq(specials, LevelGenerator.special_total(p), "especiales del nivel 12, semilla %d" % run_seed)
 		assert_eq(layout.enemies.size() - specials - _count_kind(layout, LevelGenerator.REAPER),
-				p.enemy_count, "comunes del nivel 12, semilla %d" % run_seed)
+				LevelGenerator.common_count(p), "comunes del nivel 12, semilla %d" % run_seed)
 
 
 func test_skull_count_never_exceeds_the_chasers() -> void:

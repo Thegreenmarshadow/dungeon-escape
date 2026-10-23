@@ -32,7 +32,7 @@ from .models import (
 KILL_EVENT = "enemy_killed"
 KEY_EVENT = "key_picked"
 HEART_EVENT = "heart_picked"
-DAMAGE_EVENT = "damage_taken"
+DAMAGE_EVENT = "damage_taken"  # payload {"amount": hearts, may be 0.5, 1.5...}
 LEVEL_COMPLETED_EVENT = "level_completed"
 COIN_EVENT = "coin_picked"  # payload {"amount": int}
 ITEM_BOUGHT_EVENT = "item_bought"  # payload {"item": str, "price": int}
@@ -358,7 +358,7 @@ class SqliteStatsRepository:
             total_kills=by_type.get(KILL_EVENT, 0),
             keys_collected=by_type.get(KEY_EVENT, 0),
             hearts_collected=by_type.get(HEART_EVENT, 0),
-            damage_taken=int(damage),
+            damage_taken=float(damage),
             coins_collected=coins["collected"],
             coins_spent=coins["spent"],
             items_bought=by_type.get(ITEM_BOUGHT_EVENT, 0),

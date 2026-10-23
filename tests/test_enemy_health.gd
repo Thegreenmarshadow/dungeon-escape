@@ -1,8 +1,10 @@
 @tool
 extends McpTestSuite
 ## Pruebas de la vida escalada por nivel (EnemyBase.apply_health_scale):
-## redondeo, mínimo en la vida base, que no se acumula y que el daño de los
-## enemigos no cambia.
+## redondeo, mínimo en la vida base, que no se acumula y que no cambia el daño
+## de los enemigos; y del daño escalado por nivel (apply_damage_bonus, en
+## medios corazones): parte del daño de la escena, no se acumula, respeta el
+## tope y lo que no lastima sigue sin lastimar.
 
 ## Escena de cada enemigo y su vida base.
 const ENEMY_SCENES := {
@@ -67,6 +69,51 @@ func test_damage_does_not_change_with_the_scale() -> void:
 		enemy.apply_health_scale(LevelGenerator.enemy_health_scale(100))
 		assert_eq(_damage_values(enemy), before, "daño de %s" % path)
 		assert_eq(enemy.speed, speed, "velocidad de %s" % path)
+
+
+func test_every_hit_is_one_heart_at_base() -> void:
+	# Con los medios corazones el daño base se duplicó: cada golpe sigue
+	# quitando un corazón entero, como antes. 0 = no lastima de esa forma.
+	for path: String in ENEMY_SCENES:
+		var enemy := _make_enemy(path)
+		for damage: int in _damage_values(enemy):
+			assert_true(damage == 0 or damage == Heart.HALF_HEARTS_PER_HEART,
+					"%s: golpe base de %d medios corazones" % [path, damage])
+
+
+func test_damage_bonus_scales_every_hit_from_its_base() -> void:
+	for level in [1, 24, 25, 45, 65, 100]:
+		var bonus := LevelGenerator.enemy_damage_bonus(level)
+		for path: String in ENEMY_SCENES:
+			var enemy := _make_enemy(path)
+			var base := _damage_values(enemy)
+			enemy.apply_damage_bonus(bonus)
+			var expected: Array = base.map(func(d: int) -> int: return LevelGenerator.scaled_hit(d, bonus))
+			assert_eq(_damage_values(enemy), expected, "%s en el nivel %d" % [path, level])
+			for damage: int in _damage_values(enemy):
+				assert_true(damage <= LevelGenerator.MAX_SCALED_HIT, "%s: nunca más de 5 medios" % path)
+
+
+func test_damage_bonus_does_not_compound_nor_touch_health() -> void:
+	var vampire := _make_enemy("res://scenes/Vampire.tscn")
+	vampire.apply_damage_bonus(2)
+	vampire.apply_damage_bonus(2)
+	assert_eq(vampire.attack_damage, 4, "parte de la base 2, no de 4")
+	assert_eq(vampire.contact_damage, 0, "sin daño por contacto en la escena, sigue sin él")
+	assert_eq(vampire.max_health, 3, "el daño no cambia la vida")
+	vampire.apply_damage_bonus(0)
+	assert_eq(vampire.attack_damage, 2)
+	var reaper := _make_enemy("res://scenes/Reaper.tscn")
+	reaper.apply_damage_bonus(1)
+	assert_eq(reaper.contact_damage, 3, "la parca también recibe el bonus")
+
+
+func test_spike_traps_keep_their_base_damage() -> void:
+	# Las trampas no son enemigos: el nivel no les suma el bonus de daño.
+	var trap: Node = track(ResourceLoader.load("res://scenes/SpikeTrap.tscn", "",
+			ResourceLoader.CACHE_MODE_IGNORE).instantiate())
+	assert_eq(trap.get("damage"), Heart.HALF_HEARTS_PER_HEART, "un corazón")
+	assert_false(trap.has_method("apply_damage_bonus"))
 
 
 # ----- ayudas -----

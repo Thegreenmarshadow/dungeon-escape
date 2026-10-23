@@ -1,10 +1,12 @@
 @tool
 extends McpTestSuite
 ## Pruebas de los perfiles (ProfileStore): tiempo jugado acumulado entre
-## sesiones, partida guardada, carga tolerante y migración de player.cfg. Todo
-## en una carpeta temporal de user://, que se borra al terminar.
+## sesiones, partida guardada (con la migración de las vidas enteras a medios
+## corazones), carga tolerante y migración de player.cfg. Todo en una carpeta
+## temporal de user://, que se borra al terminar.
 
 const TEMP_DIR := "user://test_profiles"
+const GAME_SCRIPT := "res://scripts/game.gd"
 
 
 func suite_name() -> String:
@@ -49,12 +51,14 @@ func test_save_slot_round_trip_and_clear() -> void:
 	var store := ProfileStore.new(TEMP_DIR)
 	var slug: String = store.create_profile("Ana")["slug"]
 	assert_true(store.get_save(slug).is_empty())
-	store.set_save(slug, {"level": 4, "lives": 2, "weapon_id": "spear", "run_seed": 4294967295,
+	store.set_save(slug, {"level": 4, "health": 5, "weapon_id": "spear", "run_seed": 4294967295,
 			"coins": 31, "damage_bonus": 1, "mode": "normal", "score": 470, "enemies_killed": 17,
 			"run_id": "abc"})
 	var save := ProfileStore.new(TEMP_DIR).get_save(slug)
 	assert_eq(save["level"], 4)
 	assert_eq(typeof(save["level"]), TYPE_INT)
+	assert_eq(save["health"], 5, "medios corazones: vuelve igual, sin convertir")
+	assert_false(save.has(ProfileStore.LEGACY_LIVES_KEY))
 	assert_eq(save["run_seed"], 4294967295)
 	assert_eq(save["weapon_id"], "spear")
 	assert_eq(save["coins"], 31)
@@ -62,6 +66,46 @@ func test_save_slot_round_trip_and_clear() -> void:
 	assert_eq(save["run_id"], "abc")
 	store.clear_save(slug)
 	assert_true(store.get_save(slug).is_empty())
+
+
+func test_saves_from_before_half_hearts_load_their_lives_as_halves() -> void:
+	# Un profile.json escrito antes de los medios corazones: la partida guarda
+	# "lives" en vidas enteras.
+	var store := ProfileStore.new(TEMP_DIR)
+	var slug: String = store.create_profile("Ana")["slug"]
+	var raw: Variant = JsonFile.read(store.profile_path(slug))
+	raw["save"] = {"level": 7, "lives": 2, "weapon_id": "sword", "run_seed": 9, "coins": 3,
+			"damage_bonus": 0, "mode": "normal", "score": 50, "enemies_killed": 4, "run_id": "old"}
+	JsonFile.write(store.profile_path(slug), raw, "\t")
+
+	var save := ProfileStore.new(TEMP_DIR).get_save(slug)
+	assert_eq(save["health"], 2 * Heart.HALF_HEARTS_PER_HEART, "2 vidas = 4 medios corazones")
+	assert_false(save.has(ProfileStore.LEGACY_LIVES_KEY), "la clave vieja no se arrastra")
+	assert_eq(save["level"], 7)
+	# Guardarla otra vez no la convierte de nuevo: la clave marca la unidad.
+	store.set_save(slug, save)
+	assert_eq(ProfileStore.new(TEMP_DIR).get_save(slug)["health"], 4)
+
+	assert_eq(ProfileStore.saved_health({"lives": 3}), 6)
+	assert_eq(ProfileStore.saved_health({"health": 3}), 3, "medio corazón impar: ya está en medios")
+	assert_eq(ProfileStore.saved_health({"health": 5, "lives": 1}), 5, "si están las dos, manda la nueva")
+	assert_eq(ProfileStore.saved_health({"lives": 0}), 2, "nunca menos de una vida: 2 medios")
+	assert_eq(ProfileStore.saved_health({}, 6), 6, "sin ninguna, el valor por defecto")
+
+
+func test_continue_restores_old_and_new_saves_in_half_hearts() -> void:
+	var stub := GDScript.new()
+	stub.source_code = "extends \"%s\"\n\n\nfunc start_level() -> void:\n\tpass\n" % GAME_SCRIPT
+	stub.reload()
+	var game: Node = stub.new()
+	game.continue_run({"level": 6, "lives": 1, "run_seed": 5})
+	assert_eq(game.health, 2, "partida vieja: 1 vida = 2 medios")
+	assert_eq(game.current_level, 6)
+	game.continue_run({"level": 6, "health": 3, "run_seed": 5})
+	assert_eq(game.health, 3, "partida nueva: medio corazón incluido")
+	game.continue_run({"level": 6, "run_seed": 5})
+	assert_eq(game.health, game.STARTING_HEALTH, "sin vida guardada empieza con la de siempre")
+	game.free()
 
 
 func test_partial_profile_and_duplicates_load_safely() -> void:

@@ -6,7 +6,8 @@ Este documento explica qué mide el juego, dónde lo guarda y cómo leerlo. Todo
 
 - El menú principal muestra el perfil activo y su tiempo total jugado.
 - **Cambiar perfil:** abre la pantalla para elegir, crear o borrar perfiles. Borrar pide un segundo clic. Un perfil es solo un nombre o apodo.
-- **Continuar:** retoma la partida guardada del perfil, con nivel, vidas, arma, semilla, monedas y mejoras. La partida se guarda al empezar cada nivel en modo normal, y morir la borra.
+- **Continuar:** retoma la partida guardada del perfil, con nivel, vida, arma, semilla, monedas y mejoras. La partida se guarda al empezar cada nivel en modo normal, y morir la borra.
+  - La vida se guarda en medios corazones con la clave `health`. Las partidas guardadas antes de los medios corazones tienen `lives` (vidas enteras): al cargarlas cada vida vale 2 medios corazones (`ProfileStore.saved_health`). El nombre de la clave marca la unidad, así una partida ya convertida no se vuelve a convertir.
 - **Tiempo:** se suma solo el tiempo sin pausa. Se guarda al terminar un nivel, al morir, al volver al menú y al cerrar la ventana.
 - El nombre del antiguo `player.cfg` se convierte en el primer perfil, una sola vez.
 
@@ -16,6 +17,7 @@ Este documento explica qué mide el juego, dónde lo guarda y cómo leerlo. Todo
   - La posición del jugador, cada 0,25 s o cuando se mueve más de 8 px.
   - Estos eventos, con su posición y su tiempo: daño recibido (con su fuente), enemigo eliminado, corazón, llave, puerta (cerrada o escape), ataque (acertado o fallado), cambio de arma, muerte (con su causa) y reaparición (demo).
 - Todo queda en memoria durante el nivel. Se escribe al disco solo al completarlo, al morir o al abandonarlo.
+- **Unidad de la vida y el daño:** el juego cuenta la vida del jugador en medios corazones (3 corazones = 6 medios), pero la telemetría, los eventos del servidor y los informes la dan en **corazones**, con medios si hace falta: un golpe base vale `1`, uno escalado del nivel 25 vale `1.5`, y la vida que queda puede ser `2.5`. Es la misma unidad que antes, cuando se contaban vidas enteras, así los datos viejos y los nuevos se suman y se comparan sin migrar nada. Afecta a `amount` (daño y corazones) y `lives` (vida que queda, reaparición), y no cambia `schema_version`.
 - **Ajustes › Telemetría** la desactiva. Viene activada. Desactivada, no se graba ni se sube nada y no hay minimapa ni resumen de la partida; el tiempo jugado y la partida guardada siguen funcionando.
 
 ### Dónde se guarda
@@ -39,6 +41,7 @@ Este documento explica qué mide el juego, dónde lo guarda y cómo leerlo. Todo
 - **Orden:** un nivel se sube recién cuando su partida ya existe en el servidor, es decir, cuando la cola de eventos de `RunTracker` ya envió su inicio.
 - **Sin servidor:** los pendientes quedan en `user://level_uploads.json`, aparte de la cola de eventos. Se reintentan cada 2 s y el doble en cada fallo, hasta 60 s, también después de cerrar y abrir el juego.
 - **Repetidos:** el servidor guarda una sola vez cada partida, nivel e intento, así reenviar un archivo no lo duplica.
+- **Corazones con medios:** el servidor suma el daño y los corazones como números con decimales (en `/api/stats`, `damage_taken` puede ser `12.5`; en los mapas de calor y el panel del recorrido, un golpe vale al menos medio corazón). Los datos guardados antes del cambio tienen corazones enteros y se suman igual.
 - **Descartes:** un archivo borrado, uno rechazado por el servidor (por ejemplo, 422) o uno cuya partida nunca llegó (404) sale de la lista con un aviso.
 - **Telemetría desactivada:** no se sube nada. Lo pendiente se sube al volver a activarla.
 - La demo y el modo prueba se suben como cualquier partida, con su `mode`.
@@ -74,7 +77,7 @@ Este documento explica qué mide el juego, dónde lo guarda y cómo leerlo. Todo
 - **Filtros:** perfil, nivel, versión del juego y modo.
 - **Capas:** tiempo, daño recibido, muertes o enemigos eliminados.
   - El tiempo pesa cada posición por los segundos que el jugador estuvo ahí.
-  - El daño suma las vidas perdidas.
+  - El daño suma los corazones perdidos (con medios).
   - Las eliminaciones se marcan donde murió el enemigo.
 - **Vista «Mismo mapa»:**
   - Agrupa las partidas jugadas sobre el mismo mapa y dibuja el mapa de calor encima. Los niveles generados coinciden si tienen la misma semilla; el nivel 1, hecho a mano, coincide siempre.
@@ -109,7 +112,8 @@ Este documento explica qué mide el juego, dónde lo guarda y cómo leerlo. Todo
 - **Cómo leerla:**
   - Si la naranja sube más que la azul, el nivel es más difícil de lo planeado.
   - Si la naranja baja mientras la azul sube, es más fácil de lo planeado.
-- En modo prueba, `difficulty_playtest.csv` suma las columnas `damage_per_min`, `damage_sources` y `death_cause`.
+- En modo prueba, `difficulty_playtest.csv` suma las columnas `damage_per_min`, `damage_sources` y `death_cause`. `lives_lost`, `hearts_healed`, `damage_per_min` y `damage_sources` están en corazones (pueden tener `.5`), igual que las filas viejas; `enemies` son los comunes que se colocan, sin los convertidos en especiales.
+- La tabla de la curva muestra también los especiales (con los comunes convertidos entre paréntesis) y el golpe de un enemigo común en corazones. Las filas en rojo no cumplen el objetivo de su tramo: +10 % hasta el nivel 14 y crecer algo después; arriba se resume la escalada del 14 al 100 (objetivo ×10). Ver la sección 8 de `docs/character-design.md`.
 
 ## Exportar a CSV
 

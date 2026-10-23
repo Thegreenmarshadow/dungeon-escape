@@ -24,7 +24,7 @@ func test_skull_scene_has_non_looping_hurt_and_death() -> void:
 		assert_true(frames.has_animation(animation), "falta %s" % animation)
 		assert_false(frames.get_animation_loop(animation), "%s no debe repetirse" % animation)
 	assert_eq(skull.move_animation, &"idle", "no tiene animación de caminar")
-	assert_eq(skull.contact_damage, 1)
+	assert_eq(skull.contact_damage, Heart.HALF_HEARTS_PER_HEART, "embiste quitando un corazón")
 
 
 func test_stays_idle_when_player_is_far() -> void:

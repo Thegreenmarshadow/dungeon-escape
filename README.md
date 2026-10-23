@@ -16,7 +16,7 @@ Juego de acción 2D con vista cenital, hecho en **Godot 4.7.2**. El jugador cont
 
 **Objetivo:** encontrar la llave y llegar a la puerta de salida, en el extremo opuesto del mapa.
 
-- El jugador tiene **3 vidas** y medio segundo de invulnerabilidad después de recibir daño.
+- El jugador tiene **3 corazones** de vida y 1.5 s de invulnerabilidad después de recibir daño. La vida se cuenta en **medios corazones**: un golpe de enemigo o de los picos quita un corazón entero, pero en niveles altos los enemigos pegan más fuerte (ver abajo) y pueden quitar uno y medio, dos o dos y medio. La interfaz muestra cada corazón lleno, a medias o vacío.
 - Las **trampas de picos** hacen daño solo cuando los picos están levantados.
 - Enemigos:
 
@@ -27,12 +27,14 @@ Juego de acción 2D con vista cenital, hecho en **Godot 4.7.2**. El jugador cont
 | Parca (jefe) | 5 golpes | Lenta; protege la sala de la llave |
 
 - **Esquiva:** cada enemigo puede esquivar un golpe (esqueleto 15 %, calavera 10 %, vampiro 20 %, parca 10 %): no recibe daño, da un paso atrás y aparece «¡Esquiva!». Nunca esquiva dos golpes seguidos (1 s de espera), ni mientras ataca o embiste.
-- La vida de la tabla es la del nivel 1. Cada nivel suma un **8 % de la vida base** (×1.08 en el nivel 2, ×1.72 en el 10, ×8.92 en el 100; se redondea): un esqueleto aguanta 3 golpes en el nivel 10 y 18 en el 100. El daño que hacen los enemigos no cambia.
+- La vida de la tabla es la del nivel 1. Cada nivel suma un **8 % de la vida base** (×1.08 en el nivel 2, ×1.72 en el 10, ×8.92 en el 100; se redondea): un esqueleto aguanta 3 golpes en el nivel 10 y 18 en el 100.
+- **Daño por escalones:** desde el nivel 25 cada golpe de un enemigo (comunes, especiales, la parca, los jefes y sus proyectiles o efectos) quita medio corazón más, y otro medio en el 45 y en el 65: 1.5, 2 y 2.5 corazones. Nunca más de 2.5, así ningún golpe mata con la vida llena. Los picos siempre quitan un corazón.
+- **Composición:** desde el nivel 15, cada 3 niveles un enemigo común pasa a ser un especial (arquero, mago o mímico, rotando): primero los esqueletos y después los vampiros; las calaveras se quedan. El total de enemigos no cambia. Los arqueros llegan a 6, los magos a 5 y las trampas a 30 (antes 4, 3 y 18).
 
 - **Monedas:** los enemigos pueden soltar monedas al morir (los más duros, más seguido y de más valor; la parca, casi siempre) y en cada mapa generado hay una suelta. Valen más cuanto más alto el nivel: se multiplican por la misma escala que la vida de los enemigos. Se conservan entre niveles y se reinician en cada partida.
-- **Tienda:** en la pantalla de nivel superado se pueden gastar las monedas en **+1 daño** (10, 20, 30... hasta 100 monedas; hasta 10 veces por partida) o **+1 vida** (6 monedas en el nivel 1, multiplicadas por la escala del nivel; solo si falta alguna). Así las mejoras de daño siguen el ritmo de la vida de los enemigos.
+- **Tienda:** en la pantalla de nivel superado se pueden gastar las monedas en **+1 daño** (10, 20, 30... hasta 100 monedas; hasta 10 veces por partida) o **+1 corazón** (6 monedas en el nivel 1, multiplicadas por la escala del nivel; solo si falta vida, y nunca pasa de los 3 corazones). Así las mejoras de daño siguen el ritmo de la vida de los enemigos.
 - **Armas:** el caballero empieza cada partida con la espada. En la tienda se puede cambiar por la **lanza** (15 monedas: estocada larga y angosta, el doble de alcance, pero más lenta y frena al jugador al golpear) o la **daga** (25 monedas: golpea el doble de seguido, de muy cerca). El arma comprada reemplaza a la actual, se conserva entre niveles y el +1 daño se le suma igual. Los valores de cada arma están en `assets/weapons/<id>/<id>.tres` (`WeaponData`).
-- La interfaz muestra las vidas, si se tiene la llave, cuántos enemigos se eliminaron y las monedas. La pantalla de victoria incluye ese contador.
+- La interfaz muestra los corazones (llenos, a medias o vacíos), si se tiene la llave, cuántos enemigos se eliminaron y las monedas. La pantalla de victoria incluye ese contador.
 
 ## Cómo ejecutarlo
 
@@ -95,7 +97,7 @@ players 1 ──< runs 1 ──< events
 | `runs` | partida | `id` (lo genera el juego, así puede reenviar sin duplicar), `player_id`, `mode` (`normal` o `test`), `run_seed`, `start_level`, `level_reached`, `score`, `enemies_killed`, `duration_s`, `outcome` (`died`, `quit` o `in_progress`), `started_at`, `ended_at` |
 | `events` | cosa que hizo el jugador | `run_id`, `seq` (orden dentro de la partida; `run_id + seq` es único), `type`, `level`, `t_run_s` (segundos jugados), `payload` (JSON), `created_at` |
 
-`events` acepta cualquier tipo de evento y los datos propios de cada uno van en `payload`, así se pueden sumar tipos nuevos sin migrar la base. Eventos actuales:
+`events` acepta cualquier tipo de evento y los datos propios de cada uno van en `payload`, así se pueden sumar tipos nuevos sin migrar la base. `lives` (la vida que queda) y el `amount` del daño y de los corazones están en **corazones** y pueden tener medio (`0.5`, `2.5`): el juego cuenta la vida en medios corazones y los informa divididos por 2, así las partidas anteriores (vidas enteras) siguen siendo comparables. Eventos actuales:
 
 | Tipo | `payload` |
 |---|---|
@@ -106,7 +108,7 @@ players 1 ──< runs 1 ──< events
 | `heart_picked` | `amount`, `lives` |
 | `key_picked` | vacío |
 | `coin_picked` | `amount` |
-| `item_bought` | `item` (`damage` o `life`), `price` |
+| `item_bought` | `item` (`damage`, `life` = un corazón, o el id de un arma), `price` |
 | `level_completed` | `duration_s`, `kills`, `enemies_total`, `score` |
 | `player_died` | `score` |
 | `run_quit` | vacío |

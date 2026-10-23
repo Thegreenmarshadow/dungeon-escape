@@ -63,20 +63,58 @@ const SKULL_FIRST_LEVEL := 3
 const SKULL_CHASER_SHARE := 0.4
 ## Enemigos especiales: aparecen desde first_level con 1, suman otro cada
 ## `every` niveles hasta max. Se suman a los comunes (no ocupan su cupo de
-## ENEMIES_MAX) y se colocan después de ellos.
+## ENEMIES_MAX) y se colocan después de ellos. Los topes del arquero (6, desde
+## el nivel 23) y del mago (5, desde el 26) siguen creciendo después del 18,
+## donde estaban antes (4 y 3); los de la torre y el mímico no se subieron
+## porque ya están al tope antes del nivel 14 y subirlos cambiaría esos
+## niveles. Los +4 especiales salen de la capacidad medida con
+## DifficultyCurve.capacity_report (30 semillas en los niveles 20, 30, 50, 75
+## y 100): con la conversión de comunes el mínimo de lugares libres para
+## enemigos era 6, y 4 es menos del 75 % (ver docs/character-design.md,
+## sección 8.4).
 const SPECIAL_ENEMIES := {
 	SKULL_TURRET: {"first_level": 5, "every": 3, "max": 3},
 	MIMIC: {"first_level": 6, "every": 4, "max": 2},
-	ARCHER: {"first_level": 8, "every": 3, "max": 4},
-	MAGE: {"first_level": 10, "every": 4, "max": 3},
+	ARCHER: {"first_level": 8, "every": 3, "max": 6},
+	MAGE: {"first_level": 10, "every": 4, "max": 5},
 }
-## Trampas de picos.
+## Trampas de picos. El tope (30, desde el nivel 26; antes 18, desde el 14)
+## usa menos del 75 % del mínimo de lugares libres para trampas medido con
+## los topes anteriores (38).
 const HAZARDS_BASE := 5
 const HAZARDS_PER_LEVEL := 1
-const HAZARDS_MAX := 18
+const HAZARDS_MAX := 30
 ## Vida de los enemigos: cada nivel suma esta fracción de la vida base de la
-## escena (+8 %). Crece sin tope; el daño que hacen no cambia.
+## escena (+8 %). Crece sin tope.
 const ENEMY_HEALTH_GROWTH_PER_LEVEL := 0.08
+## Composición: desde CONVERSION_FIRST_LEVEL, cada CONVERSION_EVERY niveles un
+## enemigo común más pasa a ser un especial más fuerte, sin cambiar el total
+## de entidades del mapa. Primero los esqueletos y después los vampiros; las
+## calaveras se quedan. Con los topes de comunes (7 esqueletos y 10 vampiros)
+## son 17 conversiones: una cada 3 niveles dura del nivel 15 al 63.
+const CONVERSION_FIRST_LEVEL := 15
+const CONVERSION_EVERY := 3
+## Especiales en los que se convierten, en este orden rotativo (arquero, mago,
+## mímico, arquero...). No la torre de calaveras: su peso efectivo en
+## DifficultyCurve (1.5) es menor que el del esqueleto (1.76) y bajaría el
+## índice.
+const CONVERSION_TARGETS: Array[StringName] = [ARCHER, MAGE, MIMIC]
+## Daño de los enemigos, en medios corazones (la unidad de la vida del
+## jugador, ver Heart.HALF_HEARTS_PER_HEART). Un golpe base de un enemigo común
+## quita un corazón entero (BASE_ENEMY_HIT = 2 medios). Desde
+## DAMAGE_FIRST_LEVEL cada golpe suma medio corazón más, y otro cada
+## DAMAGE_EVERY niveles: 25 -> 3 medios, 45 -> 4, 65 -> 5. Así el daño es un
+## escalón que se nota cada 20 niveles y no un goteo por nivel.
+const DAMAGE_FIRST_LEVEL := 25
+const DAMAGE_EVERY := 20
+const BASE_ENEMY_HIT := 2
+## Tope de un golpe escalado: 5 medios corazones. Con la vida llena (6 medios)
+## ningún golpe escalado mata de una vez. Un ataque diseñado más fuerte que el
+## tope (si alguno lo fuera) conserva su daño: el escalado nunca lo baja.
+const MAX_SCALED_HIT := 5
+## Tope del bonus de daño: el que lleva el golpe base hasta MAX_SCALED_HIT (+3,
+## desde el nivel 65).
+const DAMAGE_BONUS_MAX := MAX_SCALED_HIT - BASE_ENEMY_HIT
 
 # ---------------------------------------------------------------------------
 # Reglas de forma y de colocación
@@ -149,17 +187,28 @@ class Params extends RefCounted:
 	var room_min := Vector2i.ZERO
 	var room_max := Vector2i.ZERO
 	var extra_links := 0
-	## Enemigos comunes, sin jefes.
+	## Cupo de enemigos comunes, sin jefes, antes de la conversión: desde
+	## CONVERSION_FIRST_LEVEL parte de ellos se coloca como especiales
+	## (converted_skeletons y converted_vampires), así que el mapa tiene
+	## common_count() comunes.
 	var enemy_count := 0
 	var chaser_share := 0.0
 	## De los perseguidores, cuántos son calaveras en vez de vampiros.
 	var skull_count := 0
+	## Esqueletos y vampiros del cupo convertidos en especiales (ver
+	## conversion_count). Ya están sumados en special_counts.
+	var converted_skeletons := 0
+	var converted_vampires := 0
 	var boss_count := 0
 	var hazard_count := 0
-	## Enemigos especiales por tipo (kind -> cantidad), aparte de enemy_count.
+	## Enemigos especiales por tipo (kind -> cantidad), aparte de los comunes.
+	## Incluye los convertidos.
 	var special_counts := {}
 	## Multiplicador de la vida de todos los enemigos (ver enemy_health_scale).
 	var enemy_health_scale := 1.0
+	## Medios corazones que suma cada golpe de un enemigo al jugador (ver
+	## enemy_damage_bonus y scaled_hit).
+	var enemy_damage_bonus := 0
 	## Jefe temático del nivel (BossRegistry.boss_for_level); &"" si no hay.
 	## Ocupa el lugar de la parca de la puerta, así que boss_count no cambia.
 	var theme_boss: StringName = &""
@@ -339,8 +388,9 @@ class Layout extends RefCounted:
 # ---------------------------------------------------------------------------
 
 ## Números de dificultad del nivel. Sube con el nivel: más y más grandes
-## salas, más enemigos, una mayor proporción de perseguidores y enemigos con
-## más vida.
+## salas, más enemigos, una mayor proporción de perseguidores, enemigos con
+## más vida y, en niveles altos, comunes convertidos en especiales y golpes que
+## quitan más.
 static func params_for_level(level: int) -> Params:
 	var p := Params.new()
 	p.level = level
@@ -366,9 +416,34 @@ static func params_for_level(level: int) -> Params:
 	p.hazard_count = mini(HAZARDS_BASE + HAZARDS_PER_LEVEL * step, HAZARDS_MAX)
 	for kind: StringName in SPECIAL_ENEMIES:
 		p.special_counts[kind] = special_count(kind, level)
+	_apply_conversions(p, conversion_count(level))
 	p.enemy_health_scale = enemy_health_scale(level)
+	p.enemy_damage_bonus = enemy_damage_bonus(level)
 	p.theme_boss = BossRegistry.boss_for_level(level)
 	return p
+
+
+## Cuántos comunes pide convertir el nivel: ninguno antes de
+## CONVERSION_FIRST_LEVEL, 1 en ese nivel y uno más cada CONVERSION_EVERY
+## niveles. Sin tope propio: _apply_conversions no convierte más de los
+## esqueletos y vampiros que hay.
+static func conversion_count(level: int) -> int:
+	if level < CONVERSION_FIRST_LEVEL:
+		return 0
+	return 1 + floori((level - CONVERSION_FIRST_LEVEL) / float(CONVERSION_EVERY))
+
+
+## Convierte count comunes de params en especiales: primero esqueletos, después
+## vampiros (las calaveras se quedan), y cada uno pasa a CONVERSION_TARGETS en
+## orden rotativo. El total de enemigos no cambia.
+static func _apply_conversions(params: Params, count: int) -> void:
+	var skeletons := skeleton_count(params)
+	count = mini(count, skeletons + vampire_count(params))
+	params.converted_skeletons = mini(count, skeletons)
+	params.converted_vampires = count - params.converted_skeletons
+	for i in count:
+		var kind: StringName = CONVERSION_TARGETS[i % CONVERSION_TARGETS.size()]
+		params.special_counts[kind] = params.special_counts.get(kind, 0) + 1
 
 
 ## Cuántos enemigos especiales de ese tipo pide el nivel: ninguno antes de su
@@ -395,6 +470,44 @@ static func special_total(params: Params) -> int:
 ## baja de 1.0.
 static func enemy_health_scale(level: int) -> float:
 	return 1.0 + ENEMY_HEALTH_GROWTH_PER_LEVEL * maxi(level - 1, 0)
+
+
+## Medios corazones que suma cada golpe de un enemigo en el nivel: 0 antes de
+## DAMAGE_FIRST_LEVEL, 1 en ese nivel y uno más cada DAMAGE_EVERY niveles,
+## hasta DAMAGE_BONUS_MAX (0 hasta el 24, 1 del 25 al 44, 2 del 45 al 64 y 3
+## desde el 65).
+static func enemy_damage_bonus(level: int) -> int:
+	if level < DAMAGE_FIRST_LEVEL:
+		return 0
+	return mini(1 + floori((level - DAMAGE_FIRST_LEVEL) / float(DAMAGE_EVERY)), DAMAGE_BONUS_MAX)
+
+
+## Daño (en medios corazones) de un golpe de base medios corazones con bonus
+## sumado, sin pasar de MAX_SCALED_HIT. Un golpe que no lastima (base 0, como
+## la marca de escarcha) sigue sin lastimar, y uno diseñado más fuerte que el
+## tope conserva su daño.
+static func scaled_hit(base: int, bonus: int) -> int:
+	if base <= 0:
+		return base
+	return maxi(base, mini(base + maxi(bonus, 0), MAX_SCALED_HIT))
+
+
+## Esqueletos que coloca el nivel: los comunes que no son perseguidores, menos
+## los convertidos en especiales.
+static func skeleton_count(params: Params) -> int:
+	return params.enemy_count - chaser_count(params) - params.converted_skeletons
+
+
+## Vampiros que coloca el nivel: los perseguidores que no son calaveras, menos
+## los convertidos en especiales.
+static func vampire_count(params: Params) -> int:
+	return chaser_count(params) - params.skull_count - params.converted_vampires
+
+
+## Enemigos comunes (esqueletos, vampiros y calaveras) que coloca el nivel: el
+## cupo menos los convertidos.
+static func common_count(params: Params) -> int:
+	return params.enemy_count - params.converted_skeletons - params.converted_vampires
 
 
 ## Semilla del intento dado. Mezcla los tres valores para que niveles e
@@ -812,19 +925,21 @@ static func _add_enemy(layout: Layout, spawn: Spawn) -> void:
 		layout.enemies.append(spawn)
 
 
-## Perseguidores (vampiros y calaveras) entre los enemigos comunes del nivel.
+## Perseguidores (vampiros y calaveras) del cupo de enemigos comunes del nivel,
+## antes de la conversión (ver vampire_count).
 static func chaser_count(params: Params) -> int:
 	return roundi(params.enemy_count * params.chaser_share)
 
 
 ## Enemigos comunes: esqueletos con patrulla, y perseguidores que son vampiros
-## o, desde SKULL_FIRST_LEVEL, calaveras embestidoras.
+## o, desde SKULL_FIRST_LEVEL, calaveras embestidoras. Los convertidos en
+## especiales no se colocan acá (ver _place_special_enemies).
 static func _place_enemies(layout: Layout, params: Params, rng: RandomNumberGenerator,
 		taken: Array[Vector2i]) -> void:
 	var cells := _entity_cells(layout)
 	_shuffle(cells, rng)
-	var chasers := chaser_count(params)
-	var skeletons := params.enemy_count - chasers
+	var chasers := params.skull_count + vampire_count(params)
+	var skeletons := skeleton_count(params)
 	var skeletons_placed := 0
 	var chasers_placed := 0
 
@@ -869,8 +984,9 @@ static func _place_enemies(layout: Layout, params: Params, rng: RandomNumberGene
 		skeletons_placed += 1
 
 
-## Enemigos especiales (arqueros, torres, mímicos y magos), después de los
-## comunes y con la misma separación, en cualquier sala. Si el mapa no tiene
+## Enemigos especiales (arqueros, torres, mímicos y magos, incluidos los
+## comunes convertidos), después de los comunes y con la misma separación, en
+## cualquier sala. Si el mapa no tiene
 ## sitio para todos se colocan los que entren, en el orden de SPECIAL_ENEMIES.
 ## Sin especiales no toca el generador aleatorio, así los niveles bajos salen
 ## igual que antes de que existieran.

@@ -172,7 +172,9 @@ class Stats(BaseModel):
     total_kills: int
     keys_collected: int
     hearts_collected: int
-    damage_taken: int
+    # Hearts lost: since the game counts health in half hearts it can be
+    # fractional (older runs only have whole hearts).
+    damage_taken: float
     coins_collected: int
     coins_spent: int
     items_bought: int

@@ -1,7 +1,8 @@
 // Run history and the detail of one run.
 
 import {
-  api, avatar, cards, emptyState, fill, formatDate, formatDuration, formatNumber, h, heartIcon, icon,
+  api, avatar, cards, emptyState, fill, formatDate, formatDuration, formatHearts, formatNumber, h, heartIcon,
+  heartsText, icon,
   modeBadge, outcomeBadge, playerCell, sortableTable, sourceIcon, table, td, weaponIcons,
 } from "./dom.js";
 import { ENEMY_LABELS, EVENT_LABELS, ITEM_LABELS, WEAPON_LABELS, sourceLabel } from "./labels.js";
@@ -65,16 +66,16 @@ function eventDetail(event) {
       return ENEMY_LABELS[p.enemy] || p.enemy || "";
     case "damage_taken": {
       const source = p.source ? ` · ${sourceLabel(p.source)}` : "";
-      return `-${p.amount ?? 1} · quedan ${p.lives ?? "?"} vidas${source}`;
+      return `-${formatHearts(p.amount ?? 1)} · quedan ${p.lives === undefined ? "? corazones" : heartsText(p.lives)}${source}`;
     }
-    case "heart_picked": return `+${p.amount ?? 1} · ${p.lives ?? "?"} vidas`;
+    case "heart_picked": return `+${formatHearts(p.amount ?? 1)} · ${p.lives === undefined ? "? corazones" : heartsText(p.lives)}`;
     case "coin_picked": return `+${p.amount ?? "?"}`;
     case "item_bought": return `${ITEM_LABELS[p.item] || p.item || "?"} · ${p.price ?? "?"} monedas`;
-    case "level_started": return `${p.enemies_total ?? "?"} enemigos · ${p.lives ?? "?"} vidas`;
+    case "level_started": return `${p.enemies_total ?? "?"} enemigos · ${p.lives === undefined ? "? corazones" : heartsText(p.lives)}`;
     case "level_completed":
       return `en ${formatDuration(p.duration_s)} · ${p.kills ?? "?"}/${p.enemies_total ?? "?"} enemigos`;
     case "weapon_changed": return WEAPON_LABELS[p.weapon] || p.weapon || "";
-    case "player_respawned": return `${p.lives ?? "?"} vidas`;
+    case "player_respawned": return p.lives === undefined ? "? corazones" : heartsText(p.lives);
     case "player_died": {
       const cause = p.cause ? ` · por ${sourceLabel(p.cause)}` : "";
       return p.score !== undefined ? `${p.score} puntos${cause}` : cause.slice(3);
@@ -243,9 +244,9 @@ export function shortLabel(track) {
   return track.mode === "demo" ? "Demo" : `Nivel ${track.level}`;
 }
 
-function sourceChips(items) {
+function sourceChips(items, format = (count) => `${count}`) {
   return h("span", { class: "chips" }, items.map((item) => h("span", { class: "chip", title: item.label },
-    sourceIcon(item.source, 1), `${item.count}`)));
+    sourceIcon(item.source, 1), format(item.count))));
 }
 
 function breakdownTable(rows, onSelect) {
@@ -256,11 +257,12 @@ function breakdownTable(rows, onSelect) {
         row.attempt > 1 ? h("span", { class: "muted" }, ` · intento ${row.attempt}`) : "")),
       td(outcomeBadge(row.outcome)),
       td(formatDuration(row.duration), "num"),
-      td(row.damage ? h("span", { class: "chips" }, h("strong", {}, row.damage), sourceChips(row.sources)) : dash()),
+      td(row.damage ? h("span", { class: "chips" }, h("strong", {}, formatHearts(row.damage)),
+        sourceChips(row.sources, formatHearts)) : dash()),
       td(row.deaths ? h("span", { class: "chips" }, h("strong", {}, row.deaths), sourceChips(row.causes)) : dash()),
       td(row.kills, "num"),
       td(row.key ? icon("key", 2, "llave recogida") : dash()),
-      td(row.hearts ? h("span", { class: "chip" }, heartIcon("", 2), row.hearts) : dash()),
+      td(row.hearts ? h("span", { class: "chip" }, heartIcon("", 2), formatHearts(row.hearts)) : dash()),
       td(row.attacks ? `${row.hits}/${row.attacks} · ${Math.round((row.hits / row.attacks) * 100)} %` : dash(), "num"),
       td(row.coins ?? dash(), "num"),
       td(row.weapons.length ? weaponIcons(row.weapons, 32) : dash()),

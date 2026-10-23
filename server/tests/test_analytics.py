@@ -79,6 +79,24 @@ def test_level_stats_follow_level_stats_gd():
     assert two["measured_difficulty"] == pytest.approx(0.5 / 3 + 0.25)
 
 
+def test_half_hearts_keep_their_fraction_and_old_files_still_count():
+    # Since the game counts health in half hearts, damage comes in hearts with
+    # halves (0.5, 1.5). Older files have whole hearts and mean the same unit.
+    levels = [
+        _level(2, "died", 60.0, [_damage("Archer", 0.5), _damage("Archer", 1.5), _death("Archer")]),
+        _level(2, "completed", 60.0, [_damage("spikes", 1)]),
+    ]
+    (row,) = analytics.level_stats(levels)
+    assert row["damage_total"] == pytest.approx(3.0)
+    assert row["damage_by_source"] == {"Archer": pytest.approx(2.0), "spikes": pytest.approx(1.0)}
+    summary = analytics.track_summary(_level(2, "died", 60.0, [
+        _damage("Mage", 0.5), _damage("Mage", 2.5), {"t": 3.0, "type": "heart", "amount": 1.0},
+        {"t": 4.0, "type": "heart"},
+    ]))
+    assert summary["damage_by_source"][0]["count"] == pytest.approx(3.0)
+    assert summary["hearts"] == pytest.approx(2.0), "a heart event without amount is one heart"
+
+
 def test_empty_source_is_unknown_and_ties_go_alphabetical():
     rows = analytics.level_stats([_level(2, "died", 10, [_death(""), _death("b"), _death("a")])])
     assert rows[0]["deaths_by_cause"] == {"unknown": 1, "b": 1, "a": 1}

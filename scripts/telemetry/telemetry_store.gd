@@ -35,19 +35,24 @@ extends RefCounted
 ##                   a mano, en la demo y en los archivos anteriores al campo.
 ##                   Es un campo agregado: no cambia schema_version
 ##
-## Eventos (x, y: dónde pasó, en píxeles del mundo):
-##   damage          {amount, source}  source: tipo de enemigo ("Skeleton"),
-##                                     "spikes", id del jefe para sus efectos,
+## Eventos (x, y: dónde pasó, en píxeles del mundo). amount y lives están en
+## corazones aunque el juego cuente la vida en medios corazones: pueden ser
+## fraccionarios (0.5, 1.5) y los archivos de antes (vidas enteras) se leen
+## igual. Es un cambio de valores, no de forma: no cambia schema_version.
+##   damage          {amount, source}  corazones perdidos. source: tipo de
+##                                     enemigo ("Skeleton"), "spikes", id del
+##                                     jefe para sus efectos,
 ##                                     "projectile"/"boss_hazard" si no se sabe
 ##   enemy_killed    {enemy}           x, y: dónde murió el enemigo
-##   heart           {amount}          vidas recuperadas
+##   heart           {amount}          corazones recuperados
 ##   key             {}
 ##   door            {state}           "locked" (tocó sin llave) | "escaped"
 ##   attack          {hit}             un golpe; hit: si tocó algo
 ##   weapon_changed  {weapon}
 ##   death           {cause, final}    cause: source del último daño; final
 ##                                     false si la demo lo revive
-##   revive          {lives, path_index}  la demo lo revivió en x, y; el
+##   revive          {lives, path_index}  la demo lo revivió en x, y con lives
+##                                     corazones; el
 ##                                     recorrido se corta: path_index es la
 ##                                     primera muestra del tramo nuevo
 
@@ -68,7 +73,10 @@ const EVENT_DEATH := "death"
 const EVENT_REVIVE := "revive"
 
 ## Campos numéricos enteros de los eventos (JSON los lee como float).
-const _INT_EVENT_FIELDS: Array[String] = ["amount", "lives", "path_index"]
+const _INT_EVENT_FIELDS: Array[String] = ["path_index"]
+## Campos en corazones de los eventos: float, porque pueden tener medio (los
+## archivos viejos tienen enteros y se leen igual).
+const _HEART_EVENT_FIELDS: Array[String] = ["amount", "lives"]
 
 var base_dir: String
 
@@ -431,6 +439,9 @@ static func _normalize_event(raw: Dictionary) -> Dictionary:
 	for key in _INT_EVENT_FIELDS:
 		if event.has(key):
 			event[key] = JsonFile.to_int(event[key])
+	for key in _HEART_EVENT_FIELDS:
+		if event.has(key):
+			event[key] = JsonFile.to_float(event[key])
 	return event
 
 
