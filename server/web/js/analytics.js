@@ -74,6 +74,8 @@ function insightsList(lines, minAttempts) {
 function heatmapPanel(groups, sprites, params) {
   if (groups.length === 0) return emptyState("No hay recorridos con estos filtros.");
   let group = groups.find((g) => g.key === params.get("map")) || groups[0];
+  // A map chosen before changing the filters may be gone: forget it.
+  if (params.get("map") && group.key !== params.get("map")) setParams({ map: "" }, { silent: true });
   let layer = LAYERS.find((l) => l.id === params.get("layer")) || LAYERS[0];
   let image = null;
   let values = new Map();

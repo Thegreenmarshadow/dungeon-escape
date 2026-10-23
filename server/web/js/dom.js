@@ -36,7 +36,11 @@ export async function api(path, params = {}) {
   }
   const url = query.size ? `${path}?${query}` : path;
   const response = await fetch(url, { headers: { Accept: "application/json" } });
-  if (!response.ok) throw new Error(`${response.status} ${response.statusText} (${url})`);
+  if (!response.ok) {
+    const error = new Error(`${response.status} ${response.statusText} (${url})`);
+    error.status = response.status;
+    throw error;
+  }
   return response.json();
 }
 

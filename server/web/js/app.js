@@ -24,7 +24,8 @@ let previousView = "";
 
 function showError(error) {
   const box = document.getElementById("error");
-  box.textContent = error ? `No se pudieron cargar los datos: ${error.message}` : "";
+  if (error?.status === 404) box.textContent = "No existe: ese jugador o esa partida no está en la base de datos.";
+  else box.textContent = error ? `No se pudieron cargar los datos: ${error.message}` : "";
   box.hidden = !error;
 }
 
