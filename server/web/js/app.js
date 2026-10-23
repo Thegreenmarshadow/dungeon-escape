@@ -1,6 +1,7 @@
 // Router and global player filter. Each section module renders into its
 // <section id="..."> from the state in the URL (see state.js).
 
+import { renderAnalytics } from "./analytics.js";
 import { api, avatar, fill, formatDuration, formatNumber, h, hideTooltip } from "./dom.js";
 import { renderPlayers, renderProfile } from "./players.js";
 import { renderRanking } from "./ranking.js";
@@ -14,6 +15,7 @@ const SECTIONS = {
   jugador: { title: "Perfil", render: renderProfile, nav: "jugadores" },
   partidas: { title: "Partidas", render: renderRuns },
   partida: { title: "Partida", render: renderRun, nav: "partidas" },
+  analitica: { title: "Analítica", render: renderAnalytics },
   estadisticas: { title: "Estadísticas", render: renderStats },
 };
 

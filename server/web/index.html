@@ -25,6 +25,7 @@
         <a href="#/ranking" data-section="ranking">Ranking</a>
         <a href="#/jugadores" data-section="jugadores">Jugadores</a>
         <a href="#/partidas" data-section="partidas">Partidas</a>
+        <a href="#/analitica" data-section="analitica">Analítica</a>
         <a href="#/estadisticas" data-section="estadisticas">Estadísticas</a>
       </nav>
       <label class="player-filter">Jugador
@@ -112,6 +113,36 @@
 
     <section id="partida" hidden>
       <div id="partida-body" class="body"></div>
+    </section>
+
+    <section id="analitica" hidden>
+      <div class="panel ice">
+        <h2 class="panel-title">Analítica</h2>
+        <div class="section-head">
+          <div>
+            <h2>Analítica de niveles</h2>
+            <p class="muted">La telemetría de cada nivel jugado, como el informe del juego: avisos, mapas de calor y dificultad por nivel.</p>
+          </div>
+          <span class="sprite boss" style="background-image: url(assets/sprites/lich.png)" aria-hidden="true"></span>
+        </div>
+        <form class="filters" data-filters>
+          <label>Nivel
+            <select name="level"><option value="">Todos</option></select>
+          </label>
+          <label>Versión
+            <select name="version"><option value="">Todas</option></select>
+          </label>
+          <label>Modo
+            <select name="mode">
+              <option value="">Normal y prueba</option>
+              <option value="normal">Normal</option>
+              <option value="test">Prueba</option>
+              <option value="demo">Demo</option>
+            </select>
+          </label>
+        </form>
+      </div>
+      <div id="analitica-body" class="body"></div>
     </section>
 
     <section id="estadisticas" hidden>

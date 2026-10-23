@@ -107,7 +107,7 @@ export function fit(world, viewW, viewH, margin = 0) {
 }
 
 /** A canvas that follows the size of its box at the screen's pixel density.
- * draw(ctx, width, height) runs on every resize and on redraw(). */
+ * draw(ctx, width, height) runs on every resize, resize() and redraw(). */
 export function hiDpiCanvas(box, heightFor, draw) {
   const canvas = document.createElement("canvas");
   box.append(canvas);
@@ -120,25 +120,27 @@ export function hiDpiCanvas(box, heightFor, draw) {
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
     draw(ctx, width, height);
   }
+  /** Sizes the canvas for a width (heightFor may change: call again). */
+  function resize(newWidth = width) {
+    if (!newWidth) return;
+    width = newWidth;
+    height = Math.round(heightFor(width));
+    const dpr = window.devicePixelRatio || 1;
+    canvas.width = Math.round(width * dpr);
+    canvas.height = Math.round(height * dpr);
+    canvas.style.height = `${height}px`;
+    redraw();
+  }
   const observer = new ResizeObserver((entries) => {
     if (!canvas.isConnected) {
       observer.disconnect();
       return;
     }
     const newWidth = Math.floor(entries[0].contentRect.width);
-    if (newWidth === width) return;
-    requestAnimationFrame(() => {
-      width = newWidth;
-      height = Math.round(heightFor(width));
-      const dpr = window.devicePixelRatio || 1;
-      canvas.width = Math.round(width * dpr);
-      canvas.height = Math.round(height * dpr);
-      canvas.style.height = `${height}px`;
-      redraw();
-    });
+    if (newWidth !== width) requestAnimationFrame(() => resize(newWidth));
   });
   observer.observe(box);
-  return { canvas, redraw, size: () => [width, height] };
+  return { canvas, redraw, resize, size: () => [width, height] };
 }
 
 /** Draws the map image into the world rectangle with the view transform. */

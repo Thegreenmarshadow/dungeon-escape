@@ -399,6 +399,7 @@ th .sort:focus-visible { outline: 2px solid var(--gold); }
 .chip { display: inline-flex; align-items: center; gap: 4px; white-space: nowrap; }
 
 .weapons { display: inline-flex; flex-wrap: wrap; gap: 2px; vertical-align: middle; }
+td .weapons { flex-wrap: nowrap; }
 
 .tooltip {
   position: fixed;
@@ -490,6 +491,8 @@ details > summary { cursor: pointer; font: 700 18px/1.3 var(--font-body); color:
 
 .heat-controls { display: flex; flex-wrap: wrap; align-items: flex-end; gap: 10px 14px; margin-bottom: 12px; }
 .heat-controls .layers { display: flex; flex-wrap: wrap; gap: 8px; }
+.heat-controls label { min-width: 0; max-width: 100%; margin: 0; }
+.heat-controls select { width: 100%; text-overflow: ellipsis; }
 
 .heat-readout { min-height: 1.45em; margin: 8px 0 0; color: var(--muted); font-variant-numeric: tabular-nums; }
 
@@ -502,8 +505,8 @@ details > summary { cursor: pointer; font: 700 18px/1.3 var(--font-body); color:
 .hbars { margin: 0; padding: 0; list-style: none; }
 .hbars li { display: grid; grid-template-columns: minmax(90px, 40%) 1fr auto; align-items: center; gap: 4px 10px; padding: 3px 0; }
 .hbars .name { display: flex; align-items: center; gap: 6px; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.hbars .track { height: 14px; background: var(--shadow); }
-.hbars .fill { height: 100%; background: var(--bar); }
+.hbars .track { display: block; height: 14px; background: var(--shadow); }
+.hbars .fill { display: block; height: 100%; background: var(--bar); }
 .hbars .fill.damage { background: var(--danger); }
 .hbars .value { min-width: 70px; text-align: right; font-variant-numeric: tabular-nums; }
 
