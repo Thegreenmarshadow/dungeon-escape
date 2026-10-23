@@ -18,6 +18,10 @@ extends Node
 ##     señales. level_finished llega con el nivel ya escrito (path vacío si no
 ##     se pudo escribir); last_level_data y last_level_file lo conservan.
 ##
+## Cada archivo escrito se sube también al servidor de estadísticas
+## (LevelUploader, con su propia lista de pendientes), asociado a la partida
+## que RunTracker creó allá.
+##
 ## Señales que observa: Game.run_started, Game.returning_to_menu,
 ## SceneTree.node_added (como RunTracker), y en cada nivel Player.damaged,
 ## lives_changed, key_collected, attacked, weapon_changed, died, knocked_out,
@@ -40,6 +44,14 @@ var recorder := TelemetryRecorder.new()
 ## Último nivel terminado y su archivo.
 var last_level_data: Dictionary = {}
 var last_level_file := ""
+## Sube los archivos de nivel al servidor. Lo crea _ready, así solo existe en
+## el Autoload; una instancia fuera del árbol, como la de las pruebas, no sube
+## nada salvo que le asignen uno.
+var uploader: LevelUploader
+## Partida del servidor de estadísticas (la de RunTracker, no Game.run_id) a
+## la que se sube el nivel en curso; "" si RunTracker no tiene ninguna, y
+## entonces el nivel no se sube. Se toma al empezar cada nivel.
+var stats_run_id := ""
 
 ## Partida en curso: run_id, mode, profile, profile_slug, seed. Vacío si no
 ## hay (y entonces no se registra ningún nivel).
@@ -50,6 +62,12 @@ var _lives := 0
 
 
 func _ready() -> void:
+	uploader = LevelUploader.new()
+	uploader.name = "LevelUploader"
+	uploader.settings_path = settings_path
+	if RunTracker.sink is HttpStatsSink:
+		uploader.stats_queue = (RunTracker.sink as HttpStatsSink).queue
+	add_child(uploader)
 	Game.run_started.connect(_on_run_started)
 	Game.returning_to_menu.connect(abandon)
 	get_tree().node_added.connect(_on_node_added)
@@ -172,6 +190,9 @@ func finish_level(outcome: String) -> Dictionary:
 	_player = null
 	last_level_data = data
 	last_level_file = TelemetryStore.new(base_dir).write_level(data)
+	if uploader != null and not last_level_file.is_empty():
+		uploader.enqueue(last_level_file, stats_run_id, int(data.get("level", 1)), int(data.get("attempt", 1)))
+	stats_run_id = ""
 	level_finished.emit(data, last_level_file)
 	return data
 
@@ -215,6 +236,10 @@ func _on_level_ready(level: Node) -> void:
 			enemies.append(enemy)
 	var layout: Variant = level.get("map_layout")
 	var level_seed: Variant = layout.seed_used if layout is LevelGenerator.Layout and not Game.demo_mode else null
+	# Cierra antes el nivel anterior (si quedó abierto) con su propia partida
+	# del servidor.
+	abandon()
+	stats_run_id = RunTracker.recorder.run_id if RunTracker.recorder.is_running() else ""
 	# Game.current_level se cachea acá: al escapar, el nivel lo incrementa
 	# antes de que llegue la señal de la puerta.
 	attach_level(level, level.get_node("Player"), level.get_node_or_null("ExitDoor"), enemies,

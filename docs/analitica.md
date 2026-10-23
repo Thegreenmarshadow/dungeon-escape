@@ -1,6 +1,6 @@
 # Analítica de partidas
 
-Este documento explica qué mide el juego, dónde lo guarda y cómo leerlo. Todo es local: nada de esto se envía a un servidor.
+Este documento explica qué mide el juego, dónde lo guarda y cómo leerlo. Todo se guarda en local. Además, cada nivel terminado se sube al servidor de estadísticas local (`server/`) cuando está corriendo: ver [Subida al servidor](#subida-al-servidor).
 
 ## Perfiles y tiempo jugado
 
@@ -16,7 +16,7 @@ Este documento explica qué mide el juego, dónde lo guarda y cómo leerlo. Todo
   - La posición del jugador, cada 0,25 s o cuando se mueve más de 8 px.
   - Estos eventos, con su posición y su tiempo: daño recibido (con su fuente), enemigo eliminado, corazón, llave, puerta (cerrada o escape), ataque (acertado o fallado), cambio de arma, muerte (con su causa) y reaparición (demo).
 - Todo queda en memoria durante el nivel. Se escribe al disco solo al completarlo, al morir o al abandonarlo.
-- **Ajustes › Telemetría** la desactiva. Viene activada. Desactivada, no se graba nada y no hay minimapa ni resumen de la partida; el tiempo jugado y la partida guardada siguen funcionando.
+- **Ajustes › Telemetría** la desactiva. Viene activada. Desactivada, no se graba ni se sube nada y no hay minimapa ni resumen de la partida; el tiempo jugado y la partida guardada siguen funcionando.
 
 ### Dónde se guarda
 
@@ -26,10 +26,22 @@ Este documento explica qué mide el juego, dónde lo guarda y cómo leerlo. Todo
 | `user://profiles/<perfil>/runs/<run_id>/level_<n>.json` | Un nivel jugado: mapa, recorrido y eventos. Si un nivel se repite en la misma partida, queda como `level_<n>_<k>.json` |
 | `user://analytics/` | Exportaciones: CSV, `insights.md` y el paquete de `export_all()` |
 | `user://settings.cfg` | Ajustes, incluida la telemetría |
+| `user://level_uploads.json` | Niveles pendientes de subir al servidor |
 
 - En Linux, `user://` es `~/.local/share/godot/app_userdata/New Game Project/`.
 - Cada JSON de nivel incluye `schema_version` y `game_version`. Si a un archivo viejo le faltan campos, `TelemetryStore` usa valores por defecto.
 - `TelemetryStore.export_all()` junta todas las partidas en un solo archivo, para compartirlas con el equipo.
+
+### Subida al servidor
+
+- `LevelUploader` sube cada JSON de nivel tal cual a `POST /api/runs/<partida>/levels`. La página web del servidor los usa para el recorrido y los mapas de calor.
+- `<partida>` es la del servidor, la que crea `RunTracker`. No es el `run_id` del archivo, que es la carpeta local.
+- **Orden:** un nivel se sube recién cuando su partida ya existe en el servidor, es decir, cuando la cola de eventos de `RunTracker` ya envió su inicio.
+- **Sin servidor:** los pendientes quedan en `user://level_uploads.json`, aparte de la cola de eventos. Se reintentan cada 2 s y el doble en cada fallo, hasta 60 s, también después de cerrar y abrir el juego.
+- **Repetidos:** el servidor guarda una sola vez cada partida, nivel e intento, así reenviar un archivo no lo duplica.
+- **Descartes:** un archivo borrado, uno rechazado por el servidor (por ejemplo, 422) o uno cuya partida nunca llegó (404) sale de la lista con un aviso.
+- **Telemetría desactivada:** no se sube nada. Lo pendiente se sube al volver a activarla.
+- La demo y el modo prueba se suben como cualquier partida, con su `mode`.
 
 ## Resumen de la partida
 

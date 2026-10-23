@@ -1,14 +1,18 @@
 @tool
 extends McpTestSuite
 ## Pruebas de la telemetría: Telemetry registra lo que hace un jugador real
-## (PlayerRig) con su posición y lo escribe al morir; TelemetryStore lee
-## archivos viejos o incompletos con valores por defecto. Todo en una carpeta
-## temporal de user://, que se borra al terminar. La instancia de Telemetry es
-## propia de la prueba (no el Autoload) y no entra al árbol.
+## (PlayerRig) con su posición y lo escribe al morir, y anota cada nivel
+## terminado para subirlo a su partida del servidor (LevelUploader);
+## TelemetryStore lee archivos viejos o incompletos con valores por defecto.
+## Todo en una carpeta temporal de user://, que se borra al terminar. La
+## instancia de Telemetry es propia de la prueba (no el Autoload) y no entra al
+## árbol.
 
 const TEMP_DIR := "user://test_telemetry"
 const TELEMETRY_SCRIPT := "res://scripts/telemetry/telemetry.gd"
 const PLAYER_RIG := preload("res://tests/player_rig.gd")
+## Partida del servidor de estadísticas (la de RunTracker).
+const STATS_RUN := "0123456789abcdef0123456789abcdef"
 
 
 func suite_name() -> String:
@@ -147,6 +151,35 @@ func test_turned_off_records_nothing() -> void:
 	assert_true(TelemetryStore.new(TEMP_DIR).all_level_files().is_empty())
 
 
+func test_finished_level_is_queued_for_upload_to_its_stats_run() -> void:
+	var telemetry := _make_telemetry()
+	var stats := StatsQueue.new()
+	stats.push(StatsQueue.KIND_RUN_STARTED, STATS_RUN, {"id": STATS_RUN})
+	var uploader := _make_uploader(telemetry, stats)
+	var level := _make_level()
+	var player: CharacterBody2D = PLAYER_RIG.make_player()
+	level.add_child(player)
+	telemetry.begin_run("run-3", "normal", "Ana", "ana", 5)
+	telemetry.stats_run_id = STATS_RUN
+	assert_true(telemetry.attach_level(level, player, null, [], _small_map(), 1))
+	telemetry.finish_level(TelemetryRecorder.OUTCOME_COMPLETED)
+
+	assert_eq(uploader.pending.size(), 1)
+	var item: Dictionary = uploader.pending.items[0]
+	assert_eq(item["file"], telemetry.last_level_file)
+	assert_eq(item["run_id"], STATS_RUN, "la partida del servidor, no Game.run_id")
+	assert_eq([item["level"], item["attempt"]], [1, 1])
+	assert_false(uploader.is_uploading(), "espera a que el servidor tenga la partida")
+	assert_eq(telemetry.stats_run_id, "", "cada nivel toma su propia partida")
+
+	var next_level := _make_level()
+	var next_player: CharacterBody2D = PLAYER_RIG.make_player()
+	next_level.add_child(next_player)
+	assert_true(telemetry.attach_level(next_level, next_player, null, [], _small_map(), 2))
+	telemetry.finish_level(TelemetryRecorder.OUTCOME_ABANDONED)
+	assert_eq(uploader.pending.size(), 1, "sin partida del servidor no se anota")
+
+
 # ----- ayudas -----
 
 func _make_telemetry() -> Node:
@@ -154,6 +187,20 @@ func _make_telemetry() -> Node:
 	telemetry.base_dir = TEMP_DIR
 	telemetry.settings_path = TEMP_DIR.path_join("settings.cfg")
 	return telemetry
+
+
+## LevelUploader de telemetry en el árbol, con su lista en TEMP_DIR y un
+## servidor que no existe. stats es la cola de eventos de RunTracker.
+func _make_uploader(telemetry: Node, stats: StatsQueue) -> LevelUploader:
+	var uploader := LevelUploader.new()
+	uploader.base_url = "http://127.0.0.1:1"
+	uploader.pending_path = TEMP_DIR.path_join("level_uploads.json")
+	uploader.settings_path = telemetry.settings_path
+	uploader.stats_queue = stats
+	track(uploader)
+	(Engine.get_main_loop() as SceneTree).root.add_child(uploader)
+	telemetry.uploader = uploader
+	return uploader
 
 
 ## Nivel falso en la raíz del árbol, rastreado (se libera con todo adentro).
