@@ -42,8 +42,9 @@ export function hrefTo(section, arg = "", extra = {}) {
 }
 
 /** Changes parameters of the current view. push adds a history entry (the
- * global filter); filters of a section replace the current one. */
-export function setParams(changes, { push = false } = {}) {
+ * global filter); filters of a section replace the current one. silent only
+ * updates the URL, for views that already show the change. */
+export function setParams(changes, { push = false, silent = false } = {}) {
   const { section, arg, params } = currentRoute();
   for (const [key, value] of Object.entries(changes)) {
     if (value === "" || value === null || value === undefined) params.delete(key);
@@ -51,7 +52,9 @@ export function setParams(changes, { push = false } = {}) {
   }
   const hash = buildHash(section, arg, params);
   if (hash === location.hash) return;
-  if (push) {
+  if (silent) {
+    history.replaceState(null, "", hash);
+  } else if (push) {
     location.hash = hash;
   } else {
     history.replaceState(null, "", hash);
