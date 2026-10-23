@@ -23,6 +23,7 @@
     <div class="bar">
       <nav aria-label="Secciones">
         <a href="#/ranking" data-section="ranking">Ranking</a>
+        <a href="#/jugadores" data-section="jugadores">Jugadores</a>
         <a href="#/partidas" data-section="partidas">Partidas</a>
         <a href="#/estadisticas" data-section="estadisticas">Estadísticas</a>
       </nav>
@@ -48,6 +49,34 @@
         </div>
         <div id="ranking-body" class="body"></div>
       </div>
+    </section>
+
+    <section id="jugadores" hidden>
+      <div class="panel moss">
+        <h2 class="panel-title">Jugadores</h2>
+        <div class="section-head">
+          <div>
+            <h2>¿Quién jugó más?</h2>
+            <p class="muted">Puntos, tiempo y partidas sumados por jugador.</p>
+          </div>
+          <span class="sprite boss" style="background-image: url(assets/sprites/warden.png)" aria-hidden="true"></span>
+        </div>
+        <form class="filters" data-filters>
+          <label>Modo
+            <select name="mode">
+              <option value="">Todos</option>
+              <option value="normal">Normal</option>
+              <option value="test">Prueba</option>
+              <option value="demo">Demo</option>
+            </select>
+          </label>
+        </form>
+        <div id="jugadores-body" class="body"></div>
+      </div>
+    </section>
+
+    <section id="jugador" hidden>
+      <div id="jugador-body" class="body"></div>
     </section>
 
     <section id="partidas" hidden>

@@ -389,7 +389,8 @@ th .sort:focus-visible { outline: 2px solid var(--gold); }
   box-shadow: 0 0 0 2px var(--shadow), inset 0 0 0 2px var(--mortar);
 }
 
-.card .px-icon { grid-row: span 2; }
+.card > :first-child { grid-row: span 2; }
+.card .value.text { font: 700 20px/1.2 var(--font-body); }
 .card .value { min-width: 0; overflow-wrap: anywhere; font: 14px/1.4 var(--font-head); color: var(--gold); }
 .card .value a { color: inherit; }
 .card .label { font-size: 15px; line-height: 1.25; color: var(--muted); }

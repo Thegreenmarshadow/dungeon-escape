@@ -1,7 +1,8 @@
 // Router and global player filter. Each section module renders into its
 // <section id="..."> from the state in the URL (see state.js).
 
-import { api, avatar, formatDuration, formatNumber, h, hideTooltip } from "./dom.js";
+import { api, avatar, fill, formatDuration, formatNumber, h, hideTooltip } from "./dom.js";
+import { renderPlayers, renderProfile } from "./players.js";
 import { renderRanking } from "./ranking.js";
 import { renderRun, renderRuns } from "./runs.js";
 import { DEFAULT_SECTION, currentRoute, hrefTo, setParams } from "./state.js";
@@ -9,6 +10,8 @@ import { renderStats } from "./stats.js";
 
 const SECTIONS = {
   ranking: { title: "Ranking", render: renderRanking },
+  jugadores: { title: "Jugadores", render: renderPlayers },
+  jugador: { title: "Perfil", render: renderProfile, nav: "jugadores" },
   partidas: { title: "Partidas", render: renderRuns },
   partida: { title: "Partida", render: renderRun, nav: "partidas" },
   estadisticas: { title: "Estadísticas", render: renderStats },
@@ -28,11 +31,10 @@ async function loadPlayers(selected) {
   const select = document.getElementById("player-filter");
   const players = await api("/api/players");
   const match = players.find((p) => p.name.toLowerCase() === selected.toLowerCase());
-  select.replaceChildren(...[
+  fill(select,
     h("option", { value: "" }, "Todos"),
-    ...players.map((p) => h("option", { value: p.name }, p.name)),
-    selected && !match ? h("option", { value: selected }, selected) : null,
-  ].filter(Boolean));
+    players.map((p) => h("option", { value: p.name }, p.name)),
+    selected && !match ? h("option", { value: selected }, selected) : null);
   select.value = match ? match.name : selected;
 }
 
@@ -52,7 +54,8 @@ async function renderFilterStrip(ctx) {
   if (ctx.stale()) return;
   const clear = h("button", { class: "btn small", type: "button", onclick: () => setParams({ player: "" }, { push: true }) },
     "Quitar filtro ✕");
-  strip.replaceChildren(...[
+  const profile = totals && h("a", { class: "btn small", href: hrefTo("jugador", totals.player_id) }, "Ver perfil");
+  fill(strip,
     h("span", { class: "who" }, avatar(totals?.player_name || ctx.player), `Filtro: ${totals?.player_name || ctx.player}`),
     totals
       ? [
@@ -64,8 +67,7 @@ async function renderFilterStrip(ctx) {
         stat(totals.deaths, totals.deaths === 1 ? "muerte" : "muertes"),
       ]
       : h("span", { class: "muted" }, "No tiene partidas registradas."),
-    h("span", { class: "actions" }, clear),
-  ].flat());
+    h("span", { class: "actions" }, profile, clear));
   strip.hidden = false;
 }
 

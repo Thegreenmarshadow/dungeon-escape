@@ -1,6 +1,7 @@
 // Shared helpers: building elements, fetching JSON, formatting and tables.
 
 import { MODE_LABELS, OUTCOME_LABELS, SOURCE_ICONS, WEAPON_LABELS, sourceLabel } from "./labels.js";
+import { hrefTo } from "./state.js";
 
 /**
  * Builds an element. Text children are inserted as text, never as HTML.
@@ -18,6 +19,12 @@ export function h(tag, attrs = {}, ...children) {
     if (child === null || child === undefined || child === false) continue;
     el.append(child instanceof Node ? child : String(child));
   }
+  return el;
+}
+
+/** Replaces the children of el; arrays are flattened and empty values skipped. */
+export function fill(el, ...children) {
+  el.replaceChildren(...children.flat(Infinity).filter((c) => c !== null && c !== undefined && c !== false));
   return el;
 }
 
@@ -146,16 +153,17 @@ export function heartIcon(label = "", scale = 3) {
   return icon("heart", scale, label);
 }
 
-/** A player's character and name. */
-export function playerCell(name) {
-  return h("span", { class: "who-cell" }, avatar(name), name);
+/** A player's character and name, linked to the profile when the id is known. */
+export function playerCell(name, id) {
+  if (id === undefined || id === null) return h("span", { class: "who-cell" }, avatar(name), name);
+  return h("a", { class: "who-cell", href: hrefTo("jugador", id) }, avatar(name), name);
 }
 
 /** Stat tiles: [[icon name or element, value, label], ...]. */
 export function cards(items) {
   return h("div", { class: "cards" }, items.map(([iconName, value, label]) => h("div", { class: "card" },
     typeof iconName === "string" ? icon(iconName, 2) : iconName,
-    h("div", { class: "value" }, value),
+    h("div", { class: typeof value === "string" && /[a-zñáéíóú]/i.test(value) ? "value text" : "value" }, value),
     h("div", { class: "label" }, label),
   )));
 }
@@ -179,7 +187,7 @@ const tooltipBox = () => document.getElementById("tooltip");
 /** Shows the shared tooltip next to the pointer; content is text or nodes. */
 export function showTooltip(event, ...content) {
   const box = tooltipBox();
-  box.replaceChildren(...content.flat().map((c) => (c instanceof Node ? c : document.createTextNode(String(c)))));
+  fill(box, content.flat(Infinity).map((c) => (c instanceof Node || c === null || c === false ? c : String(c))));
   box.hidden = false;
   const pad = 14;
   const { innerWidth, innerHeight } = window;
