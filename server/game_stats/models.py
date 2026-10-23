@@ -104,6 +104,8 @@ class Run(BaseModel):
     # Computed from the run's coin_picked and item_bought events.
     coins_collected: int = 0
     coins_spent: int = 0
+    # Level telemetry files stored for the run (routes the page can draw).
+    level_tracks: int = 0
 
 
 # --- Events ------------------------------------------------------------------
@@ -148,6 +150,7 @@ class RunDetail(Run):
 class LeaderboardEntry(BaseModel):
     rank: int
     run_id: str
+    player_id: int
     player_name: str
     score: int
     level_reached: int
@@ -193,6 +196,19 @@ class PlayerTotals(BaseModel):
     deepest_level: int
     deaths: int
     last_played_at: str | None
+
+
+class PlayerProfile(BaseModel):
+    """One player's page: totals over every run and per mode, the best run
+    (the one the leaderboard would rank: finished, normal mode) and the runs,
+    newest first."""
+
+    player: Player
+    totals: PlayerTotals
+    totals_by_mode: dict[str, PlayerTotals]
+    first_played_at: str | None
+    best_run: Run | None
+    runs: list[Run]
 
 
 # --- Level telemetry -----------------------------------------------------------

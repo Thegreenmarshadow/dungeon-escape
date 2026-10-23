@@ -16,6 +16,7 @@ from .models import (
     Mode,
     Player,
     PlayerNotFound,
+    PlayerProfile,
     PlayerTotals,
     Run,
     RunCreate,
@@ -75,12 +76,29 @@ def _run_sum(expression: str, event_type: str) -> str:
 
 _RUN_COINS_COLLECTED = _run_sum(_COIN_AMOUNT, COIN_EVENT)
 _RUN_COINS_SPENT = _run_sum(_ITEM_PRICE, ITEM_BOUGHT_EVENT)
+_RUN_LEVEL_TRACKS = "(SELECT COUNT(*) FROM level_tracks t WHERE t.run_id = r.id)"
 
 _RUN_COLUMNS = f"""
     r.id, r.player_id, p.name AS player_name, r.mode, r.run_seed, r.start_level,
     r.started_at, r.ended_at, r.level_reached, r.score, r.enemies_killed,
     r.outcome, r.duration_s,
-    {_RUN_COINS_COLLECTED} AS coins_collected, {_RUN_COINS_SPENT} AS coins_spent
+    {_RUN_COINS_COLLECTED} AS coins_collected, {_RUN_COINS_SPENT} AS coins_spent,
+    {_RUN_LEVEL_TRACKS} AS level_tracks
+"""
+
+# Order of the leaderboard: best score, then deeper, then faster, then earlier.
+_BEST_RUN_ORDER = "r.score DESC, r.level_reached DESC, r.duration_s ASC, r.ended_at ASC"
+_FINISHED_NORMAL = "r.mode = 'normal' AND r.outcome != 'in_progress'"
+
+_TOTALS_COLUMNS = """
+    p.id AS player_id, p.name AS player_name,
+    COUNT(*) AS runs,
+    CAST(TOTAL(r.score) AS INTEGER) AS total_score,
+    TOTAL(r.duration_s) AS total_time_s,
+    MAX(r.score) AS best_score,
+    MAX(r.level_reached) AS deepest_level,
+    SUM(r.outcome = 'died') AS deaths,
+    MAX(COALESCE(r.ended_at, r.started_at)) AS last_played_at
 """
 
 
@@ -157,12 +175,21 @@ class SqliteStatsRepository:
         run = self.get_run(run_id)
         return RunDetail(**run.model_dump(), events=self.list_events(run_id))
 
-    def list_runs(self, player: str | None = None, mode: Mode | None = None, limit: int = 50) -> list[Run]:
-        """Most recent runs first, optionally filtered by player name and mode."""
+    def list_runs(
+        self,
+        player: str | None = None,
+        mode: Mode | None = None,
+        limit: int = 50,
+        player_id: int | None = None,
+    ) -> list[Run]:
+        """Most recent runs first, optionally filtered by player (name or id) and mode."""
         where, params = [], []
         if player:
             where.append("p.name = ?")
             params.append(player)
+        if player_id is not None:
+            where.append("r.player_id = ?")
+            params.append(player_id)
         if mode:
             where.append("r.mode = ?")
             params.append(mode)
@@ -253,15 +280,15 @@ class SqliteStatsRepository:
         """Best finished normal-mode runs: test and demo runs and runs in progress
         are excluded. With player, only that player's runs."""
         conditions, params = _run_filter(None, player)
-        finished_normal = " AND ".join(["r.mode = 'normal'", "r.outcome != 'in_progress'", *conditions])
+        finished_normal = " AND ".join([_FINISHED_NORMAL, *conditions])
         rows = self._conn.execute(
             f"""
-            SELECT r.id AS run_id, p.name AS player_name, r.score, r.level_reached,
+            SELECT r.id AS run_id, r.player_id, p.name AS player_name, r.score, r.level_reached,
                    r.enemies_killed, {_RUN_COINS_COLLECTED} AS coins_collected,
                    r.duration_s, r.ended_at
             FROM runs r JOIN players p ON p.id = r.player_id
             WHERE {finished_normal}
-            ORDER BY r.score DESC, r.level_reached DESC, r.duration_s ASC, r.ended_at ASC
+            ORDER BY {_BEST_RUN_ORDER}
             LIMIT ?
             """,
             (*params, limit),
@@ -350,14 +377,7 @@ class SqliteStatsRepository:
         where = f"WHERE {' AND '.join(conditions)}" if conditions else ""
         rows = self._conn.execute(
             f"""
-            SELECT p.id AS player_id, p.name AS player_name,
-                   COUNT(*) AS runs,
-                   CAST(TOTAL(r.score) AS INTEGER) AS total_score,
-                   TOTAL(r.duration_s) AS total_time_s,
-                   MAX(r.score) AS best_score,
-                   MAX(r.level_reached) AS deepest_level,
-                   SUM(r.outcome = 'died') AS deaths,
-                   MAX(COALESCE(r.ended_at, r.started_at)) AS last_played_at
+            SELECT {_TOTALS_COLUMNS}
             FROM runs r JOIN players p ON p.id = r.player_id
             {where}
             GROUP BY p.id
@@ -365,7 +385,49 @@ class SqliteStatsRepository:
             """,
             params,
         ).fetchall()
-        return [PlayerTotals(**{**dict(row), "total_time_s": round(row["total_time_s"], 1)}) for row in rows]
+        return [_totals(row) for row in rows]
+
+    def player_profile(self, player_id: int, limit: int = 500) -> PlayerProfile:
+        """Totals, totals per mode, best run and the latest runs (at most limit)
+        of one player. A player without runs gets zero totals."""
+        row = self._conn.execute(
+            "SELECT id, name, created_at FROM players WHERE id = ?", (player_id,)
+        ).fetchone()
+        if row is None:
+            raise PlayerNotFound(player_id)
+        player = Player(**dict(row))
+        by_mode = self._conn.execute(
+            f"""
+            SELECT r.mode, {_TOTALS_COLUMNS}
+            FROM runs r JOIN players p ON p.id = r.player_id
+            WHERE r.player_id = ? GROUP BY r.mode ORDER BY r.mode
+            """,
+            (player_id,),
+        ).fetchall()
+        overall = self._conn.execute(
+            f"""
+            SELECT {_TOTALS_COLUMNS}, MIN(r.started_at) AS first_played_at
+            FROM runs r JOIN players p ON p.id = r.player_id
+            WHERE r.player_id = ? GROUP BY p.id
+            """,
+            (player_id,),
+        ).fetchone()
+        best = self._conn.execute(
+            f"""
+            SELECT {_RUN_COLUMNS} FROM runs r JOIN players p ON p.id = r.player_id
+            WHERE r.player_id = ? AND {_FINISHED_NORMAL}
+            ORDER BY {_BEST_RUN_ORDER} LIMIT 1
+            """,
+            (player_id,),
+        ).fetchone()
+        return PlayerProfile(
+            player=player,
+            totals=_totals(overall) if overall else _empty_totals(player),
+            totals_by_mode={row["mode"]: _totals(row) for row in by_mode},
+            first_played_at=overall["first_played_at"] if overall else None,
+            best_run=Run(**dict(best)) if best else None,
+            runs=self.list_runs(player_id=player_id, limit=limit),
+        )
 
     # --- Level telemetry -----------------------------------------------------
 
@@ -460,6 +522,25 @@ _TRACK_COLUMNS = (
     "t.run_id, t.level, t.attempt, t.mode, t.game_version, t.outcome, t.duration_s,"
     " t.difficulty_index, t.received_at"
 )
+
+
+def _totals(row: sqlite3.Row) -> PlayerTotals:
+    fields = {key: row[key] for key in PlayerTotals.model_fields}
+    return PlayerTotals(**{**fields, "total_time_s": round(row["total_time_s"], 1)})
+
+
+def _empty_totals(player: Player) -> PlayerTotals:
+    return PlayerTotals(
+        player_id=player.id,
+        player_name=player.name,
+        runs=0,
+        total_score=0,
+        total_time_s=0.0,
+        best_score=0,
+        deepest_level=0,
+        deaths=0,
+        last_played_at=None,
+    )
 
 
 def _run_filter(mode: Mode | None, player: str | None) -> tuple[list[str], list[Any]]:
