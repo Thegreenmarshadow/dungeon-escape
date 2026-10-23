@@ -34,6 +34,10 @@ FRAME_BOX = (9, 0, 87, 71)
 FLOOR_BOX = (96, 0, 160, 48)
 WALL_BOX = (16, 0, 80, 16)
 SKULL_TILE = (7, 7)
+CHARACTERS = "dungeon/character_and_tileset/Dungeon_Character.png"
+# Dungeon_Character.png marks the corners of every 16 px cell with a 3 px
+# bracket (cyan on heroes, red on monsters); avatars look cleaner without it.
+CORNER_MARKS = ((0, 0), (1, 0), (0, 1))
 
 # Heart pickup, drawn like scripts/heart.gd: "o" outline, "r" fill, "h" shine.
 HEART_PATTERN = (
@@ -47,6 +51,10 @@ HEART_PATTERN = (
     "....o....",
 )
 HEART_COLORS = {"o": (61, 10, 18, 255), "r": (217, 38, 51, 255), "h": (255, 158, 158, 255)}
+
+# Enemy and boss icons are cut to this square around the sprite (bosses are
+# halved from 48 px), so every damage source icon is 16 or 24 px.
+SOURCE_ICON = 24
 
 # Single frames: output name -> (source, crop box or None for the whole image).
 ICONS = {
@@ -66,8 +74,8 @@ ICONS = {
     "mage": ("enemies/enemies-mage_idle.png", (0, 0, 32, 32)),
     "mimic": ("enemies/enemies-mimic_idle.png", (0, 0, 32, 32)),
     "skull-turret": ("enemies/enemies-skull_turret_idle.png", (0, 0, 32, 32)),
-    "skull": ("dungeon/character_and_tileset/Dungeon_Character.png", (0, 16, 16, 32)),
-    "reaper": ("dungeon/character_and_tileset/Dungeon_Character.png", (96, 16, 112, 32)),
+    "skull": (CHARACTERS, (0, 16, 16, 32)),
+    "reaper": (CHARACTERS, (96, 16, 112, 32)),
     "forge": ("bosses/forge/boss-forge_idle.png", (0, 0, 48, 48)),
     "lich": ("bosses/lich/boss-lich_idle.png", (0, 0, 48, 48)),
     "warden": ("bosses/warden/boss-warden_idle.png", (0, 0, 48, 48)),
@@ -79,7 +87,6 @@ STRIPS = {
 }
 # Copied as they are.
 COPIES = {
-    "sprites/heroes.png": "dungeon/character_and_tileset/Dungeon_Character.png",
     "sprites/lich.png": "bosses/lich/boss-lich_idle.png",
     "sprites/forge.png": "bosses/forge/boss-forge_idle.png",
     "sprites/warden.png": "bosses/warden/boss-warden_idle.png",
@@ -89,7 +96,29 @@ COPIES = {
 
 
 def load(path: str) -> Image.Image:
-    return Image.open(GAME_ASSETS / path).convert("RGBA")
+    image = Image.open(GAME_ASSETS / path).convert("RGBA")
+    return without_corner_marks(image) if path == CHARACTERS else image
+
+
+def around_sprite(frame: Image.Image) -> Image.Image:
+    """The frame cut to a square around its visible pixels: SOURCE_ICON px
+    for enemies, twice that (then halved) for bosses."""
+    side = SOURCE_ICON if frame.width <= 32 else SOURCE_ICON * 2
+    left, top, right, bottom = frame.getbbox()
+    cx, cy = (left + right) // 2, (top + bottom) // 2
+    x = min(max(cx - side // 2, 0), frame.width - side)
+    y = min(max(cy - side // 2, 0), frame.height - side)
+    square = frame.crop((x, y, x + side, y + side))
+    return square if side == SOURCE_ICON else square.resize((SOURCE_ICON, SOURCE_ICON), Image.Resampling.BOX)
+
+
+def without_corner_marks(sheet: Image.Image) -> Image.Image:
+    for top in range(0, sheet.height, TILE):
+        for left in range(0, sheet.width, TILE):
+            for dx, dy in CORNER_MARKS:
+                for x, y in ((dx, dy), (TILE - 1 - dx, dy), (dx, TILE - 1 - dy), (TILE - 1 - dx, TILE - 1 - dy)):
+                    sheet.putpixel((left + x, top + y), (0, 0, 0, 0))
+    return sheet
 
 
 def save(image: Image.Image, name: str) -> None:
@@ -108,9 +137,13 @@ def build() -> None:
             save(tileset.crop(WALL_BOX), "tiles/wall.png")
             x, y = SKULL_TILE
             save(tileset.crop((x * TILE, y * TILE, (x + 1) * TILE, (y + 1) * TILE)), "icons/bones.png")
+    save(load(CHARACTERS), "sprites/heroes.png")
     for name, (path, box) in ICONS.items():
         image = load(path)
-        save(image.crop(box) if box else image, f"icons/{name}.png")
+        frame = image.crop(box) if box else image
+        if frame.width > TILE:
+            frame = around_sprite(frame)
+        save(frame, f"icons/{name}.png")
     for name, frames in STRIPS.items():
         images = [load(frame) for frame in frames]
         strip = Image.new("RGBA", (sum(i.width for i in images), max(i.height for i in images)))
