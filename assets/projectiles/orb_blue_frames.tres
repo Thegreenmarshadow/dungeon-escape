@@ -1,6 +1,6 @@
-[gd_resource type="SpriteFrames" load_steps=6 format=3]
+[gd_resource type="SpriteFrames" format=3 uid="uid://bw0hsneh17opd"]
 
-[ext_resource type="Texture2D" path="res://assets/projectiles/orb_blue.png" id="1_default"]
+[ext_resource type="Texture2D" uid="uid://buwhox5kks2ty" path="res://assets/projectiles/orb_blue.png" id="1_default"]
 
 [sub_resource type="AtlasTexture" id="AtlasTexture_default_0"]
 atlas = ExtResource("1_default")
@@ -33,7 +33,7 @@ animations = [{
 "duration": 1.0,
 "texture": SubResource("AtlasTexture_default_3")
 }],
-"loop": true,
+"loop": 1,
 "name": &"default",
 "speed": 10.0
 }]
