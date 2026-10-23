@@ -283,7 +283,7 @@ class SqliteStatsRepository:
         finished_normal = " AND ".join([_FINISHED_NORMAL, *conditions])
         rows = self._conn.execute(
             f"""
-            SELECT r.id AS run_id, p.name AS player_name, r.score, r.level_reached,
+            SELECT r.id AS run_id, r.player_id, p.name AS player_name, r.score, r.level_reached,
                    r.enemies_killed, {_RUN_COINS_COLLECTED} AS coins_collected,
                    r.duration_s, r.ended_at
             FROM runs r JOIN players p ON p.id = r.player_id

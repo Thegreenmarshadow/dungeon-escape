@@ -69,6 +69,13 @@ def test_player_without_runs_has_zero_totals(client):
     assert profile["runs"] == []
 
 
+def test_leaderboard_entries_link_to_the_player(client, ana_runs):
+    entries = client.get("/api/leaderboard").json()["entries"]
+
+    ana = next(entry for entry in entries if entry["player_name"] == "Ana")
+    assert ana["player_id"] == ana_runs
+
+
 def test_unknown_player_is_404(client):
     assert client.get("/api/players/999").status_code == 404
 

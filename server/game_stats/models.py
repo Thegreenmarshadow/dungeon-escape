@@ -150,6 +150,7 @@ class RunDetail(Run):
 class LeaderboardEntry(BaseModel):
     rank: int
     run_id: str
+    player_id: int
     player_name: str
     score: int
     level_reached: int
