@@ -32,6 +32,10 @@ signal damaged(amount: int, source: StringName)
 signal attacked(hit: bool)
 ## Se emite cuando equip_weapon cambia el arma por otra distinta, con su id.
 signal weapon_changed(weapon_id: StringName)
+## Se emite cuando una acción guardada en el buffer se ejecuta tarde (action:
+## &"attack" o &"jump"), con los segundos que esperó. Solo lo observan el
+## panel de depuración (F3) y el feedback.
+signal buffered_action_used(action: StringName, waited: float)
 
 ## Velocidad de movimiento en píxeles por segundo.
 @export var speed: float = 80.0
@@ -50,6 +54,9 @@ signal weapon_changed(weapon_id: StringName)
 @export var weapon: WeaponData = preload("res://assets/weapons/sword/sword.tres")
 ## Píxeles que el sprite se adelanta al golpear.
 @export var attack_lunge: float = 3.0
+## Input buffering: segundos que se recuerda un ataque pulsado mientras el arma
+## se enfría. Si se libera dentro de ese tiempo, el golpe sale solo. 0 lo apaga.
+@export var attack_buffer_time: float = 0.15
 
 @export_group("Caminata")
 ## Grados que se inclina el sprite hacia cada lado al caminar.
@@ -101,6 +108,10 @@ var _invulnerable_left: float = 0.0
 var _windup_left: float = 0.0
 var _attack_left: float = 0.0
 var _cooldown_left: float = 0.0
+# Tiempo que le queda al ataque guardado en el buffer; mayor que cero = hay uno.
+var _attack_buffer_left: float = 0.0
+# Segundos que lleva esperando el ataque guardado.
+var _attack_waited: float = 0.0
 # Movimiento del arma en la mano durante el golpe.
 var _weapon_tween: Tween
 # Objetivos ya golpeados en el golpe actual, para no pegarles dos veces.
@@ -162,8 +173,7 @@ func _physics_process(delta: float) -> void:
 	if not is_attacking():
 		_aim_weapon()
 
-	if Input.is_action_just_pressed("attack"):
-		_try_attack()
+	_update_attack_buffer(delta, Input.is_action_just_pressed("attack"))
 
 	# Aplica el movimiento y resuelve las colisiones con las paredes.
 	move_and_slide()
@@ -285,8 +295,37 @@ func collect_key() -> void:
 	key_collected.emit()
 
 
+## Input buffering del ataque: pressed guarda el pedido attack_buffer_time
+## segundos y sale en el primer frame en que el arma está lista. Si ya lo está
+## al pulsar, sale en el mismo frame, como antes.
+func _update_attack_buffer(delta: float, pressed: bool) -> void:
+	if pressed:
+		_attack_buffer_left = attack_buffer_time
+		_attack_waited = 0.0
+	if _attack_buffer_left <= 0.0 and not pressed:
+		return
+	if can_attack():
+		_attack_buffer_left = 0.0
+		_try_attack()
+		if _attack_waited > 0.0:
+			buffered_action_used.emit(&"attack", _attack_waited)
+	else:
+		_attack_buffer_left -= delta
+		_attack_waited += delta
+
+
+## true si el arma ya terminó su enfriamiento.
+func can_attack() -> bool:
+	return _cooldown_left <= 0.0
+
+
+## Segundos que le quedan al ataque guardado en el buffer (0 = ninguno).
+func attack_buffer_left() -> float:
+	return maxf(_attack_buffer_left, 0.0)
+
+
 func _try_attack() -> void:
-	if _cooldown_left > 0.0:
+	if not can_attack():
 		return
 	_cooldown_left = weapon.cooldown
 	_hit_this_swing.clear()
