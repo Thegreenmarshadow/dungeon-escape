@@ -15,6 +15,7 @@ Las capturas de la página web están en [Página web](#página-web) y el resume
 | Moverse (8 direcciones) | Flechas o W A S D |
 | Atacar con la espada | Espacio o J |
 | Saltar (abismos y picos) | K o Shift |
+| Parry | L |
 | Panel de game feel | F3 |
 | Reiniciar (en las pantallas finales) | R |
 
@@ -88,6 +89,27 @@ El juego es de vista cenital, así que el coyote time se aplica a los **abismos*
 | `attack_speed` (`player.gd`) | 1.4 | Divide la anticipación, la ventana activa y el enfriamiento de todas las armas: la espada pasa de 0.4 s a 0.29 s entre golpes. La estela también se reproduce 1.4 veces más rápido |
 | Colisión jugador–enemigo | capas 2 y 3 | El jugador y los enemigos ya no se atraviesan: se frenan al chocar |
 | `CONTACT_MARGIN` (`enemy_base.gd`) | 3 px | Lo que crece la zona de daño por contacto de cada enemigo, para que siga tocando al jugador aunque los cuerpos ya no se superpongan |
+
+### Parry
+
+Inspirado en ULTRAKILL: pulsar **L** abre una ventana corta. Lo que llegue en esa ventana se devuelve en lugar de hacer daño:
+
+- **Proyectiles** (flechas, orbes): vuelven hacia quien los disparó, más rápido y con más daño. El parry devuelve incluso las flechas, que la espada solo puede romper.
+- **Golpes cuerpo a cuerpo** (estocada del esqueleto, mordida del vampiro, contacto): no hacen daño y el enemigo recibe un contragolpe fuerte que no puede esquivar.
+- **Recompensa:** cura medio corazón y reinicia la espera, así se pueden encadenar parrys. Un parry fallido obliga a esperar.
+- Las trampas y los efectos de suelo de los jefes no se pueden devolver.
+
+| Parámetro | Valor | Qué hace |
+|---|---|---|
+| `parry_window` | 0.18 s | Duración de la ventana de parry |
+| `parry_cooldown` | 0.5 s | Espera después de un parry fallido (uno logrado la reinicia) |
+| `parry_radius` | 22 px | Distancia a la que atrapa proyectiles |
+| `parry_projectile_speed` | ×2 | Velocidad del proyectil devuelto |
+| `parry_projectile_bonus` | +2 | Daño extra del proyectil devuelto |
+| `parry_damage_multiplier` | ×3 | Daño del contragolpe cuerpo a cuerpo (daño del arma × 3) |
+| `parry_heal` | 1 (½ corazón) | Curación por parry logrado |
+
+Feedback del parry (`game_feel.gd`): congelado total de 0.22 s (`HITSTOP_PARRY`), destello blanco de toda la pantalla (`PARRY_FLASH_ALPHA` 0.65, se desvanece en 0.25 s), golpe de zoom de la cámara (×1.12, vuelve en 0.3 s), trauma 0.6, chispas doradas, «¡PARRY!» sobre el jugador y doble sonido. Al pulsar L el caballero destella en blanco para que se vea el intento.
 
 ### Screenshake
 

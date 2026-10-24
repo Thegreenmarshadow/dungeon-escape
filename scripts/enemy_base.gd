@@ -226,6 +226,17 @@ func take_hit(amount: int, from_position: Vector2, knockback_scale: float = 1.0)
 	hit_received.emit(self, amount)
 
 
+## Golpe de un parry del jugador: como take_hit pero no se puede esquivar y
+## empuja knockback_scale veces más lejos.
+func receive_parry(amount: int, from_position: Vector2, knockback_scale: float = 2.5) -> void:
+	if is_dying:
+		return
+	_hit_knockback_scale = knockback_scale
+	_receive_hit(amount, from_position)
+	_hit_knockback_scale = 1.0
+	hit_received.emit(self, amount)
+
+
 ## Intenta esquivar un golpe que viene desde from_position con la tirada roll
 ## (0 a 1). Si esquiva, no recibe daño: da un paso atrás, parpadea en blanco,
 ## muestra DODGE_TEXT, avisa con dodged y empieza el enfriamiento de la esquiva.

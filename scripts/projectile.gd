@@ -41,6 +41,10 @@ const PLAYER_MASK := 2
 const ENEMY_MASK := 4
 ## Color del proyectil devuelto por el jugador.
 const REFLECTED_TINT := Color(0.7, 0.9, 1.0)
+## Color del proyectil devuelto con un parry.
+const PARRIED_TINT := Color(1.6, 1.3, 0.4)
+## Grupo con todos los proyectiles en vuelo (el parry del jugador los busca).
+const GROUP := &"projectiles"
 ## Fuente del daño (Player.damaged) de un proyectil sin source asignado.
 const DEFAULT_SOURCE := &"projectile"
 
@@ -61,6 +65,7 @@ var _done: bool = false
 
 
 func _ready() -> void:
+	add_to_group(GROUP)
 	body_entered.connect(_on_body_entered)
 	_apply_rotation()
 
@@ -95,6 +100,24 @@ func take_hit(_amount: int, from_position: Vector2) -> void:
 	if not reflectable:
 		_finish()
 		return
+	_reflect(from_position)
+
+
+## Parry del jugador: lo devuelve aunque no sea reflectable, speed_multiplier
+## veces más rápido y con reflected_damage + bonus_damage. Devuelve false si ya
+## no se podía (terminado o ya devuelto).
+func parry(from_position: Vector2, speed_multiplier: float, bonus_damage: int) -> bool:
+	if _done or is_reflected:
+		return false
+	_reflect(from_position)
+	speed *= speed_multiplier
+	reflected_damage += bonus_damage
+	modulate = PARRIED_TINT
+	return true
+
+
+## Lo da vuelta: ahora vuela hacia el tirador y lastima a los enemigos.
+func _reflect(from_position: Vector2) -> void:
 	is_reflected = true
 	# Sale hacia el tirador o, si ya no está, alejándose del jugador, con el
 	# alcance completo otra vez.

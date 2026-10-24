@@ -28,12 +28,22 @@ const TRAUMA_BOSS_HIT := 0.3
 const TRAUMA_BOSS_KILLED := 0.8
 const TRAUMA_LANDING := 0.15
 const TRAUMA_FALL := 0.5
+const TRAUMA_PARRY := 0.6
 
 ## Hit-stop: segundos de juego casi congelado y a qué velocidad corre.
 const HITSTOP_ENEMY_HIT := 0.05
 const HITSTOP_PLAYER_HURT := 0.08
 const HITSTOP_BOSS_KILLED := 0.15
 const HITSTOP_TIME_SCALE := 0.05
+
+## Parry: congelado total, destello blanco y golpe de zoom de la cámara.
+const HITSTOP_PARRY := 0.22
+const PARRY_TIME_SCALE := 0.0
+const PARRY_FLASH_ALPHA := 0.65
+const PARRY_FLASH_TIME := 0.25
+const PARRY_ZOOM_PUNCH := 1.12
+const PARRY_ZOOM_TIME := 0.3
+const COLOR_PARRY := Color(1.0, 0.85, 0.25)
 
 ## Textos flotantes: cuánto suben y cuánto duran.
 const POPUP_RISE := 12.0
@@ -62,6 +72,11 @@ var _player_health := -1
 var _debug_layer: CanvasLayer
 var _debug_label: Label
 var _last_buffered := ""
+var _flash: ColorRect
+var _zoom_tween: Tween
+var _zoom_camera: Camera2D
+var _camera_base_zoom := Vector2.ONE
+var _parries := 0
 
 
 func _enter_tree() -> void:
@@ -81,13 +96,14 @@ func add_trauma(amount: float) -> void:
 	trauma = clampf(trauma + amount, 0.0, 1.0)
 
 
-## Congela casi por completo el juego seconds segundos (tiempo real).
-func hitstop(seconds: float) -> void:
+## Congela casi por completo el juego seconds segundos (tiempo real), con el
+## tiempo corriendo a time_scale.
+func hitstop(seconds: float, time_scale := HITSTOP_TIME_SCALE) -> void:
 	if seconds <= 0.0:
 		return
 	if _hitstop_until_ms == 0:
 		_time_scale_before = Engine.time_scale
-	Engine.time_scale = HITSTOP_TIME_SCALE
+	Engine.time_scale = minf(time_scale, Engine.time_scale)
 	_hitstop_until_ms = maxi(_hitstop_until_ms, Time.get_ticks_msec() + int(seconds * 1000.0))
 
 
@@ -198,6 +214,7 @@ func _on_node_added(node: Node) -> void:
 		node.key_collected.connect(_on_player_key)
 		node.buffered_action_used.connect(_on_buffered_action)
 		node.landed.connect(_on_player_landed)
+		node.parried.connect(_on_player_parried)
 		node.fell.connect(_on_player_fell)
 
 
@@ -246,6 +263,52 @@ func _on_buffered_action(action: StringName, waited: float) -> void:
 	_last_buffered = "%s guardado %.0f ms" % [action, waited * 1000.0]
 	if is_instance_valid(_player):
 		popup(_player.global_position + Vector2(0, -8), "buffer", COLOR_BUFFER, 6)
+
+
+## Parry logrado: todo a la vez para que se sienta como un golpe enorme.
+func _on_player_parried(target: Node2D) -> void:
+	_parries += 1
+	hitstop(HITSTOP_PARRY, PARRY_TIME_SCALE)
+	add_trauma(TRAUMA_PARRY)
+	screen_flash(Color(1, 1, 1, PARRY_FLASH_ALPHA), PARRY_FLASH_TIME)
+	zoom_punch(PARRY_ZOOM_PUNCH, PARRY_ZOOM_TIME)
+	Sfx.play(&"enemy_hit")
+	Sfx.play(&"key_pickup")
+	if is_instance_valid(target):
+		sparks(target.global_position, COLOR_PARRY)
+	if is_instance_valid(_player):
+		popup(_player.global_position + Vector2(0, -6), "¡PARRY!", COLOR_PARRY, 11)
+
+
+## Destello de toda la pantalla que se desvanece en seconds (tiempo real).
+func screen_flash(color: Color, seconds: float) -> void:
+	if _flash == null:
+		var layer := CanvasLayer.new()
+		layer.layer = 90
+		_flash = ColorRect.new()
+		_flash.set_anchors_preset(Control.PRESET_FULL_RECT)
+		_flash.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		layer.add_child(_flash)
+		add_child(layer)
+	_flash.color = color
+	var tween := _flash.create_tween().set_ignore_time_scale(true)
+	tween.tween_property(_flash, "color:a", 0.0, seconds)
+
+
+## Acerca la cámara factor veces y la devuelve en seconds (tiempo real).
+func zoom_punch(factor: float, seconds: float) -> void:
+	var camera := get_viewport().get_camera_2d()
+	if camera == null:
+		return
+	if _zoom_tween != null and _zoom_tween.is_valid():
+		_zoom_tween.kill()
+		if is_instance_valid(_zoom_camera):
+			_zoom_camera.zoom = _camera_base_zoom
+	_zoom_camera = camera
+	_camera_base_zoom = camera.zoom
+	camera.zoom = _camera_base_zoom * factor
+	_zoom_tween = camera.create_tween().set_ignore_time_scale(true)
+	_zoom_tween.tween_property(camera, "zoom", _camera_base_zoom, seconds) 			.set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
 
 
 func _on_player_landed() -> void:
@@ -299,6 +362,9 @@ func _update_debug() -> void:
 			lines.append("Coyote: %.0f / %.0f ms" % [
 					_player.coyote_left() * 1000.0, _player.coyote_time * 1000.0])
 			lines.append("Saltando: %s" % ("sí" if _player.is_jumping() else "no"))
+		if _player.has_method("parry_left"):
+			lines.append("Parry: ventana %.0f ms, espera %.0f ms, logrados %d" % [
+					_player.parry_left() * 1000.0, _player.parry_cooldown_left() * 1000.0, _parries])
 	lines.append("Trauma: %.2f  %s" % [trauma, "▮".repeat(int(trauma * 20.0))])
 	lines.append("Hit-stop: %s" % ("SÍ" if _hitstop_until_ms != 0 else "no"))
 	if _last_buffered != "":

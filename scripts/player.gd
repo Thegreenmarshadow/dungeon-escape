@@ -42,6 +42,9 @@ signal jumped
 signal landed
 ## Se emite al caer en un abismo (antes de volver al último suelo seguro).
 signal fell
+## Se emite con un parry logrado: target es el proyectil devuelto o el enemigo
+## castigado. Solo lo observan GameFeel y las pruebas.
+signal parried(target: Node2D)
 
 ## Velocidad de movimiento en píxeles por segundo.
 @export var speed: float = 80.0
@@ -89,6 +92,23 @@ signal fell
 @export var coyote_time: float = 0.12
 ## Medios corazones que se pierden al caer en un abismo.
 @export var fall_damage: int = 1
+
+@export_group("Parry")
+## Segundos que dura la ventana de parry después de pulsar L. Un proyectil o un
+## golpe cuerpo a cuerpo que llega en esa ventana se devuelve en vez de dañar.
+@export var parry_window: float = 0.18
+## Segundos de espera entre parrys fallidos. Un parry logrado la reinicia.
+@export var parry_cooldown: float = 0.5
+## Distancia a la que el parry atrapa proyectiles, en píxeles.
+@export var parry_radius: float = 22.0
+## Multiplicador de velocidad del proyectil devuelto.
+@export var parry_projectile_speed: float = 2.0
+## Daño extra del proyectil devuelto, en golpes de vida del enemigo.
+@export var parry_projectile_bonus: int = 2
+## Multiplicador del daño del arma en el contragolpe a un enemigo cuerpo a cuerpo.
+@export var parry_damage_multiplier: int = 3
+## Medios corazones que cura cada parry logrado (como en ULTRAKILL).
+@export var parry_heal: int = 1
 
 # Duración del retroceso en segundos.
 const KNOCKBACK_TIME := 0.15
@@ -149,6 +169,9 @@ var _was_over_pit := false
 var _falling := false
 # Último lugar en suelo firme; ahí vuelve al caer en un abismo.
 var _last_safe_position := Vector2.ZERO
+# Parry: ventana abierta y espera para el siguiente.
+var _parry_left: float = 0.0
+var _parry_cooldown_left: float = 0.0
 # Movimiento del arma en la mano durante el golpe.
 var _weapon_tween: Tween
 # Objetivos ya golpeados en el golpe actual, para no pegarles dos veces.
@@ -225,6 +248,72 @@ func _physics_process(delta: float) -> void:
 	_update_walk_animation(delta, get_real_velocity().length() > 1.0)
 
 	_update_jump(delta, Input.is_action_just_pressed("jump"))
+	_update_parry(delta, Input.is_action_just_pressed("parry"))
+
+
+# --- Parry -------------------------------------------------------------------------
+
+## Abre la ventana de parry al pulsar y, mientras dura, devuelve los
+## proyectiles que entran en parry_radius. Los golpes cuerpo a cuerpo los
+## atrapa take_damage.
+func _update_parry(delta: float, pressed: bool) -> void:
+	if _parry_cooldown_left > 0.0:
+		_parry_cooldown_left -= delta
+	if pressed and can_parry():
+		_parry_left = parry_window
+		_parry_cooldown_left = parry_cooldown
+		# Destello breve: se ve que se intentó.
+		sprite.modulate = Color(1.8, 1.8, 2.2, sprite.modulate.a)
+		create_tween().tween_property(sprite, "modulate:rgb", Color.WHITE, parry_window)
+	if _parry_left <= 0.0:
+		return
+	_parry_left -= delta
+	if not is_inside_tree():
+		return
+	for projectile in get_tree().get_nodes_in_group(&"projectiles"):
+		if projectile.global_position.distance_to(global_position) <= parry_radius 				and projectile.parry(global_position, parry_projectile_speed, parry_projectile_bonus):
+			_on_parry_success(projectile)
+			return
+
+
+func can_parry() -> bool:
+	return _parry_cooldown_left <= 0.0 and not _falling and health > 0
+
+
+func is_parrying() -> bool:
+	return _parry_left > 0.0
+
+
+## Segundos que le quedan a la ventana de parry y a su espera (para el panel F3).
+func parry_left() -> float:
+	return maxf(_parry_left, 0.0)
+
+
+func parry_cooldown_left() -> float:
+	return maxf(_parry_cooldown_left, 0.0)
+
+
+## Durante la ventana de parry, un golpe de un enemigo (from_position es su
+## posición) se devuelve: el enemigo recibe parry_damage_multiplier veces el
+## daño del arma y sale despedido. Devuelve true si hubo parry. Las trampas y
+## los efectos de suelo de los jefes no se pueden devolver.
+func _try_parry_hit(from_position: Vector2) -> bool:
+	if not is_parrying() or from_position == Vector2.INF or not is_inside_tree():
+		return false
+	for enemy in get_tree().get_nodes_in_group(&"enemies"):
+		if enemy is EnemyBase and not enemy.is_dying 				and enemy.global_position.distance_to(from_position) < 1.0:
+			enemy.receive_parry(get_hit_damage() * parry_damage_multiplier, global_position)
+			_on_parry_success(enemy)
+			return true
+	return false
+
+
+func _on_parry_success(target: Node2D) -> void:
+	_parry_left = 0.0
+	# Como en ULTRAKILL: premia el riesgo con vida y deja volver a intentarlo ya.
+	_parry_cooldown_left = 0.0
+	heal(parry_heal)
+	parried.emit(target)
 
 
 # --- Salto, coyote time y abismos ------------------------------------------------
@@ -378,6 +467,8 @@ func _update_walk_animation(delta: float, moving: bool) -> void:
 ## dice quién lo lastimó (ver damaged); no cambia nada del juego.
 func take_damage(amount: int, from_position: Vector2 = Vector2.INF, source: StringName = &"") -> void:
 	if invincible or _invulnerable_left > 0.0 or health <= 0:
+		return
+	if _try_parry_hit(from_position):
 		return
 
 	var health_before := health
