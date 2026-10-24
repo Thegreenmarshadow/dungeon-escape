@@ -2,7 +2,9 @@
 
 Juego de acción 2D con vista cenital, hecho en **Godot 4.7.2**. El jugador controla a un caballero que debe recorrer un calabozo de 7 salas, conseguir la llave que custodia una parca y llegar a la puerta de salida.
 
-![Captura del juego](docs/screenshot.png)
+![Captura del juego](docs/capturas/01-juego.png)
+
+Más capturas (ranking y estadísticas de la página web) y el resumen de la entrega en [docs/entrega.md](docs/entrega.md).
 
 **Descarga:** los ejecutables para Windows y Linux están en [Releases](https://github.com/Thegreenmarshadow/dungeon-escape/releases/latest).
 
@@ -53,7 +55,7 @@ Descargar el archivo de la plataforma desde [Releases](https://github.com/Thegre
 
 ## Estadísticas, ranking y servidor local
 
-El juego registra cada partida (tiempo, niveles, enemigos eliminados, daño recibido, llaves y corazones recogidos, muerte o abandono) y la envía a un servidor local que la guarda en SQLite. El mismo servidor tiene una interfaz web para consultar los datos.
+El juego registra cada partida (tiempo, niveles, enemigos eliminados, daño recibido, monedas, llaves y corazones recogidos, compras, muerte o abandono) y la envía a un servidor local que la guarda en SQLite. El mismo servidor tiene una interfaz web para consultar los datos.
 
 ```text
 Godot --HTTP/JSON--> FastAPI (127.0.0.1:8765) --> SQLite (server/data/game.db)
@@ -85,17 +87,19 @@ Para empezar de cero basta con borrar `server/data/`.
 
 ### Base de datos
 
-SQLite en `server/data/game.db`, con tres tablas (`server/schema.sql`):
+SQLite en `server/data/game.db`, con cuatro tablas (`server/schema.sql`):
 
 ```text
 players 1 ──< runs 1 ──< events
+                   1 ──< level_tracks
 ```
 
 | Tabla | Una fila por | Columnas principales |
 |---|---|---|
 | `players` | jugador | `name` (único, sin distinguir mayúsculas; se escribe en el menú, por defecto "Jugador"), `created_at` |
-| `runs` | partida | `id` (lo genera el juego, así puede reenviar sin duplicar), `player_id`, `mode` (`normal` o `test`), `run_seed`, `start_level`, `level_reached`, `score`, `enemies_killed`, `duration_s`, `outcome` (`died`, `quit` o `in_progress`), `started_at`, `ended_at` |
+| `runs` | partida | `id` (lo genera el juego, así puede reenviar sin duplicar), `player_id`, `mode` (`normal`, `test` o `demo`), `run_seed`, `start_level`, `level_reached`, `score`, `enemies_killed`, `duration_s`, `outcome` (`died`, `quit` o `in_progress`), `started_at`, `ended_at` |
 | `events` | cosa que hizo el jugador | `run_id`, `seq` (orden dentro de la partida; `run_id + seq` es único), `type`, `level`, `t_run_s` (segundos jugados), `payload` (JSON), `created_at` |
+| `level_tracks` | nivel jugado | `run_id`, `level`, `attempt` (`run_id + level + attempt` es único), `outcome`, `duration_s`, `map_key`, `difficulty_index`, `data` (el archivo de telemetría completo: recorrido, eventos y mapa; ver `docs/analitica.md`) |
 
 `events` acepta cualquier tipo de evento y los datos propios de cada uno van en `payload`, así se pueden sumar tipos nuevos sin migrar la base. `lives` (la vida que queda) y el `amount` del daño y de los corazones están en **corazones** y pueden tener medio (`0.5`, `2.5`): el juego cuenta la vida en medios corazones y los informa divididos por 2, así las partidas anteriores (vidas enteras) siguen siendo comparables. Eventos actuales:
 
@@ -117,17 +121,19 @@ Las monedas y los tiempos salen de estos eventos: el servidor suma `coin_picked`
 
 ### Página web
 
-Es una página estática (`server/web/`: HTML, CSS y JS sin dependencias) que el mismo servidor sirve en <http://127.0.0.1:8765/> y que consulta la API. Tiene tres secciones:
+Es una página estática (`server/web/`: HTML, CSS y JS sin dependencias) que el mismo servidor sirve en <http://127.0.0.1:8765/> y que consulta la API. Arriba a la derecha se puede filtrar todo por jugador. Tiene cinco secciones:
 
 | Sección | Qué muestra |
 |---|---|
 | **Ranking** | Mejores puntajes: puesto, jugador, puntos, nivel, enemigos, monedas recogidas, duración y fecha. Solo cuentan las partidas terminadas en modo normal. |
-| **Partidas** | Historial de partidas, filtrable por jugador y modo, con monedas recogidas y gastadas. Al abrir una se ve su detalle con la línea de tiempo de eventos. |
+| **Jugadores** | Puntos, tiempo y partidas sumados por jugador, para ver quién jugó más. Cada jugador tiene su perfil. |
+| **Partidas** | Historial de partidas, filtrable por jugador y modo, con monedas recogidas y gastadas. Al abrir una se ve su detalle con la línea de tiempo de eventos y, si subió su telemetría, el recorrido sobre el mapa. |
+| **Analítica** | La telemetría de los niveles: avisos de dificultad, mapas de calor (tiempo, daño, muertes) y dificultad por nivel. |
 | **Estadísticas** | Totales globales (jugadores, partidas, enemigos eliminados, llaves, corazones, daño recibido, mejor nivel y puntaje, duración media), monedas recogidas y gastadas, artículos comprados por tipo y cantidad de eventos de cada tipo. Se puede filtrar por modo. |
 
 ### API
 
-`POST /api/players`, `POST /api/runs`, `POST /api/runs/{id}/events`, `PATCH /api/runs/{id}`, `GET /api/leaderboard?limit=10`, `GET /api/runs?player=&mode=&limit=`, `GET /api/runs/{id}`, `GET /api/stats` y `GET /api/health`. La documentación interactiva está en <http://127.0.0.1:8765/docs>.
+`POST /api/players`, `POST /api/runs`, `POST /api/runs/{id}/events`, `POST /api/runs/{id}/levels`, `PATCH /api/runs/{id}`, `GET /api/leaderboard?limit=10`, `GET /api/players`, `GET /api/players/totals`, `GET /api/players/{id}`, `GET /api/runs?player=&mode=&limit=`, `GET /api/runs/{id}`, `GET /api/runs/{id}/levels`, `GET /api/stats`, `GET /api/analytics` y `GET /api/health`. La documentación interactiva está en <http://127.0.0.1:8765/docs>.
 
 ## Estructura del proyecto
 
