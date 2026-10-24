@@ -454,12 +454,11 @@ layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
-offset_top = 64.0
-offset_bottom = -230.0
+offset_top = 28.0
+offset_bottom = -190.0
 grow_horizontal = 2
 grow_vertical = 2
-theme_override_constants/separation = 16
-alignment = 1
+theme_override_constants/separation = 8
 
 [node name="Title" type="Label" parent="VBox" unique_id=547532672]
 unique_name_in_owner = true
@@ -470,7 +469,7 @@ theme_override_colors/font_outline_color = Color(0.25, 0.1, 0.05, 1)
 theme_override_constants/shadow_offset_x = 0
 theme_override_constants/shadow_offset_y = 6
 theme_override_constants/outline_size = 14
-theme_override_font_sizes/font_size = 88
+theme_override_font_sizes/font_size = 76
 text = "Dungeon Escape"
 horizontal_alignment = 1
 
@@ -480,56 +479,60 @@ theme_override_colors/font_color = Color(0.8, 0.72, 0.85, 0.85)
 theme_override_colors/font_shadow_color = Color(0, 0, 0, 0.7)
 theme_override_constants/shadow_offset_x = 0
 theme_override_constants/shadow_offset_y = 2
-theme_override_font_sizes/font_size = 22
+theme_override_font_sizes/font_size = 20
 text = "Encuentra la llave y escapa del calabozo"
 horizontal_alignment = 1
 
 [node name="Spacer" type="Control" parent="VBox" unique_id=2052164535]
-custom_minimum_size = Vector2(0, 20)
+custom_minimum_size = Vector2(0, 14)
 layout_mode = 2
 mouse_filter = 2
 
-[node name="ProfileRow" type="HBoxContainer" parent="VBox"]
+[node name="Body" type="HBoxContainer" parent="VBox"]
 layout_mode = 2
-theme_override_constants/separation = 16
+theme_override_constants/separation = 48
 alignment = 1
 
-[node name="ProfileLabel" type="Label" parent="VBox/ProfileRow"]
+[node name="Menu" type="VBoxContainer" parent="VBox/Body"]
+custom_minimum_size = Vector2(320, 0)
+layout_mode = 2
+theme_override_constants/separation = 10
+
+[node name="ProfileRow" type="HBoxContainer" parent="VBox/Body/Menu"]
+layout_mode = 2
+theme_override_constants/separation = 10
+
+[node name="ProfileLabel" type="Label" parent="VBox/Body/Menu/ProfileRow"]
 unique_name_in_owner = true
 layout_mode = 2
+size_flags_horizontal = 3
 theme_override_colors/font_color = Color(0.8, 0.75, 0.65, 0.95)
-theme_override_font_sizes/font_size = 20
+theme_override_font_sizes/font_size = 16
 text = "Perfil: Jugador"
 vertical_alignment = 1
+text_overrun_behavior = 3
 
-[node name="ProfileButton" type="Button" parent="VBox/ProfileRow"]
+[node name="ProfileButton" type="Button" parent="VBox/Body/Menu/ProfileRow"]
 unique_name_in_owner = true
-custom_minimum_size = Vector2(0, 40)
+custom_minimum_size = Vector2(0, 30)
 layout_mode = 2
 tooltip_text = "Elegir, crear o borrar perfiles"
-theme_override_colors/font_color = Color(0.95, 0.88, 0.7, 1)
+theme_override_colors/font_color = Color(0.75, 0.7, 0.62, 0.75)
 theme_override_colors/font_focus_color = Color(1, 0.95, 0.75, 1)
 theme_override_colors/font_pressed_color = Color(0.8, 0.7, 0.5, 1)
 theme_override_colors/font_hover_color = Color(1, 0.95, 0.75, 1)
-theme_override_colors/font_disabled_color = Color(0.55, 0.5, 0.45, 0.7)
-theme_override_font_sizes/font_size = 18
+theme_override_font_sizes/font_size = 14
 theme_override_styles/normal = SubResource("StyleBoxFlat_normal")
 theme_override_styles/pressed = SubResource("StyleBoxFlat_pressed")
 theme_override_styles/hover = SubResource("StyleBoxFlat_hover")
 theme_override_styles/focus = SubResource("StyleBoxFlat_focus")
 theme_override_styles/disabled = SubResource("StyleBoxFlat_normal")
-text = "Cambiar perfil"
+text = "Cambiar"
 
-[node name="PlayRow" type="HBoxContainer" parent="VBox"]
-layout_mode = 2
-theme_override_constants/separation = 16
-alignment = 1
-
-[node name="ContinueButton" type="Button" parent="VBox/PlayRow"]
+[node name="ContinueButton" type="Button" parent="VBox/Body/Menu"]
 unique_name_in_owner = true
-custom_minimum_size = Vector2(260, 56)
+custom_minimum_size = Vector2(320, 52)
 layout_mode = 2
-size_flags_horizontal = 4
 disabled = true
 tooltip_text = "Seguir la partida guardada de este perfil"
 theme_override_colors/font_color = Color(0.95, 0.88, 0.7, 1)
@@ -537,7 +540,7 @@ theme_override_colors/font_focus_color = Color(1, 0.95, 0.75, 1)
 theme_override_colors/font_pressed_color = Color(0.8, 0.7, 0.5, 1)
 theme_override_colors/font_hover_color = Color(1, 0.95, 0.75, 1)
 theme_override_colors/font_disabled_color = Color(0.55, 0.5, 0.45, 0.7)
-theme_override_font_sizes/font_size = 26
+theme_override_font_sizes/font_size = 24
 theme_override_styles/normal = SubResource("StyleBoxFlat_normal")
 theme_override_styles/pressed = SubResource("StyleBoxFlat_pressed")
 theme_override_styles/hover = SubResource("StyleBoxFlat_hover")
@@ -545,90 +548,58 @@ theme_override_styles/focus = SubResource("StyleBoxFlat_focus")
 theme_override_styles/disabled = SubResource("StyleBoxFlat_normal")
 text = "Continuar"
 
-[node name="PlayButton" type="Button" parent="VBox/PlayRow" unique_id=423525666]
+[node name="PlayButton" type="Button" parent="VBox/Body/Menu" unique_id=423525666]
 unique_name_in_owner = true
-custom_minimum_size = Vector2(260, 56)
+custom_minimum_size = Vector2(320, 52)
 layout_mode = 2
-size_flags_horizontal = 4
 theme_override_colors/font_color = Color(0.95, 0.88, 0.7, 1)
 theme_override_colors/font_focus_color = Color(1, 0.95, 0.75, 1)
 theme_override_colors/font_pressed_color = Color(0.8, 0.7, 0.5, 1)
 theme_override_colors/font_hover_color = Color(1, 0.95, 0.75, 1)
-theme_override_font_sizes/font_size = 26
+theme_override_colors/font_disabled_color = Color(0.55, 0.5, 0.45, 0.7)
+theme_override_font_sizes/font_size = 24
 theme_override_styles/normal = SubResource("StyleBoxFlat_normal")
 theme_override_styles/pressed = SubResource("StyleBoxFlat_pressed")
 theme_override_styles/hover = SubResource("StyleBoxFlat_hover")
 theme_override_styles/focus = SubResource("StyleBoxFlat_focus")
+theme_override_styles/disabled = SubResource("StyleBoxFlat_normal")
 text = "Jugar"
 
-[node name="DemoButton" type="Button" parent="VBox/PlayRow"]
-unique_name_in_owner = true
-custom_minimum_size = Vector2(260, 56)
+[node name="SecondaryRow" type="HBoxContainer" parent="VBox/Body/Menu"]
 layout_mode = 2
-size_flags_horizontal = 4
+theme_override_constants/separation = 10
+
+[node name="DemoButton" type="Button" parent="VBox/Body/Menu/SecondaryRow"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 42)
+layout_mode = 2
+size_flags_horizontal = 3
 tooltip_text = "Un recorrido corto por el juego, para conocerlo"
 theme_override_colors/font_color = Color(0.95, 0.88, 0.7, 1)
 theme_override_colors/font_focus_color = Color(1, 0.95, 0.75, 1)
 theme_override_colors/font_pressed_color = Color(0.8, 0.7, 0.5, 1)
 theme_override_colors/font_hover_color = Color(1, 0.95, 0.75, 1)
-theme_override_font_sizes/font_size = 26
+theme_override_colors/font_disabled_color = Color(0.55, 0.5, 0.45, 0.7)
+theme_override_font_sizes/font_size = 19
 theme_override_styles/normal = SubResource("StyleBoxFlat_normal")
 theme_override_styles/pressed = SubResource("StyleBoxFlat_pressed")
 theme_override_styles/hover = SubResource("StyleBoxFlat_hover")
 theme_override_styles/focus = SubResource("StyleBoxFlat_focus")
+theme_override_styles/disabled = SubResource("StyleBoxFlat_normal")
 text = "Demo"
 
-[node name="ModeRow" type="HBoxContainer" parent="VBox"]
-layout_mode = 2
-theme_override_constants/separation = 16
-alignment = 1
-
-[node name="TestModeButton" type="Button" parent="VBox/ModeRow" unique_id=1874203519]
+[node name="SettingsButton" type="Button" parent="VBox/Body/Menu/SecondaryRow"]
 unique_name_in_owner = true
-custom_minimum_size = Vector2(260, 56)
+custom_minimum_size = Vector2(0, 42)
 layout_mode = 2
-size_flags_horizontal = 4
-theme_override_colors/font_color = Color(0.95, 0.88, 0.7, 1)
-theme_override_colors/font_focus_color = Color(1, 0.95, 0.75, 1)
-theme_override_colors/font_pressed_color = Color(0.8, 0.7, 0.5, 1)
-theme_override_colors/font_hover_color = Color(1, 0.95, 0.75, 1)
-theme_override_font_sizes/font_size = 26
-theme_override_styles/normal = SubResource("StyleBoxFlat_normal")
-theme_override_styles/pressed = SubResource("StyleBoxFlat_pressed")
-theme_override_styles/hover = SubResource("StyleBoxFlat_hover")
-theme_override_styles/focus = SubResource("StyleBoxFlat_focus")
-text = "Modo prueba"
-
-[node name="AnalyticsButton" type="Button" parent="VBox/ModeRow"]
-unique_name_in_owner = true
-visible = false
-custom_minimum_size = Vector2(260, 56)
-layout_mode = 2
-size_flags_horizontal = 4
-tooltip_text = "Solo en builds de depuración: mapas de calor de las partidas guardadas"
-theme_override_colors/font_color = Color(0.95, 0.88, 0.7, 1)
-theme_override_colors/font_focus_color = Color(1, 0.95, 0.75, 1)
-theme_override_colors/font_pressed_color = Color(0.8, 0.7, 0.5, 1)
-theme_override_colors/font_hover_color = Color(1, 0.95, 0.75, 1)
-theme_override_font_sizes/font_size = 26
-theme_override_styles/normal = SubResource("StyleBoxFlat_normal")
-theme_override_styles/pressed = SubResource("StyleBoxFlat_pressed")
-theme_override_styles/hover = SubResource("StyleBoxFlat_hover")
-theme_override_styles/focus = SubResource("StyleBoxFlat_focus")
-text = "Analítica"
-
-[node name="SettingsButton" type="Button" parent="VBox/ModeRow"]
-unique_name_in_owner = true
-custom_minimum_size = Vector2(260, 56)
-layout_mode = 2
-size_flags_horizontal = 4
+size_flags_horizontal = 3
 tooltip_text = "Telemetría y otras opciones"
 theme_override_colors/font_color = Color(0.95, 0.88, 0.7, 1)
 theme_override_colors/font_focus_color = Color(1, 0.95, 0.75, 1)
 theme_override_colors/font_pressed_color = Color(0.8, 0.7, 0.5, 1)
 theme_override_colors/font_hover_color = Color(1, 0.95, 0.75, 1)
 theme_override_colors/font_disabled_color = Color(0.55, 0.5, 0.45, 0.7)
-theme_override_font_sizes/font_size = 26
+theme_override_font_sizes/font_size = 19
 theme_override_styles/normal = SubResource("StyleBoxFlat_normal")
 theme_override_styles/pressed = SubResource("StyleBoxFlat_pressed")
 theme_override_styles/hover = SubResource("StyleBoxFlat_hover")
@@ -636,78 +607,111 @@ theme_override_styles/focus = SubResource("StyleBoxFlat_focus")
 theme_override_styles/disabled = SubResource("StyleBoxFlat_normal")
 text = "Ajustes"
 
-[node name="QuitButton" type="Button" parent="VBox" unique_id=316050796]
+[node name="QuitButton" type="Button" parent="VBox/Body/Menu" unique_id=316050796]
 unique_name_in_owner = true
-custom_minimum_size = Vector2(260, 56)
+custom_minimum_size = Vector2(320, 38)
 layout_mode = 2
-size_flags_horizontal = 4
 theme_override_colors/font_color = Color(0.95, 0.88, 0.7, 1)
 theme_override_colors/font_focus_color = Color(1, 0.95, 0.75, 1)
 theme_override_colors/font_pressed_color = Color(0.8, 0.7, 0.5, 1)
 theme_override_colors/font_hover_color = Color(1, 0.95, 0.75, 1)
-theme_override_font_sizes/font_size = 26
+theme_override_colors/font_disabled_color = Color(0.55, 0.5, 0.45, 0.7)
+theme_override_font_sizes/font_size = 17
 theme_override_styles/normal = SubResource("StyleBoxFlat_normal")
 theme_override_styles/pressed = SubResource("StyleBoxFlat_pressed")
 theme_override_styles/hover = SubResource("StyleBoxFlat_hover")
 theme_override_styles/focus = SubResource("StyleBoxFlat_focus")
+theme_override_styles/disabled = SubResource("StyleBoxFlat_normal")
 text = "Salir"
 
-[node name="SandboxButton" type="Button" parent="." unique_id=1546203877]
+[node name="ToolsRow" type="HBoxContainer" parent="VBox/Body/Menu"]
+layout_mode = 2
+theme_override_constants/separation = 6
+alignment = 1
+
+[node name="TestModeButton" type="Button" parent="VBox/Body/Menu/ToolsRow" unique_id=1874203519]
 unique_name_in_owner = true
-visible = false
-layout_mode = 1
-anchors_preset = 6
-anchor_left = 1.0
-anchor_top = 0.5
-anchor_right = 1.0
-anchor_bottom = 0.5
-offset_left = -188.0
-offset_top = -20.0
-offset_right = -16.0
-offset_bottom = 20.0
-grow_horizontal = 0
-grow_vertical = 2
-tooltip_text = "Solo en builds de depuración: probar armas y enemigos"
-theme_override_colors/font_color = Color(0.95, 0.88, 0.7, 1)
+custom_minimum_size = Vector2(0, 26)
+layout_mode = 2
+size_flags_horizontal = 3
+tooltip_text = "Herramienta: informe de dificultad"
+theme_override_colors/font_color = Color(0.75, 0.7, 0.62, 0.75)
 theme_override_colors/font_focus_color = Color(1, 0.95, 0.75, 1)
 theme_override_colors/font_pressed_color = Color(0.8, 0.7, 0.5, 1)
 theme_override_colors/font_hover_color = Color(1, 0.95, 0.75, 1)
-theme_override_font_sizes/font_size = 18
+theme_override_font_sizes/font_size = 12
 theme_override_styles/normal = SubResource("StyleBoxFlat_normal")
 theme_override_styles/pressed = SubResource("StyleBoxFlat_pressed")
 theme_override_styles/hover = SubResource("StyleBoxFlat_hover")
 theme_override_styles/focus = SubResource("StyleBoxFlat_focus")
+theme_override_styles/disabled = SubResource("StyleBoxFlat_normal")
+text = "Modo prueba"
+
+[node name="AnalyticsButton" type="Button" parent="VBox/Body/Menu/ToolsRow"]
+unique_name_in_owner = true
+visible = false
+custom_minimum_size = Vector2(0, 26)
+layout_mode = 2
+size_flags_horizontal = 3
+tooltip_text = "Solo en builds de depuración: mapas de calor de las partidas guardadas"
+theme_override_colors/font_color = Color(0.75, 0.7, 0.62, 0.75)
+theme_override_colors/font_focus_color = Color(1, 0.95, 0.75, 1)
+theme_override_colors/font_pressed_color = Color(0.8, 0.7, 0.5, 1)
+theme_override_colors/font_hover_color = Color(1, 0.95, 0.75, 1)
+theme_override_font_sizes/font_size = 12
+theme_override_styles/normal = SubResource("StyleBoxFlat_normal")
+theme_override_styles/pressed = SubResource("StyleBoxFlat_pressed")
+theme_override_styles/hover = SubResource("StyleBoxFlat_hover")
+theme_override_styles/focus = SubResource("StyleBoxFlat_focus")
+theme_override_styles/disabled = SubResource("StyleBoxFlat_normal")
+text = "Analítica"
+
+[node name="SandboxButton" type="Button" parent="VBox/Body/Menu/ToolsRow" unique_id=1546203877]
+unique_name_in_owner = true
+visible = false
+custom_minimum_size = Vector2(0, 26)
+layout_mode = 2
+size_flags_horizontal = 3
+tooltip_text = "Solo en builds de depuración: probar armas y enemigos"
+theme_override_colors/font_color = Color(0.75, 0.7, 0.62, 0.75)
+theme_override_colors/font_focus_color = Color(1, 0.95, 0.75, 1)
+theme_override_colors/font_pressed_color = Color(0.8, 0.7, 0.5, 1)
+theme_override_colors/font_hover_color = Color(1, 0.95, 0.75, 1)
+theme_override_font_sizes/font_size = 12
+theme_override_styles/normal = SubResource("StyleBoxFlat_normal")
+theme_override_styles/pressed = SubResource("StyleBoxFlat_pressed")
+theme_override_styles/hover = SubResource("StyleBoxFlat_hover")
+theme_override_styles/focus = SubResource("StyleBoxFlat_focus")
+theme_override_styles/disabled = SubResource("StyleBoxFlat_normal")
 text = "Zona de pruebas"
 
-[node name="ScoresPanel" type="PanelContainer" parent="." unique_id=1730245517]
-layout_mode = 1
-offset_left = 24.0
-offset_top = 210.0
-offset_right = 24.0
-offset_bottom = 210.0
+[node name="ScoresPanel" type="PanelContainer" parent="VBox/Body" unique_id=1730245517]
+custom_minimum_size = Vector2(300, 0)
+layout_mode = 2
+size_flags_vertical = 0
 mouse_filter = 2
 theme = SubResource("Theme_scores")
 theme_override_styles/panel = SubResource("StyleBoxFlat_scores")
 
-[node name="ScoresBox" type="VBoxContainer" parent="ScoresPanel" unique_id=1102938475]
+[node name="ScoresBox" type="VBoxContainer" parent="VBox/Body/ScoresPanel" unique_id=1102938475]
 layout_mode = 2
 mouse_filter = 2
 theme_override_constants/separation = 6
 
-[node name="ScoresTitle" type="Label" parent="ScoresPanel/ScoresBox" unique_id=1287364510]
+[node name="ScoresTitle" type="Label" parent="VBox/Body/ScoresPanel/ScoresBox" unique_id=1287364510]
 layout_mode = 2
 theme_override_colors/font_color = Color(1, 0.86, 0.5, 1)
 theme_override_font_sizes/font_size = 20
 text = "Mejores puntajes"
 horizontal_alignment = 1
 
-[node name="BestLevelLabel" type="Label" parent="ScoresPanel/ScoresBox" unique_id=1904857362]
+[node name="BestLevelLabel" type="Label" parent="VBox/Body/ScoresPanel/ScoresBox" unique_id=1904857362]
 unique_name_in_owner = true
 layout_mode = 2
 text = "Nivel máximo: 0"
 horizontal_alignment = 1
 
-[node name="ScoresGrid" type="GridContainer" parent="ScoresPanel/ScoresBox" unique_id=1563748291]
+[node name="ScoresGrid" type="GridContainer" parent="VBox/Body/ScoresPanel/ScoresBox" unique_id=1563748291]
 unique_name_in_owner = true
 layout_mode = 2
 mouse_filter = 2
@@ -715,41 +719,41 @@ theme_override_constants/h_separation = 14
 theme_override_constants/v_separation = 2
 columns = 4
 
-[node name="RankHeader" type="Label" parent="ScoresPanel/ScoresBox/ScoresGrid" unique_id=1376452819]
+[node name="RankHeader" type="Label" parent="VBox/Body/ScoresPanel/ScoresBox/ScoresGrid" unique_id=1376452819]
 layout_mode = 2
 theme_override_colors/font_color = Color(0.8, 0.72, 0.85, 0.85)
 theme_override_font_sizes/font_size = 14
 text = "#"
 
-[node name="ScoreHeader" type="Label" parent="ScoresPanel/ScoresBox/ScoresGrid" unique_id=1648203957]
+[node name="ScoreHeader" type="Label" parent="VBox/Body/ScoresPanel/ScoresBox/ScoresGrid" unique_id=1648203957]
 layout_mode = 2
 theme_override_colors/font_color = Color(0.8, 0.72, 0.85, 0.85)
 theme_override_font_sizes/font_size = 14
 text = "Puntos"
 horizontal_alignment = 2
 
-[node name="LevelHeader" type="Label" parent="ScoresPanel/ScoresBox/ScoresGrid" unique_id=1829374650]
+[node name="LevelHeader" type="Label" parent="VBox/Body/ScoresPanel/ScoresBox/ScoresGrid" unique_id=1829374650]
 layout_mode = 2
 theme_override_colors/font_color = Color(0.8, 0.72, 0.85, 0.85)
 theme_override_font_sizes/font_size = 14
 text = "Nivel"
 horizontal_alignment = 2
 
-[node name="DateHeader" type="Label" parent="ScoresPanel/ScoresBox/ScoresGrid" unique_id=1093847561]
+[node name="DateHeader" type="Label" parent="VBox/Body/ScoresPanel/ScoresBox/ScoresGrid" unique_id=1093847561]
 unique_name_in_owner = true
 layout_mode = 2
 theme_override_colors/font_color = Color(0.8, 0.72, 0.85, 0.85)
 theme_override_font_sizes/font_size = 14
 text = "Fecha"
 
-[node name="NoScoresLabel" type="Label" parent="ScoresPanel/ScoresBox" unique_id=1456273819]
+[node name="NoScoresLabel" type="Label" parent="VBox/Body/ScoresPanel/ScoresBox" unique_id=1456273819]
 unique_name_in_owner = true
 layout_mode = 2
 theme_override_colors/font_color = Color(0.8, 0.72, 0.85, 0.85)
 text = "Todavía no hay puntajes"
 horizontal_alignment = 1
 
-[node name="ScoresSourceLabel" type="Label" parent="ScoresPanel/ScoresBox" unique_id=1620397184]
+[node name="ScoresSourceLabel" type="Label" parent="VBox/Body/ScoresPanel/ScoresBox" unique_id=1620397184]
 unique_name_in_owner = true
 layout_mode = 2
 theme_override_colors/font_color = Color(0.8, 0.72, 0.85, 0.6)
@@ -768,5 +772,5 @@ grow_horizontal = 2
 grow_vertical = 0
 theme_override_colors/font_color = Color(0.8, 0.75, 0.65, 0.55)
 theme_override_font_sizes/font_size = 14
-text = "WASD / flechas: mover   |   Espacio / J: atacar"
+text = "WASD: mover   ·   Espacio / J: atacar   ·   K: saltar   ·   L: parry   ·   F3: game feel"
 horizontal_alignment = 1

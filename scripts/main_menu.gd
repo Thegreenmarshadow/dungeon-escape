@@ -114,10 +114,12 @@ func _fill_scores(rows: Array[PackedStringArray], best_level: int, last_column: 
 ## tiene una partida para continuar.
 func _show_profile() -> void:
 	var profile := Profiles.ensure_profile()
-	profile_label.text = "Perfil: %s · %s jugados" % [profile["name"],
+	profile_label.text = "Perfil: %s · %s" % [profile["name"],
 			ProfileStore.format_duration(profile["total_time_s"])]
 	var save: Dictionary = profile["save"]
 	continue_button.disabled = save.is_empty()
+	# Sin partida guardada no se muestra: un botón gris solo suma ruido.
+	continue_button.visible = not save.is_empty()
 	continue_button.tooltip_text = "Seguir la partida guardada de este perfil" if save.is_empty() \
 			else "Seguir desde el nivel %d" % save["level"]
 
