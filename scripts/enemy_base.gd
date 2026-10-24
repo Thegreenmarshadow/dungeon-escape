@@ -60,6 +60,10 @@ signal hit_received(enemy: EnemyBase, amount: int)
 const KNOCKBACK_TIME := 0.15
 ## Segundos después de esquivar en los que el enemigo no puede volver a esquivar.
 const DODGE_COOLDOWN := 1.0
+## Capa de física del jugador ("player", capa 2).
+const PLAYER_COLLISION_LAYER := 2
+## Píxeles por lado que crece ContactArea para tocar al jugador sin atravesarlo.
+const CONTACT_MARGIN := 3.0
 ## Destello al esquivar: blanco y translúcido, para no confundirlo con el rojo
 ## de un golpe recibido.
 const DODGE_TINT := Color(1.6, 1.6, 1.6, 0.35)
@@ -98,8 +102,30 @@ var _hit_knockback_scale: float = 1.0
 func _ready() -> void:
 	health = max_health
 	add_to_group("enemies")
+	# Sólido para el jugador: lo frena en vez de atravesarlo. Como los cuerpos ya
+	# no se superponen, la zona de contacto crece CONTACT_MARGIN para seguir
+	# tocándolo.
+	collision_mask |= PLAYER_COLLISION_LAYER
+	_grow_contact_area(CONTACT_MARGIN)
 	sprite.animation_finished.connect(_on_animation_finished)
 	sprite.play(idle_animation)
+
+
+## Agranda margin píxeles por lado la forma de ContactArea (una copia, para no
+## cambiar el recurso de la escena).
+func _grow_contact_area(margin: float) -> void:
+	for child in contact_area.get_children():
+		if not child is CollisionShape2D or child.shape == null:
+			continue
+		var shape: Shape2D = child.shape.duplicate()
+		if shape is RectangleShape2D:
+			shape.size += Vector2(margin, margin) * 2.0
+		elif shape is CircleShape2D:
+			shape.radius += margin
+		elif shape is CapsuleShape2D:
+			shape.radius += margin
+			shape.height += margin * 2.0
+		child.shape = shape
 
 
 func _physics_process(delta: float) -> void:

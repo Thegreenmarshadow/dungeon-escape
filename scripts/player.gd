@@ -63,6 +63,9 @@ signal fell
 ## Input buffering: segundos que se recuerda un ataque pulsado mientras el arma
 ## se enfría. Si se libera dentro de ese tiempo, el golpe sale solo. 0 lo apaga.
 @export var attack_buffer_time: float = 0.15
+## Multiplica la velocidad de todos los golpes: divide la anticipación, la
+## ventana activa y el enfriamiento del arma (1.4 = 40 % más rápido).
+@export var attack_speed: float = 1.4
 
 @export_group("Caminata")
 ## Grados que se inclina el sprite hacia cada lado al caminar.
@@ -89,6 +92,8 @@ signal fell
 
 # Duración del retroceso en segundos.
 const KNOCKBACK_TIME := 0.15
+## Capa de física de los enemigos ("enemies", capa 3).
+const ENEMY_COLLISION_LAYER := 4
 ## Mano derecha del caballero respecto de WeaponPivot, mirando a la derecha: ahí
 ## queda la empuñadura (held_grip) del arma.
 const HAND_POSITION := Vector2(3, 2)
@@ -181,6 +186,9 @@ func _ready() -> void:
 	_apply_weapon()
 	_aim_weapon()
 	_last_safe_position = global_position
+	# Los enemigos son sólidos: el jugador no los atraviesa (ellos tampoco a él,
+	# ver EnemyBase).
+	collision_mask |= ENEMY_COLLISION_LAYER
 
 
 func _physics_process(delta: float) -> void:
@@ -449,6 +457,19 @@ func is_attacking() -> bool:
 	return _windup_left > 0.0 or _attack_left > 0.0
 
 
+# Tiempos del arma equipada acelerados por attack_speed.
+func _windup_time() -> float:
+	return weapon.windup / attack_speed
+
+
+func _active_time() -> float:
+	return weapon.active_time / attack_speed
+
+
+func _cooldown_time() -> float:
+	return weapon.cooldown / attack_speed
+
+
 ## Marca que el jugador tiene la llave. La llama la llave al ser tocada.
 func collect_key() -> void:
 	has_key = true
@@ -487,22 +508,22 @@ func attack_buffer_left() -> float:
 func _try_attack() -> void:
 	if not can_attack():
 		return
-	_cooldown_left = weapon.cooldown
+	_cooldown_left = _cooldown_time()
 	_hit_this_swing.clear()
 	Sfx.play(&"sword_swing")
 
 	# Orienta el arma, la hitbox y la estela hacia donde mira el jugador.
 	_aim_weapon()
 	_play_attack_motion()
-	if weapon.windup > 0.0:
-		_windup_left = weapon.windup
+	if _windup_time() > 0.0:
+		_windup_left = _windup_time()
 	else:
 		_start_active_time()
 
 
 ## Activa la hitbox durante active_time y muestra la estela.
 func _start_active_time() -> void:
-	_attack_left = weapon.active_time
+	_attack_left = _active_time()
 	# Diferido: cambiar el monitoreo durante el paso de física no es seguro.
 	hitbox.set_deferred("monitoring", true)
 	_play_effect()
@@ -630,28 +651,28 @@ func _aim_weapon() -> void:
 func _play_attack_motion() -> void:
 	if _weapon_tween:
 		_weapon_tween.kill()
-	var active := weapon.active_time
+	var active := _active_time()
 	_weapon_tween = create_tween()
 	if weapon.is_thrust():
 		held.rotation = 0.0
 		var back := HAND_POSITION - Vector2(THRUST_DISTANCE * 0.5, 0.0)
-		if weapon.windup > 0.0:
-			_weapon_tween.tween_property(held, "position", back, weapon.windup)
+		if _windup_time() > 0.0:
+			_weapon_tween.tween_property(held, "position", back, _windup_time())
 		_weapon_tween.tween_property(held, "position", HAND_POSITION + Vector2(THRUST_DISTANCE, 0.0), active * 0.4)
 		_weapon_tween.tween_property(held, "position", HAND_POSITION, active * 0.6)
 	else:
-		if weapon.windup > 0.0:
-			_weapon_tween.tween_property(held, "rotation", -SWING_HALF_ANGLE, weapon.windup)
+		if _windup_time() > 0.0:
+			_weapon_tween.tween_property(held, "rotation", -SWING_HALF_ANGLE, _windup_time())
 		else:
 			held.rotation = -SWING_HALF_ANGLE
 		_weapon_tween.tween_property(held, "rotation", SWING_HALF_ANGLE, active * 0.4) \
 				.set_ease(Tween.EASE_OUT).set_trans(Tween.TRANS_QUAD)
 		_weapon_tween.tween_interval(active * 0.6)
-	_weapon_tween.tween_property(held, "rotation", REST_ANGLE, weapon.cooldown * 0.25)
+	_weapon_tween.tween_property(held, "rotation", REST_ANGLE, _cooldown_time() * 0.25)
 
 	var lunge := create_tween()
-	if weapon.windup > 0.0:
-		lunge.tween_interval(weapon.windup)
+	if _windup_time() > 0.0:
+		lunge.tween_interval(_windup_time())
 	lunge.tween_property(sprite, "position", facing * attack_lunge, active * 0.4)
 	lunge.tween_property(sprite, "position", Vector2.ZERO, active * 0.6)
 
@@ -662,7 +683,7 @@ func _play_effect() -> void:
 		return
 	effect.show()
 	effect.stop()
-	effect.play(EFFECT_ANIMATION)
+	effect.play(EFFECT_ANIMATION, attack_speed)
 
 
 func _update_invulnerability(delta: float) -> void:

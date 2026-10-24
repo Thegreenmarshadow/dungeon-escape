@@ -81,6 +81,14 @@ El juego es de vista cenital, así que el coyote time se aplica a los **abismos*
 | `jump_height` | 8 px | Altura visual del salto |
 | `fall_damage` | 1 (½ corazón) | Daño al caer en un abismo |
 
+### Golpes más ágiles y enemigos sólidos
+
+| Parámetro | Valor | Qué hace |
+|---|---|---|
+| `attack_speed` (`player.gd`) | 1.4 | Divide la anticipación, la ventana activa y el enfriamiento de todas las armas: la espada pasa de 0.4 s a 0.29 s entre golpes. La estela también se reproduce 1.4 veces más rápido |
+| Colisión jugador–enemigo | capas 2 y 3 | El jugador y los enemigos ya no se atraviesan: se frenan al chocar |
+| `CONTACT_MARGIN` (`enemy_base.gd`) | 3 px | Lo que crece la zona de daño por contacto de cada enemigo, para que siga tocando al jugador aunque los cuerpos ya no se superpongan |
+
 ### Screenshake
 
 Vibración de cámara por **trauma**: cada momento clave suma trauma (de 0 a 1), la cámara se desplaza `MAX_SHAKE_OFFSET × trauma²` con ruido suave y el trauma baja solo. Al elevarlo al cuadrado, los golpes pequeños apenas se notan y los grandes sí.

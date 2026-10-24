@@ -88,6 +88,8 @@ func test_player_starts_with_the_sword_hitbox() -> void:
 
 func test_sword_attack_timing_matches_the_old_one() -> void:
 	var player := _make_player()
+	# Con attack_speed 1 los tiempos son los de la espada original.
+	player.attack_speed = 1.0
 	player._try_attack()
 	assert_eq(player._cooldown_left, OLD_COOLDOWN)
 	assert_eq(player._attack_left, OLD_ACTIVE_TIME, "sin anticipación: la hitbox se activa enseguida")
@@ -117,12 +119,13 @@ func test_attack_stats_come_from_the_equipped_weapon() -> void:
 	player.damage_bonus = 1
 	assert_eq(player.get_hit_damage(), axe.damage + 1, "daño del arma más el bono")
 	player._try_attack()
-	assert_eq(player._cooldown_left, axe.cooldown)
-	assert_eq(player._windup_left, axe.windup)
+	var speed: float = player.attack_speed
+	assert_eq(player._cooldown_left, axe.cooldown / speed, "attack_speed acelera el enfriamiento")
+	assert_eq(player._windup_left, axe.windup / speed)
 	assert_eq(player._attack_left, 0.0, "durante la anticipación la hitbox no está activa")
 	assert_true(player.is_attacking())
-	player._update_attack(axe.windup + 0.001)
-	assert_eq(player._attack_left, axe.active_time, "terminada la anticipación empieza el golpe")
+	player._update_attack(axe.windup / speed + 0.001)
+	assert_eq(player._attack_left, axe.active_time / speed, "terminada la anticipación empieza el golpe")
 	assert_true(player.effect.visible, "y se ve la estela")
 
 
@@ -254,7 +257,7 @@ func test_level_gives_the_run_weapon_to_the_player() -> void:
 	player.equip_weapon(WeaponData.load_by_id(&"dagger"))
 	assert_eq(player.weapon.id, &"dagger")
 	player._try_attack()
-	assert_eq(player._cooldown_left, WeaponData.load_by_id(&"dagger").cooldown)
+	assert_eq(player._cooldown_left, WeaponData.load_by_id(&"dagger").cooldown / player.attack_speed)
 
 
 # ----- ayudas -----
