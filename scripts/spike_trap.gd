@@ -29,6 +29,9 @@ func _physics_process(_delta: float) -> void:
 	# a quien ya estaba parado encima cuando los picos suben.
 	# La invulnerabilidad del jugador evita que pierda vida varias veces seguidas.
 	for body in get_overlapping_bodies():
+		# Saltando se pasa por encima de los picos.
+		if body.has_method("is_jumping") and body.is_jumping():
+			continue
 		if body.has_method("take_damage"):
 			body.take_damage(damage, Vector2.INF, DAMAGE_SOURCE)
 

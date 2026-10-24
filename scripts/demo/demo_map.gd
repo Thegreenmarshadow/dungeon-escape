@@ -142,7 +142,7 @@ func reachable_rooms(open_gates: int) -> Array[int]:
 func _build() -> void:
 	rooms = [
 		Room.new(&"entrance", Rect2i(2, 5, 12, 10),
-				"Muévete con WASD, ataca con Espacio", DungeonTheme.DUNGEON, CLEAR_BY_ENEMIES),
+				"Ataca con Espacio, salta con K", DungeonTheme.DUNGEON, CLEAR_BY_ENEMIES),
 		Room.new(&"archers", Rect2i(18, 6, 16, 8),
 				"Golpea las flechas con la espada", DungeonTheme.DUNGEON, CLEAR_BY_ENEMIES),
 		Room.new(&"mage", Rect2i(38, 4, 13, 12),

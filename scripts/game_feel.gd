@@ -26,6 +26,8 @@ const TRAUMA_ENEMY_HIT := 0.15
 const TRAUMA_ENEMY_KILLED := 0.25
 const TRAUMA_BOSS_HIT := 0.3
 const TRAUMA_BOSS_KILLED := 0.8
+const TRAUMA_LANDING := 0.15
+const TRAUMA_FALL := 0.5
 
 ## Hit-stop: segundos de juego casi congelado y a qué velocidad corre.
 const HITSTOP_ENEMY_HIT := 0.05
@@ -195,6 +197,8 @@ func _on_node_added(node: Node) -> void:
 		node.coins_collected.connect(_on_player_coins)
 		node.key_collected.connect(_on_player_key)
 		node.buffered_action_used.connect(_on_buffered_action)
+		node.landed.connect(_on_player_landed)
+		node.fell.connect(_on_player_fell)
 
 
 func _on_enemy_hit(enemy: EnemyBase, amount: int) -> void:
@@ -240,6 +244,20 @@ func _on_player_key() -> void:
 
 func _on_buffered_action(action: StringName, waited: float) -> void:
 	_last_buffered = "%s guardado %.0f ms" % [action, waited * 1000.0]
+	if is_instance_valid(_player):
+		popup(_player.global_position + Vector2(0, -8), "buffer", COLOR_BUFFER, 6)
+
+
+func _on_player_landed() -> void:
+	add_trauma(TRAUMA_LANDING)
+	if is_instance_valid(_player):
+		sparks(_player.global_position + Vector2(0, 12), Color(0.75, 0.7, 0.65))
+
+
+func _on_player_fell() -> void:
+	add_trauma(TRAUMA_FALL)
+	if is_instance_valid(_player):
+		popup(_player.global_position, "¡Abismo!", COLOR_DAMAGE_TAKEN, 8)
 
 
 ## Medios corazones como texto en corazones: 1 -> "½", 2 -> "1", 3 -> "1½".

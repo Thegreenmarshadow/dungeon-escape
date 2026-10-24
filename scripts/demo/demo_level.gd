@@ -20,6 +20,10 @@ extends "res://scripts/level.gd"
 
 const WEAPON_PICKUP_SCENE := preload("res://scenes/WeaponPickup.tscn")
 const BANNER_SCENE := preload("res://scenes/props/Banner.tscn")
+const PIT_SCRIPT := preload("res://scripts/pit.gd")
+## Abismos de la demo, en celdas: una franja en la entrada que corta el camino
+## (se salta con K o se rodea por abajo) para enseñar el salto y el coyote time.
+const PIT_RECTS: Array[Rect2i] = [Rect2i(8, 5, 1, 7)]
 
 ## Celdas de margen que la cámara puede mostrar alrededor del mapa.
 const CAMERA_MARGIN := 2
@@ -192,6 +196,12 @@ func _add_pickups(parent: Node) -> void:
 		coin.position = _cell_center(cell)
 		coin.value = 1
 		parent.add_child(coin)
+	var tile_size := Vector2(dungeon.tile_set.tile_size)
+	for rect in PIT_RECTS:
+		var pit: Node2D = PIT_SCRIPT.new()
+		pit.position = Vector2(rect.position) * tile_size
+		pit.size = Vector2(rect.size) * tile_size
+		parent.add_child(pit)
 	checkpoint = DemoCheckpoint.new()
 	checkpoint.position = _cell_center(demo_map.checkpoint_cell)
 	checkpoint.activated.connect(_on_checkpoint_activated)

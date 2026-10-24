@@ -36,6 +36,12 @@ signal weapon_changed(weapon_id: StringName)
 ## &"attack" o &"jump"), con los segundos que esperó. Solo lo observan el
 ## panel de depuración (F3) y el feedback.
 signal buffered_action_used(action: StringName, waited: float)
+## Se emite al despegar del suelo en un salto.
+signal jumped
+## Se emite al aterrizar de un salto en suelo firme.
+signal landed
+## Se emite al caer en un abismo (antes de volver al último suelo seguro).
+signal fell
 
 ## Velocidad de movimiento en píxeles por segundo.
 @export var speed: float = 80.0
@@ -65,6 +71,21 @@ signal buffered_action_used(action: StringName, waited: float)
 @export var walk_bounce_height: float = 1.5
 ## Pasos por segundo.
 @export var walk_step_rate: float = 8.0
+
+@export_group("Salto")
+## Segundos que dura el salto en el aire. En el aire no lastiman los picos ni se
+## cae en los abismos (Pit).
+@export var jump_duration: float = 0.4
+## Píxeles que sube el sprite en lo más alto del salto.
+@export var jump_height: float = 8.0
+## Input buffering: segundos que se recuerda un salto pulsado cuando todavía no
+## se puede saltar (en el aire o empujado). Sale solo al poder.
+@export var jump_buffer_time: float = 0.15
+## Coyote time: segundos que se puede seguir saltando después de pisar un
+## abismo. Pasado ese tiempo sin saltar, el jugador cae.
+@export var coyote_time: float = 0.12
+## Medios corazones que se pierden al caer en un abismo.
+@export var fall_damage: int = 1
 
 # Duración del retroceso en segundos.
 const KNOCKBACK_TIME := 0.15
@@ -112,6 +133,17 @@ var _cooldown_left: float = 0.0
 var _attack_buffer_left: float = 0.0
 # Segundos que lleva esperando el ataque guardado.
 var _attack_waited: float = 0.0
+# Salto: tiempo que le queda en el aire, buffer del botón y coyote time.
+var _jump_left: float = 0.0
+var _jump_buffer_left: float = 0.0
+var _jump_waited: float = 0.0
+var _coyote_left: float = 0.0
+# Si en el frame anterior estaba (en el suelo) sobre un abismo.
+var _was_over_pit := false
+# true mientras cae en un abismo: no se mueve ni salta.
+var _falling := false
+# Último lugar en suelo firme; ahí vuelve al caer en un abismo.
+var _last_safe_position := Vector2.ZERO
 # Movimiento del arma en la mano durante el golpe.
 var _weapon_tween: Tween
 # Objetivos ya golpeados en el golpe actual, para no pegarles dos veces.
@@ -148,6 +180,7 @@ func _ready() -> void:
 	effect.animation_finished.connect(effect.hide)
 	_apply_weapon()
 	_aim_weapon()
+	_last_safe_position = global_position
 
 
 func _physics_process(delta: float) -> void:
@@ -158,7 +191,9 @@ func _physics_process(delta: float) -> void:
 	# Combina las cuatro acciones de movimiento en un solo vector.
 	# get_vector lo normaliza, por lo que en diagonal no se avanza más rápido.
 	var direction := Input.get_vector("move_left", "move_right", "move_up", "move_down")
-	if _knockback_left > 0.0:
+	if _falling:
+		velocity = Vector2.ZERO
+	elif _knockback_left > 0.0:
 		velocity = _knockback_step(delta)
 	else:
 		velocity = direction * speed * _move_speed_factor()
@@ -180,6 +215,131 @@ func _physics_process(delta: float) -> void:
 
 	# Usa la velocidad real, así no "camina en el lugar" al empujar una pared.
 	_update_walk_animation(delta, get_real_velocity().length() > 1.0)
+
+	_update_jump(delta, Input.is_action_just_pressed("jump"))
+
+
+# --- Salto, coyote time y abismos ------------------------------------------------
+
+## Avanza el salto, su buffer y el coyote time. pressed: se pulsó saltar.
+## En el suelo sobre un abismo corre el coyote time: se puede saltar mientras
+## dure; al acabarse, cae. Aterrizar sobre un abismo hace caer en el acto.
+func _update_jump(delta: float, pressed: bool) -> void:
+	if _falling:
+		return
+	if pressed:
+		_jump_buffer_left = jump_buffer_time
+		_jump_waited = 0.0
+	if _jump_left > 0.0:
+		_jump_left -= delta
+		sprite.offset.y = -sin(PI * (1.0 - _jump_left / jump_duration)) * jump_height
+		if _jump_left <= 0.0:
+			_land()
+		if _falling:
+			return
+	var over_pit := is_over_pit()
+	if not is_jumping() and over_pit and not _was_over_pit:
+		# Acaba de pisar el borde: empieza el coyote time.
+		_coyote_left = coyote_time
+	_was_over_pit = over_pit and not is_jumping()
+
+	if _jump_buffer_left > 0.0 or pressed:
+		if can_jump():
+			_jump_buffer_left = 0.0
+			_start_jump()
+			if _jump_waited > 0.0:
+				buffered_action_used.emit(&"jump", _jump_waited)
+			return
+		_jump_buffer_left -= delta
+		_jump_waited += delta
+
+	if is_jumping():
+		return
+	if over_pit:
+		_coyote_left -= delta
+		if _coyote_left <= 0.0:
+			_fall()
+	else:
+		_last_safe_position = global_position
+
+
+## true si puede despegar: en el suelo, sin retroceso, y no sobre un abismo
+## salvo dentro del coyote time.
+func can_jump() -> bool:
+	if _falling or is_jumping() or _knockback_left > 0.0 or health <= 0:
+		return false
+	return not is_over_pit() or _coyote_left > 0.0
+
+
+func is_jumping() -> bool:
+	return _jump_left > 0.0
+
+
+## Segundos de coyote time que quedan (0 si no está sobre un abismo).
+func coyote_left() -> float:
+	return maxf(_coyote_left, 0.0) if _was_over_pit else 0.0
+
+
+## Segundos que le quedan al salto guardado en el buffer (0 = ninguno).
+func jump_buffer_left() -> float:
+	return maxf(_jump_buffer_left, 0.0)
+
+
+## true si el jugador está sobre algún abismo (Pit) de la escena.
+func is_over_pit() -> bool:
+	if not is_inside_tree():
+		return false
+	for pit in get_tree().get_nodes_in_group(&"pits"):
+		if pit.contains_global(global_position):
+			return true
+	return false
+
+
+func _start_jump() -> void:
+	_jump_left = jump_duration
+	_coyote_left = 0.0
+	_was_over_pit = false
+	jumped.emit()
+	Sfx.play(&"sword_swing")
+	# Se estira al despegar.
+	sprite.scale = Vector2(0.85, 1.15)
+	create_tween().tween_property(sprite, "scale", Vector2.ONE, 0.15)
+
+
+func _land() -> void:
+	_jump_left = 0.0
+	sprite.offset.y = 0.0
+	if is_over_pit():
+		_fall()
+		return
+	_last_safe_position = global_position
+	landed.emit()
+	# Se aplasta al aterrizar.
+	sprite.scale = Vector2(1.25, 0.8)
+	create_tween().tween_property(sprite, "scale", Vector2.ONE, 0.18) \
+			.set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
+
+
+## Cae en un abismo: se achica, vuelve al último suelo firme y pierde
+## fall_damage (fuente &"pit", así queda en las estadísticas).
+func _fall() -> void:
+	_falling = true
+	_jump_buffer_left = 0.0
+	_coyote_left = 0.0
+	fell.emit()
+	Sfx.play(&"player_hurt")
+	var tween := create_tween().set_parallel()
+	tween.tween_property(sprite, "scale", Vector2(0.1, 0.1), 0.35)
+	tween.chain().tween_callback(_finish_fall)
+
+
+func _finish_fall() -> void:
+	global_position = _last_safe_position
+	sprite.scale = Vector2.ONE
+	sprite.rotation = 0.0
+	_falling = false
+	_was_over_pit = false
+	take_damage(fall_damage, Vector2.INF, &"pit")
 
 
 ## Caminata simulada: el caballero solo tiene animación de reposo, así que al
