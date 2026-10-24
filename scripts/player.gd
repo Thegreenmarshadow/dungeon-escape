@@ -114,6 +114,8 @@ signal parried(target: Node2D)
 const KNOCKBACK_TIME := 0.15
 ## Capa de física de los enemigos ("enemies", capa 3).
 const ENEMY_COLLISION_LAYER := 4
+## Tinte del destello al pulsar parry (se desvanece en parry_window).
+const PARRY_FLASH_COLOR := Color(1.8, 1.8, 2.2)
 ## Mano derecha del caballero respecto de WeaponPivot, mirando a la derecha: ahí
 ## queda la empuñadura (held_grip) del arma.
 const HAND_POSITION := Vector2(3, 2)
@@ -172,6 +174,7 @@ var _last_safe_position := Vector2.ZERO
 # Parry: ventana abierta y espera para el siguiente.
 var _parry_left: float = 0.0
 var _parry_cooldown_left: float = 0.0
+var _parry_flash_tween: Tween
 # Movimiento del arma en la mano durante el golpe.
 var _weapon_tween: Tween
 # Objetivos ya golpeados en el golpe actual, para no pegarles dos veces.
@@ -262,9 +265,7 @@ func _update_parry(delta: float, pressed: bool) -> void:
 	if pressed and can_parry():
 		_parry_left = parry_window
 		_parry_cooldown_left = parry_cooldown
-		# Destello breve: se ve que se intentó.
-		sprite.modulate = Color(1.8, 1.8, 2.2, sprite.modulate.a)
-		create_tween().tween_property(sprite, "modulate:rgb", Color.WHITE, parry_window)
+		_flash_parry_attempt()
 	if _parry_left <= 0.0:
 		return
 	_parry_left -= delta
@@ -274,6 +275,20 @@ func _update_parry(delta: float, pressed: bool) -> void:
 		if projectile.global_position.distance_to(global_position) <= parry_radius 				and projectile.parry(global_position, parry_projectile_speed, parry_projectile_bonus):
 			_on_parry_success(projectile)
 			return
+
+
+## Destello breve al pulsar parry: se ve que se intentó. Solo anima el color
+## (r, g, b) y deja el alfa, que lo maneja el parpadeo de invulnerabilidad.
+func _flash_parry_attempt() -> void:
+	if _parry_flash_tween != null and _parry_flash_tween.is_valid():
+		_parry_flash_tween.kill()
+	_set_sprite_tint(PARRY_FLASH_COLOR)
+	_parry_flash_tween = create_tween()
+	_parry_flash_tween.tween_method(_set_sprite_tint, PARRY_FLASH_COLOR, Color.WHITE, parry_window)
+
+
+func _set_sprite_tint(tint: Color) -> void:
+	sprite.modulate = Color(tint.r, tint.g, tint.b, sprite.modulate.a)
 
 
 func can_parry() -> bool:

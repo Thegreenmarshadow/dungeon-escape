@@ -89,6 +89,16 @@ func test_missed_parry_has_a_cooldown() -> void:
 	assert_false(player.is_parrying(), "durante la espera no abre otra ventana")
 
 
+func test_parry_flash_returns_to_normal_color() -> void:
+	var player := _make_player()
+	player.sprite.modulate.a = 0.3
+	player._update_parry(DT, true)
+	assert_true(player.sprite.modulate.r > 1.0, "al pulsar destella")
+	# Avanza la animación del destello hasta el final.
+	player._parry_flash_tween.custom_step(player.parry_window + 0.1)
+	assert_eq(player.sprite.modulate, Color(1, 1, 1, 0.3), "vuelve a su color y respeta el alfa")
+
+
 func _make_player() -> CharacterBody2D:
 	var player: CharacterBody2D = track(PLAYER_RIG.make_player())
 	(Engine.get_main_loop() as SceneTree).root.add_child(player)
