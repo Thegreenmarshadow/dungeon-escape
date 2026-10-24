@@ -65,7 +65,11 @@ var _noise_t := 0.0
 var _last_ticks := 0
 var _shaken_camera: Camera2D
 var _camera_base_offset := Vector2.ZERO
-var _hitstop_until_ms := 0
+# Segundos de hit-stop que quedan (tiempo real); 0 = sin hit-stop.
+var _hitstop_left := 0.0
+# Cuadros por segundo del Movie Maker de Godot (--write-movie); 0 si no graba.
+# Grabando, el juego no corre a tiempo real: el tiempo se cuenta por cuadros.
+var _movie_fps := 0.0
 var _time_scale_before := 1.0
 var _player: Node2D
 var _player_health := -1
@@ -89,6 +93,8 @@ func _ready() -> void:
 	_noise.seed = randi()
 	_noise.frequency = 0.5
 	_last_ticks = Time.get_ticks_usec()
+	if Engine.get_write_movie_path() != "":
+		_movie_fps = float(ProjectSettings.get_setting("editor/movie_writer/fps", 60))
 
 
 ## Suma trauma (se recorta a 1). Lo usan los momentos clave.
@@ -101,10 +107,10 @@ func add_trauma(amount: float) -> void:
 func hitstop(seconds: float, time_scale := HITSTOP_TIME_SCALE) -> void:
 	if seconds <= 0.0:
 		return
-	if _hitstop_until_ms == 0:
+	if _hitstop_left <= 0.0:
 		_time_scale_before = Engine.time_scale
 	Engine.time_scale = minf(time_scale, Engine.time_scale)
-	_hitstop_until_ms = maxi(_hitstop_until_ms, Time.get_ticks_msec() + int(seconds * 1000.0))
+	_hitstop_left = maxf(_hitstop_left, seconds)
 
 
 ## Texto que sube y se desvanece en world_position (coordenadas del mundo).
@@ -163,14 +169,23 @@ func sparks(world_position: Vector2, color := Color(1.0, 0.9, 0.5)) -> void:
 
 
 func _process(_delta: float) -> void:
-	var now := Time.get_ticks_usec()
-	var real_delta := minf((now - _last_ticks) / 1_000_000.0, 0.1)
-	_last_ticks = now
-	if _hitstop_until_ms != 0 and Time.get_ticks_msec() >= _hitstop_until_ms:
-		_hitstop_until_ms = 0
-		Engine.time_scale = _time_scale_before
+	var real_delta := _real_delta()
+	if _hitstop_left > 0.0:
+		_hitstop_left -= real_delta
+		if _hitstop_left <= 0.0:
+			_hitstop_left = 0.0
+			Engine.time_scale = _time_scale_before
 	_update_shake(real_delta)
 	_update_debug()
+
+
+## Segundos reales desde el cuadro anterior, sin Engine.time_scale (el hit-stop
+## lo baja a casi 0). Grabando con el Movie Maker, un cuadro exacto.
+func _real_delta() -> float:
+	var now := Time.get_ticks_usec()
+	var elapsed := minf((now - _last_ticks) / 1_000_000.0, 0.1)
+	_last_ticks = now
+	return 1.0 / _movie_fps if _movie_fps > 0.0 else elapsed
 
 
 func _update_shake(real_delta: float) -> void:
@@ -340,7 +355,7 @@ func _toggle_debug() -> void:
 		_debug_layer.layer = 100
 		_debug_label = Label.new()
 		_debug_label.position = Vector2(8, 60)
-		_debug_label.add_theme_font_size_override("font_size", 14)
+		_debug_label.add_theme_font_size_override("font_size", 18)
 		_debug_label.add_theme_color_override("font_outline_color", Color.BLACK)
 		_debug_label.add_theme_constant_override("outline_size", 4)
 		_debug_layer.add_child(_debug_label)
@@ -366,7 +381,7 @@ func _update_debug() -> void:
 			lines.append("Parry: ventana %.0f ms, espera %.0f ms, logrados %d" % [
 					_player.parry_left() * 1000.0, _player.parry_cooldown_left() * 1000.0, _parries])
 	lines.append("Trauma: %.2f  %s" % [trauma, "▮".repeat(int(trauma * 20.0))])
-	lines.append("Hit-stop: %s" % ("SÍ" if _hitstop_until_ms != 0 else "no"))
+	lines.append("Hit-stop: %s" % ("SÍ" if _hitstop_left > 0.0 else "no"))
 	if _last_buffered != "":
 		lines.append("Último buffer: " + _last_buffered)
 	_debug_label.text = "\n".join(lines)
