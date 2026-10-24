@@ -21,9 +21,8 @@ extends "res://scripts/level.gd"
 const WEAPON_PICKUP_SCENE := preload("res://scenes/WeaponPickup.tscn")
 const BANNER_SCENE := preload("res://scenes/props/Banner.tscn")
 const PIT_SCRIPT := preload("res://scripts/pit.gd")
-## Abismos de la demo, en celdas: una franja en la entrada que corta el camino
-## (se salta con K o se rodea por abajo) para enseñar el salto y el coyote time.
-const PIT_RECTS: Array[Rect2i] = [Rect2i(8, 5, 1, 7)]
+## Tamaño de letra de los carteles de la pared.
+const SIGN_FONT_SIZE := 7
 
 ## Celdas de margen que la cámara puede mostrar alrededor del mapa.
 const CAMERA_MARGIN := 2
@@ -158,6 +157,10 @@ func _reserved_cells() -> Array[Vector2i]:
 	cells.append_array(demo_map.coin_cells)
 	cells.append_array(demo_map.weapon_cells.values())
 	cells.append(demo_map.checkpoint_cell)
+	cells.append_array(demo_map.pit_cells())
+	cells.append_array(demo_map.signs.keys())
+	for spawn in demo_map.layout.hazards:
+		cells.append(spawn.cell)
 	for i in demo_map.gates.size():
 		cells.append_array(demo_map.gate_cells(i))
 	for room in demo_map.rooms:
@@ -197,15 +200,37 @@ func _add_pickups(parent: Node) -> void:
 		coin.value = 1
 		parent.add_child(coin)
 	var tile_size := Vector2(dungeon.tile_set.tile_size)
-	for rect in PIT_RECTS:
+	for rect in demo_map.pit_rects:
 		var pit: Node2D = PIT_SCRIPT.new()
 		pit.position = Vector2(rect.position) * tile_size
 		pit.size = Vector2(rect.size) * tile_size
+		pit.lava = demo_map.theme_at(rect.position) == DungeonTheme.LAVA
 		parent.add_child(pit)
+	for cell in demo_map.signs:
+		parent.add_child(_make_sign(cell, demo_map.signs[cell]))
 	checkpoint = DemoCheckpoint.new()
 	checkpoint.position = _cell_center(demo_map.checkpoint_cell)
 	checkpoint.activated.connect(_on_checkpoint_activated)
 	parent.add_child(checkpoint)
+
+
+## Cartel de texto centrado en cell (en la pared, sobre el tramo que explica).
+func _make_sign(cell: Vector2i, text: String) -> Node2D:
+	var holder := Node2D.new()
+	holder.position = _cell_center(cell)
+	holder.z_index = 5
+	var label := Label.new()
+	label.text = text
+	label.add_theme_font_size_override("font_size", SIGN_FONT_SIZE)
+	label.add_theme_color_override("font_color", Color(1.0, 0.86, 0.5))
+	label.add_theme_color_override("font_outline_color", Color(0.1, 0.05, 0.06))
+	label.add_theme_constant_override("outline_size", 3)
+	label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	label.size = Vector2(80, 12)
+	label.position = -label.size / 2.0
+	holder.add_child(label)
+	return holder
 
 
 ## Un área por sala que avisa cuando el jugador entra.

@@ -77,6 +77,12 @@ var heart_cells: Array[Vector2i] = []
 var coin_cells: Array[Vector2i] = []
 ## Vela del punto de control, antes del jefe.
 var checkpoint_cell := Vector2i.ZERO
+## Abismos (Pit) en celdas: partes del recorrido que se pasan saltando (K).
+## Los de la parte de lava se dibujan como lava.
+var pit_rects: Array[Rect2i] = []
+## Carteles en la pared: celda -> texto corto que explica la mecánica de ese
+## tramo (salto, coyote time, picos, parry).
+var signs: Dictionary[Vector2i, String] = {}
 ## Estandartes del calabozo original (en la pared frontal de algunas salas).
 var banner_cells: Array[Vector2i] = []
 
@@ -146,7 +152,7 @@ func _build() -> void:
 		Room.new(&"archers", Rect2i(18, 6, 16, 8),
 				"Parry con L: devuelve las flechas", DungeonTheme.DUNGEON, CLEAR_BY_ENEMIES),
 		Room.new(&"mage", Rect2i(38, 4, 13, 12),
-				"Devuelve el orbe dorado al mago", DungeonTheme.DUNGEON, CLEAR_BY_ENEMIES),
+				"Salta los picos, devuelve el orbe", DungeonTheme.DUNGEON, CLEAR_BY_ENEMIES),
 		Room.new(&"mimic", Rect2i(55, 6, 9, 8),
 				"Ese cofre se movió…", DungeonTheme.DUNGEON, CLEAR_BY_ENEMIES),
 		Room.new(&"armory", Rect2i(68, 6, 10, 8),
@@ -190,6 +196,8 @@ func _build() -> void:
 	layout.key_cell = layout.boss.cell
 	layout.key_room = layout.exit_room
 
+	_add_feel_sections()
+
 	weapon_cells = {ARMORY_WEAPONS[0]: Vector2i(71, 8), ARMORY_WEAPONS[1]: Vector2i(74, 8)}
 	coin_cells = [Vector2i(60, 8), Vector2i(62, 12), Vector2i(59, 11)]
 	heart_cells = [Vector2i(84, 6), Vector2i(84, 13)]
@@ -203,6 +211,44 @@ func _build() -> void:
 		var y := room.rect.position.y - 1
 		layout.torches.append(Vector2i(room.rect.position.x + 2, y))
 		layout.torches.append(Vector2i(room.rect.end.x - 3, y))
+
+
+## Tramos donde se usan las mecánicas de game feel (ver "Game feel" en el
+## README): cada uno se pasa con el salto, el coyote time o el parry.
+func _add_feel_sections() -> void:
+	pit_rects = [
+		# Entrada: el primer abismo. Se salta o se rodea por abajo.
+		Rect2i(8, 5, 1, 7),
+		# Pasillo entrada -> arqueros: corta el pasillo, hay que saltar.
+		Rect2i(16, CORRIDOR_Y, 1, 2),
+		# Pasillo arqueros -> mago: 2 celdas, justo lo que cubre un salto.
+		# Saltando antes del borde no se llega; el coyote time deja saltar
+		# un poco después de pisar el hueco.
+		Rect2i(36, CORRIDOR_Y, 2, 2),
+		# Antesala de lava: una zanja de lado a lado.
+		Rect2i(86, 5, 1, 10),
+	]
+	# Sala del mago: una fila de picos de pared a pared, todos al mismo ritmo.
+	# Se pasa saltando (en el aire no lastiman) o esperando a que bajen.
+	for y in range(4, 16):
+		layout.hazards.append(LevelGenerator.Spawn.new(LevelGenerator.SPIKES, Vector2i(43, y)))
+	signs = {
+		Vector2i(16, CORRIDOR_Y - 1): "K: saltar",
+		Vector2i(23, 5): "L: parry",
+		Vector2i(36, CORRIDOR_Y - 1): "Salta al borde",
+		Vector2i(43, 3): "Salta los picos",
+		Vector2i(86, 4): "¡Salta la lava!",
+	}
+
+
+## Celdas de todos los abismos.
+func pit_cells() -> Array[Vector2i]:
+	var cells: Array[Vector2i] = []
+	for rect in pit_rects:
+		for x in range(rect.position.x, rect.end.x):
+			for y in range(rect.position.y, rect.end.y):
+				cells.append(Vector2i(x, y))
+	return cells
 
 
 func _add_enemy(kind: StringName, cell: Vector2i) -> LevelGenerator.Spawn:

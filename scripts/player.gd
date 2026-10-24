@@ -116,6 +116,9 @@ const KNOCKBACK_TIME := 0.15
 const ENEMY_COLLISION_LAYER := 4
 ## Tinte del destello al pulsar parry (se desvanece en parry_window).
 const PARRY_FLASH_COLOR := Color(1.8, 1.8, 2.2)
+## Centro de los pies respecto del nodo (la forma de colisión de Player.tscn):
+## con este punto se decide si el jugador está sobre un abismo.
+const FEET_OFFSET := Vector2(0, 5)
 ## Mano derecha del caballero respecto de WeaponPivot, mirando a la derecha: ahí
 ## queda la empuñadura (held_grip) del arma.
 const HAND_POSITION := Vector2(3, 2)
@@ -402,7 +405,7 @@ func is_over_pit() -> bool:
 	if not is_inside_tree():
 		return false
 	for pit in get_tree().get_nodes_in_group(&"pits"):
-		if pit.contains_global(global_position):
+		if pit.contains_global(global_position + FEET_OFFSET):
 			return true
 	return false
 

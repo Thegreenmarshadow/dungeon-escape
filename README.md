@@ -73,7 +73,16 @@ Con el panel F3 se ve el buffer bajando y, cuando sale una acción guardada, apa
 
 ### Salto, abismos y coyote time
 
-El juego es de vista cenital, así que el coyote time se aplica a los **abismos**: el jugador salta con **K** o **Shift**. En el aire no le hacen daño las trampas de picos y no cae en los abismos. Al pisar un abismo sin saltar tiene un margen para saltar todavía; si no lo hace, cae, pierde medio corazón (fuente `pit`, queda registrado en la base de datos) y vuelve al último suelo firme. Aterrizar sobre un abismo hace caer en el acto. La demo tiene una franja de abismo en la sala de entrada.
+El juego es de vista cenital, así que el coyote time se aplica a los **abismos**: el jugador salta con **K** o **Shift**. En el aire no le hacen daño las trampas de picos y no cae en los abismos. Al pisar un abismo sin saltar tiene un margen para saltar todavía; si no lo hace, cae, pierde medio corazón (fuente `pit`, queda registrado en la base de datos) y vuelve al último suelo firme. Aterrizar sobre un abismo hace caer en el acto. La demo usa cada mecánica en su recorrido, con un cartel en la pared que la explica:
+
+| Dónde | Qué se usa |
+|---|---|
+| Entrada | Primer abismo (se salta o se rodea) y dos esqueletos para el buffer de ataque y el parry cuerpo a cuerpo |
+| Pasillo entrada → arqueros | Un abismo de 1 celda que corta el paso: hay que saltar |
+| Sala de arqueros | Parry de flechas |
+| Pasillo arqueros → mago | Salto largo de 2 celdas (32 px, justo lo que cubre un salto): saltando antes del borde no se llega, el coyote time deja saltar un poco después de pisar el hueco |
+| Sala del mago | Fila de picos de pared a pared: se salta (en el aire no lastiman) y se devuelve el orbe |
+| Antesala de lava | Zanja de lava de lado a lado |
 
 | Parámetro | Valor | Qué hace |
 |---|---|---|

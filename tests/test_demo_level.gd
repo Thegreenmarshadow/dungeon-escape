@@ -104,6 +104,38 @@ func test_room_order_is_enforced_by_the_gates() -> void:
 			"al jefe solo se llega con todas las rejas abiertas")
 
 
+func test_game_feel_sections_are_on_the_route() -> void:
+	var map := DemoMap.create()
+	assert_gt(map.pit_rects.size(), 0, "hay abismos")
+	var blocked := {}
+	for cell in map.heart_cells + map.coin_cells + map.weapon_cells.values():
+		blocked[cell] = true
+	blocked[map.checkpoint_cell] = true
+	for room in map.rooms:
+		blocked[room.respawn_cell] = true
+	for i in map.gates.size():
+		for cell in map.gate_cells(i):
+			blocked[cell] = true
+	for spawn in map.layout.enemies:
+		blocked[spawn.cell] = true
+	for cell in map.pit_cells():
+		assert_true(map.layout.is_floor(cell), "el abismo %s está sobre el suelo" % cell)
+		assert_false(blocked.has(cell), "el abismo %s no tapa una reja, un objeto, un enemigo ni un punto de reaparición" % cell)
+	# Los pasillos tienen abismos que cortan el paso: se cruzan saltando.
+	var corridor_pits := map.pit_rects.filter(func(r: Rect2i) -> bool:
+		return r.position.y == DemoMap.CORRIDOR_Y and r.size.y == 2)
+	assert_eq(corridor_pits.size(), 2, "un salto corto y uno largo (coyote time)")
+	var widths := corridor_pits.map(func(r: Rect2i) -> int: return r.size.x)
+	assert_true(widths.has(1) and widths.has(2))
+	# La fila de picos del mago va de pared a pared de su sala.
+	var mage := map.rooms[map.room_index(&"mage")].rect
+	var spikes := map.layout.hazards.filter(func(h) -> bool: return mage.has_point(h.cell))
+	assert_eq(spikes.size(), mage.size.y, "picos en toda la altura de la sala del mago")
+	assert_eq(map.signs.size(), 5, "un cartel por mecánica")
+	for cell in map.signs:
+		assert_false(map.layout.is_floor(cell), "el cartel %s va en la pared" % cell)
+
+
 func test_every_enemy_and_item_is_inside_a_room() -> void:
 	var map := DemoMap.create()
 	for spawn in map.layout.enemies:
