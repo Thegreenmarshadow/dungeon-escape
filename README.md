@@ -73,7 +73,7 @@ Con el panel F3 se ve el buffer bajando y, cuando sale una acción guardada, apa
 
 ### Salto, abismos y coyote time
 
-El juego es de vista cenital, así que el coyote time se aplica a los **abismos**: el jugador salta con **K** o **Shift**. En el aire no le hacen daño las trampas de picos y no cae en los abismos. Al pisar un abismo sin saltar tiene un margen para saltar todavía; si no lo hace, cae, pierde medio corazón (fuente `pit`, queda registrado en la base de datos) y vuelve al último suelo firme. Aterrizar sobre un abismo hace caer en el acto. La demo usa cada mecánica en su recorrido, con un cartel en la pared que la explica:
+El juego es de vista cenital, así que el coyote time se aplica a los **abismos**: el jugador salta con **K** o **Shift**. En el aire no le hacen daño las trampas de picos y no cae en los abismos. Al pisar un abismo sin saltar tiene un margen para saltar todavía; si no lo hace, cae, pierde medio corazón (fuente `pit`, queda registrado en la base de datos) y vuelve al último suelo firme. Aterrizar sobre un abismo hace caer en el acto. Los enemigos que caminan no pueden cruzarlos (se frenan en el borde, como en una pared: saltar un abismo sirve para escapar); los que vuelan, como la calavera, y los proyectiles pasan por encima. La demo usa cada mecánica en su recorrido, con un cartel en la pared que la explica:
 
 | Dónde | Qué se usa |
 |---|---|

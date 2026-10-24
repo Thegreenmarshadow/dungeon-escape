@@ -29,6 +29,8 @@ signal hit_received(enemy: EnemyBase, amount: int)
 ## Daño que hace al jugador al tocarlo, en medios corazones (2 = un corazón).
 ## Es el de la escena: el nivel le suma su bonus (apply_damage_bonus).
 @export var contact_damage: int = 2
+## true si vuela: cruza los abismos (Pit). Los que caminan se frenan en el borde.
+@export var can_fly: bool = false
 ## Distancia en píxeles que retrocede al recibir un golpe.
 @export var knockback_distance: float = 10.0
 ## Probabilidad (de 0 a 1) de soltar un corazón al morir. El nivel la consulta
@@ -62,6 +64,8 @@ const KNOCKBACK_TIME := 0.15
 const DODGE_COOLDOWN := 1.0
 ## Capa de física del jugador ("player", capa 2).
 const PLAYER_COLLISION_LAYER := 2
+## Capa de física de los abismos ("pits", capa 4; ver Pit).
+const PIT_COLLISION_LAYER := 8
 ## Píxeles por lado que crece ContactArea para tocar al jugador sin atravesarlo.
 const CONTACT_MARGIN := 3.0
 ## Destello al esquivar: blanco y translúcido, para no confundirlo con el rojo
@@ -106,6 +110,8 @@ func _ready() -> void:
 	# no se superponen, la zona de contacto crece CONTACT_MARGIN para seguir
 	# tocándolo.
 	collision_mask |= PLAYER_COLLISION_LAYER
+	if not can_fly:
+		collision_mask |= PIT_COLLISION_LAYER
 	_grow_contact_area(CONTACT_MARGIN)
 	sprite.animation_finished.connect(_on_animation_finished)
 	sprite.play(idle_animation)
