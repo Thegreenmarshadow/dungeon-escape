@@ -25,6 +25,7 @@ Sfx="*res://scripts/sfx.gd"
 Profiles="*res://scripts/profiles/profile_session.gd"
 RunTracker="*res://scripts/stats/run_tracker.gd"
 Telemetry="*res://scripts/telemetry/telemetry.gd"
+GameFeel="*res://scripts/game_feel.gd"
 
 [display]
 

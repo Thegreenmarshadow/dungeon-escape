@@ -152,7 +152,16 @@ func set_kills(killed: int, total: int) -> void:
 
 
 func set_coins(coins: int) -> void:
+	# Feedback: el contador rebota y se pone dorado cuando suben las monedas.
+	var gained := coins_label.text.is_valid_int() and coins > int(coins_label.text)
 	coins_label.text = str(coins)
+	if gained:
+		coins_label.pivot_offset = coins_label.size / 2.0
+		coins_label.scale = Vector2(1.5, 1.5)
+		coins_label.modulate = Color(1.0, 0.85, 0.2)
+		var tween := coins_label.create_tween().set_parallel()
+		tween.tween_property(coins_label, "scale", Vector2.ONE, 0.2).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
+		tween.tween_property(coins_label, "modulate", Color.WHITE, 0.3)
 
 
 ## Muestra la barra de vida de boss (nombre y vida) mientras esté vivo y en

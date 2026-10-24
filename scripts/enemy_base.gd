@@ -18,6 +18,9 @@ extends CharacterBody2D
 signal died(enemy: EnemyBase)
 ## Se emite cuando el enemigo esquiva un golpe del jugador.
 signal dodged(enemy: EnemyBase)
+## Se emite al recibir un golpe que no esquivó, con el daño. Solo lo observa
+## GameFeel (vibración, hit-stop, número flotante).
+signal hit_received(enemy: EnemyBase, amount: int)
 
 ## Golpes que aguanta antes de morir.
 @export var max_health: int = 2
@@ -194,6 +197,7 @@ func take_hit(amount: int, from_position: Vector2, knockback_scale: float = 1.0)
 	_hit_knockback_scale = knockback_scale
 	_receive_hit(amount, from_position)
 	_hit_knockback_scale = 1.0
+	hit_received.emit(self, amount)
 
 
 ## Intenta esquivar un golpe que viene desde from_position con la tirada roll
