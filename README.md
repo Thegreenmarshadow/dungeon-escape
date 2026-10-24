@@ -14,6 +14,8 @@ Las capturas de la página web están en [Página web](#página-web) y el resume
 |---|---|
 | Moverse (8 direcciones) | Flechas o W A S D |
 | Atacar con la espada | Espacio o J |
+| Saltar (abismos y picos) | K o Shift |
+| Panel de game feel | F3 |
 | Reiniciar (en las pantallas finales) | R |
 
 **Objetivo:** encontrar la llave y llegar a la puerta de salida, en el extremo opuesto del mapa.
@@ -52,6 +54,61 @@ Descargar el archivo de la plataforma desde [Releases](https://github.com/Thegre
 1. Instalar **Godot 4.7.2** (versión estándar, no .NET).
 2. En el gestor de proyectos: **Importar** → seleccionar el archivo `project.godot`.
 3. Presionar **F5** (o el botón ▶) para jugar. La escena principal es `scenes/Level.tscn`.
+
+## Game feel
+
+Mejoras para que las acciones se sientan más responsivas y claras. Los parámetros del jugador son `@export` de `scripts/player.gd` (se cambian en el Inspector de `Player.tscn`); los de la cámara y el feedback son constantes al inicio de `scripts/game_feel.gd` (Autoload `GameFeel`). Pulsa **F3** durante el juego para ver un panel con los tiempos en vivo (buffer, coyote time, trauma, hit-stop).
+
+### Input buffering
+
+Si se pulsa una acción cuando todavía no se puede hacer, el juego la recuerda un momento y la ejecuta en cuanto se puede, en lugar de ignorarla.
+
+| Parámetro | Valor | Qué hace |
+|---|---|---|
+| `attack_buffer_time` | 0.15 s | Un ataque pulsado durante el enfriamiento del arma sale solo al terminar el enfriamiento |
+| `jump_buffer_time` | 0.15 s | Un salto pulsado en el aire (o mientras el jugador sale despedido) sale al aterrizar |
+
+Con el panel F3 se ve el buffer bajando y, cuando sale una acción guardada, aparece «buffer» sobre el jugador.
+
+### Salto, abismos y coyote time
+
+El juego es de vista cenital, así que el coyote time se aplica a los **abismos**: el jugador salta con **K** o **Shift**. En el aire no le hacen daño las trampas de picos y no cae en los abismos. Al pisar un abismo sin saltar tiene un margen para saltar todavía; si no lo hace, cae, pierde medio corazón (fuente `pit`, queda registrado en la base de datos) y vuelve al último suelo firme. Aterrizar sobre un abismo hace caer en el acto. La demo tiene una franja de abismo en la sala de entrada.
+
+| Parámetro | Valor | Qué hace |
+|---|---|---|
+| `coyote_time` | 0.12 s | Tiempo para saltar después de pisar el borde de un abismo |
+| `jump_duration` | 0.4 s | Tiempo en el aire (a 80 px/s alcanza para cruzar 32 px) |
+| `jump_height` | 8 px | Altura visual del salto |
+| `fall_damage` | 1 (½ corazón) | Daño al caer en un abismo |
+
+### Screenshake
+
+Vibración de cámara por **trauma**: cada momento clave suma trauma (de 0 a 1), la cámara se desplaza `MAX_SHAKE_OFFSET × trauma²` con ruido suave y el trauma baja solo. Al elevarlo al cuadrado, los golpes pequeños apenas se notan y los grandes sí.
+
+| Parámetro | Valor |
+|---|---|
+| `MAX_SHAKE_OFFSET` | (5, 4) px del mundo (×3 de zoom en pantalla) |
+| `TRAUMA_DECAY` | 1.6 por segundo |
+| Jugador recibe daño | 0.45 |
+| Caída a un abismo | 0.5 |
+| Golpe a un enemigo / a un jefe | 0.15 / 0.3 |
+| Enemigo eliminado / jefe eliminado | 0.25 / 0.8 |
+| Aterrizaje del salto | 0.15 |
+| Recoger la llave | 0.2 |
+
+### Feedback
+
+| Acción | Visual | Sonido / interfaz |
+|---|---|---|
+| Golpe acertado | Hit-stop de 0.05 s (el juego corre al 5 %), chispas y número de daño flotante | Sonido de golpe (ya existía) |
+| Recibir daño | Hit-stop de 0.08 s, «-1♥» flotante en rojo, parpadeo y retroceso | Sonido de daño |
+| Jefe eliminado | Hit-stop de 0.15 s y vibración fuerte | — |
+| Recoger monedas | «+N» dorado sobre el jugador | El contador de monedas del HUD rebota y se pone dorado |
+| Curarse / llave | «+1♥» verde / «¡Llave!» | Sonidos de recogida |
+| Saltar / aterrizar | Se estira al despegar y se aplasta al aterrizar, con polvo | — |
+| Caer a un abismo | Se achica, «¡Abismo!» | Sonido de daño |
+
+Ninguna de estas mejoras cambia las estadísticas: `GameFeel` solo escucha señales, y el registro de partidas, el leaderboard y la web siguen igual. La única novedad en la base es la fuente de daño `pit`.
 
 ## Estadísticas, ranking y servidor local
 
