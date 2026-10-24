@@ -38,12 +38,13 @@ func test_retry_after_a_test_run_restarts_at_its_first_level() -> void:
 	_game.start_test_run(50)
 	_game.complete_level()
 	_game.complete_level()
-	_game.lives = 0
+	_game.health = 0
 	_game.retry()
 	assert_true(_game.test_mode, "debe seguir en modo prueba")
 	assert_eq(_game.current_level, 50)
 	assert_eq(_game.test_start_level, 50)
-	assert_eq(_game.lives, _game.STARTING_LIVES)
+	assert_eq(_game.health, _game.STARTING_HEALTH)
+	assert_eq(_game.STARTING_HEALTH, 3 * Heart.HALF_HEARTS_PER_HEART, "3 corazones")
 	assert_eq(_game.levels_started, 2)
 
 

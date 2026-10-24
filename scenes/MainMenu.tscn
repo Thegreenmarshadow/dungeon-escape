@@ -489,27 +489,61 @@ custom_minimum_size = Vector2(0, 20)
 layout_mode = 2
 mouse_filter = 2
 
-[node name="PlayerNameLabel" type="Label" parent="VBox" unique_id=1739204856]
+[node name="ProfileRow" type="HBoxContainer" parent="VBox"]
 layout_mode = 2
-theme_override_colors/font_color = Color(0.8, 0.75, 0.65, 0.85)
-theme_override_font_sizes/font_size = 16
-text = "Nombre del jugador"
-horizontal_alignment = 1
-
-[node name="PlayerNameEdit" type="LineEdit" parent="VBox" unique_id=902615473]
-unique_name_in_owner = true
-custom_minimum_size = Vector2(260, 40)
-layout_mode = 2
-size_flags_horizontal = 4
-theme_override_font_sizes/font_size = 20
-placeholder_text = "Jugador"
+theme_override_constants/separation = 16
 alignment = 1
-max_length = 24
+
+[node name="ProfileLabel" type="Label" parent="VBox/ProfileRow"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_colors/font_color = Color(0.8, 0.75, 0.65, 0.95)
+theme_override_font_sizes/font_size = 20
+text = "Perfil: Jugador"
+vertical_alignment = 1
+
+[node name="ProfileButton" type="Button" parent="VBox/ProfileRow"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 40)
+layout_mode = 2
+tooltip_text = "Elegir, crear o borrar perfiles"
+theme_override_colors/font_color = Color(0.95, 0.88, 0.7, 1)
+theme_override_colors/font_focus_color = Color(1, 0.95, 0.75, 1)
+theme_override_colors/font_pressed_color = Color(0.8, 0.7, 0.5, 1)
+theme_override_colors/font_hover_color = Color(1, 0.95, 0.75, 1)
+theme_override_colors/font_disabled_color = Color(0.55, 0.5, 0.45, 0.7)
+theme_override_font_sizes/font_size = 18
+theme_override_styles/normal = SubResource("StyleBoxFlat_normal")
+theme_override_styles/pressed = SubResource("StyleBoxFlat_pressed")
+theme_override_styles/hover = SubResource("StyleBoxFlat_hover")
+theme_override_styles/focus = SubResource("StyleBoxFlat_focus")
+theme_override_styles/disabled = SubResource("StyleBoxFlat_normal")
+text = "Cambiar perfil"
 
 [node name="PlayRow" type="HBoxContainer" parent="VBox"]
 layout_mode = 2
 theme_override_constants/separation = 16
 alignment = 1
+
+[node name="ContinueButton" type="Button" parent="VBox/PlayRow"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(260, 56)
+layout_mode = 2
+size_flags_horizontal = 4
+disabled = true
+tooltip_text = "Seguir la partida guardada de este perfil"
+theme_override_colors/font_color = Color(0.95, 0.88, 0.7, 1)
+theme_override_colors/font_focus_color = Color(1, 0.95, 0.75, 1)
+theme_override_colors/font_pressed_color = Color(0.8, 0.7, 0.5, 1)
+theme_override_colors/font_hover_color = Color(1, 0.95, 0.75, 1)
+theme_override_colors/font_disabled_color = Color(0.55, 0.5, 0.45, 0.7)
+theme_override_font_sizes/font_size = 26
+theme_override_styles/normal = SubResource("StyleBoxFlat_normal")
+theme_override_styles/pressed = SubResource("StyleBoxFlat_pressed")
+theme_override_styles/hover = SubResource("StyleBoxFlat_hover")
+theme_override_styles/focus = SubResource("StyleBoxFlat_focus")
+theme_override_styles/disabled = SubResource("StyleBoxFlat_normal")
+text = "Continuar"
 
 [node name="PlayButton" type="Button" parent="VBox/PlayRow" unique_id=423525666]
 unique_name_in_owner = true
@@ -544,7 +578,12 @@ theme_override_styles/hover = SubResource("StyleBoxFlat_hover")
 theme_override_styles/focus = SubResource("StyleBoxFlat_focus")
 text = "Demo"
 
-[node name="TestModeButton" type="Button" parent="VBox" unique_id=1874203519]
+[node name="ModeRow" type="HBoxContainer" parent="VBox"]
+layout_mode = 2
+theme_override_constants/separation = 16
+alignment = 1
+
+[node name="TestModeButton" type="Button" parent="VBox/ModeRow" unique_id=1874203519]
 unique_name_in_owner = true
 custom_minimum_size = Vector2(260, 56)
 layout_mode = 2
@@ -559,6 +598,43 @@ theme_override_styles/pressed = SubResource("StyleBoxFlat_pressed")
 theme_override_styles/hover = SubResource("StyleBoxFlat_hover")
 theme_override_styles/focus = SubResource("StyleBoxFlat_focus")
 text = "Modo prueba"
+
+[node name="AnalyticsButton" type="Button" parent="VBox/ModeRow"]
+unique_name_in_owner = true
+visible = false
+custom_minimum_size = Vector2(260, 56)
+layout_mode = 2
+size_flags_horizontal = 4
+tooltip_text = "Solo en builds de depuración: mapas de calor de las partidas guardadas"
+theme_override_colors/font_color = Color(0.95, 0.88, 0.7, 1)
+theme_override_colors/font_focus_color = Color(1, 0.95, 0.75, 1)
+theme_override_colors/font_pressed_color = Color(0.8, 0.7, 0.5, 1)
+theme_override_colors/font_hover_color = Color(1, 0.95, 0.75, 1)
+theme_override_font_sizes/font_size = 26
+theme_override_styles/normal = SubResource("StyleBoxFlat_normal")
+theme_override_styles/pressed = SubResource("StyleBoxFlat_pressed")
+theme_override_styles/hover = SubResource("StyleBoxFlat_hover")
+theme_override_styles/focus = SubResource("StyleBoxFlat_focus")
+text = "Analítica"
+
+[node name="SettingsButton" type="Button" parent="VBox/ModeRow"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(260, 56)
+layout_mode = 2
+size_flags_horizontal = 4
+tooltip_text = "Telemetría y otras opciones"
+theme_override_colors/font_color = Color(0.95, 0.88, 0.7, 1)
+theme_override_colors/font_focus_color = Color(1, 0.95, 0.75, 1)
+theme_override_colors/font_pressed_color = Color(0.8, 0.7, 0.5, 1)
+theme_override_colors/font_hover_color = Color(1, 0.95, 0.75, 1)
+theme_override_colors/font_disabled_color = Color(0.55, 0.5, 0.45, 0.7)
+theme_override_font_sizes/font_size = 26
+theme_override_styles/normal = SubResource("StyleBoxFlat_normal")
+theme_override_styles/pressed = SubResource("StyleBoxFlat_pressed")
+theme_override_styles/hover = SubResource("StyleBoxFlat_hover")
+theme_override_styles/focus = SubResource("StyleBoxFlat_focus")
+theme_override_styles/disabled = SubResource("StyleBoxFlat_normal")
+text = "Ajustes"
 
 [node name="QuitButton" type="Button" parent="VBox" unique_id=316050796]
 unique_name_in_owner = true

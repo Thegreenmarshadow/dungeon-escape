@@ -13,9 +13,9 @@ extends Node
 ##   - SceneTree.node_added: carga de un nivel o de otra pantalla. Una pantalla
 ##     que no es un nivel (menú, modo prueba) con una partida en curso la cierra
 ##     como abandonada ("quit").
-##   - En cada nivel: Player.lives_changed, Player.key_collected,
+##   - En cada nivel: Player.health_changed, Player.key_collected,
 ##     Player.coins_collected, Player.died, Player.revived (puntos de control
-##     de la demo), Door.player_escaped, EnemyBase.died y EnemyBase.dodged.
+##     de la demo), Player.weapon_changed, Door.player_escaped, EnemyBase.died y EnemyBase.dodged.
 ##     La demo (Game.DEMO_SCENE) cuenta como nivel.
 ## Cerrar la ventana a mitad de partida también la cierra como abandonada.
 ##
@@ -48,8 +48,14 @@ func _notification(what: int) -> void:
 
 
 func _on_run_started() -> void:
-	recorder.start_run(RunRecorder.new_run_id(), PlayerProfile.load_name(), current_mode(),
+	recorder.start_run(RunRecorder.new_run_id(), player_name(), current_mode(),
 			Game.run_seed, Game.current_level)
+
+
+## Nombre con el que se registra la partida: el del perfil elegido en la misma
+## carpeta que usa Profiles (y Telemetry); sin perfil, el de player.cfg.
+func player_name() -> String:
+	return PlayerProfile.current_name(Profiles.store.base_dir)
 
 
 ## Modo con el que se registra la partida que empieza según Game.
@@ -77,14 +83,18 @@ func _on_level_ready(level: Node) -> void:
 	for enemy in get_tree().get_nodes_in_group("enemies"):
 		if level.is_ancestor_of(enemy):
 			enemies.append(enemy)
-	recorder.start_level(Game.current_level, player.lives, enemies.size())
+	recorder.start_level(Game.current_level, player.health, enemies.size())
 
 	# El nivel conectó sus señales antes (en su _ready), así que cuando llegan
 	# acá Game ya tiene el puntaje y las muertes actualizados.
-	player.lives_changed.connect(recorder.record_lives)
+	# take_damage guarda last_damage_source antes de emitir health_changed.
+	player.health_changed.connect(func(health: int) -> void:
+		recorder.record_health(health, String(player.last_damage_source)))
 	player.key_collected.connect(recorder.record_key)
 	player.coins_collected.connect(recorder.record_coins)
-	player.died.connect(func() -> void: recorder.record_death(Game.score, Game.enemies_killed))
+	player.died.connect(func() -> void:
+		recorder.record_death(Game.score, Game.enemies_killed, String(player.last_damage_source)))
+	player.weapon_changed.connect(func(weapon_id: StringName) -> void: recorder.record_weapon(String(weapon_id)))
 	player.revived.connect(recorder.record_respawn)
 	level.get_node("ExitDoor").player_escaped.connect(func() -> void: recorder.complete_level(Game.score))
 	for enemy in enemies:

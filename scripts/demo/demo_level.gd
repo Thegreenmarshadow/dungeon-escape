@@ -9,8 +9,8 @@ extends "res://scripts/level.gd"
 ## - Rejas (DemoGate) entre salas: la de cada sala se abre al vencer a sus
 ##   enemigos (o al elegir un arma en la armería). El recorrido es lineal.
 ## - Una ayuda corta al entrar por primera vez en cada sala (mensaje de la HUD).
-## - Generosidad: Game.DEMO_LIVES vidas y nunca hay Game Over. Al quedarse sin
-##   vidas el jugador vuelve, con todas, a la entrada de la última sala a la que
+## - Generosidad: Game.DEMO_HEALTH de vida (5 corazones) y nunca hay Game Over.
+##   Al quedarse sin vida el jugador vuelve, con toda, a la entrada de la última sala a la que
 ##   llegó; antes del jefe, a la vela del punto de control.
 ## - Al salir por la puerta con la llave del jefe, la pantalla de
 ##   agradecimiento (DemoEndScreen) en lugar de pasar de nivel.
@@ -47,7 +47,7 @@ var weapon_pickups: Array[WeaponPickup] = []
 var checkpoint: DemoCheckpoint
 ## Sala más avanzada a la que llegó el jugador (-1 antes de empezar).
 var current_room := -1
-## Dónde reaparece el jugador si se queda sin vidas.
+## Dónde reaparece el jugador si se queda sin vida.
 var respawn_position := Vector2.ZERO
 ## Segundos jugados (no corre con el juego en pausa).
 var run_time := 0.0
@@ -81,6 +81,7 @@ func _process(delta: float) -> void:
 
 func _build_map() -> int:
 	demo_map = DemoMap.create()
+	map_layout = demo_map.layout
 	LevelBuilder.new().build(self, demo_map.layout)
 	_split_lava_tiles()
 	_add_decor()
@@ -92,8 +93,8 @@ func _build_map() -> int:
 	_add_gates(items)
 	_add_pickups(items)
 	_add_room_triggers(items)
-	# Más vidas que en una partida normal; los corazones curan hasta este tope.
-	player.max_lives = Game.DEMO_LIVES
+	# Más vida que en una partida normal; los corazones curan hasta este tope.
+	player.max_health = Game.DEMO_HEALTH
 	player.revives_on_death = true
 	return CAMERA_MARGIN
 
@@ -304,26 +305,26 @@ func _on_checkpoint_activated(_checkpoint: DemoCheckpoint) -> void:
 # Generosidad: puntos de control en lugar de Game Over
 # ---------------------------------------------------------------------------
 
-## El jugador se quedó sin vidas: reaparece en el punto de control. Diferido,
+## El jugador se quedó sin vida: reaparece en el punto de control. Diferido,
 ## porque el golpe llega durante un callback de física.
 func _on_player_knocked_out() -> void:
 	_respawn_pending = true
 	respawn_player.call_deferred()
 
 
-## Revive al jugador en respawn_position con todas las vidas de la demo. Solo
-## hace algo si quedó pendiente (el jugador se quedó sin vidas).
+## Revive al jugador en respawn_position con toda la vida de la demo. Solo
+## hace algo si quedó pendiente (el jugador se quedó sin vida).
 func respawn_player() -> void:
 	if not _respawn_pending:
 		return
 	_respawn_pending = false
 	respawns += 1
-	player.revive(respawn_position, Game.DEMO_LIVES)
+	player.revive(respawn_position, Game.DEMO_HEALTH)
 
 
-func _on_player_revived(lives: int) -> void:
-	Game.lives = lives
-	hud.set_lives(lives, player.max_lives)
+func _on_player_revived(health: int) -> void:
+	Game.health = health
+	hud.set_health(health, player.max_health)
 	hud.show_message(RESPAWN_TEXT, NOTICE_TIME)
 
 

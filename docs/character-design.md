@@ -142,7 +142,9 @@ print(f"{im.width // 32} frames, {len(colors)} colores, contorno #25131a: {(0x25
 
 ## 3. Fichas de los personajes existentes
 
-Valores comunes de `EnemyBase` salvo que la escena los cambie: `knockback_distance = 10` px aplicados en `KNOCKBACK_TIME = 0.15` s, `heart_drop_chance = 0.18`, `contact_damage = 1`. Capas de física: 1 `world`, 2 `player`, 3 `enemies` (valor 4).
+Valores comunes de `EnemyBase` salvo que la escena los cambie: `knockback_distance = 10` px aplicados en `KNOCKBACK_TIME = 0.15` s, `heart_drop_chance = 0.18`, `contact_damage = 2`. Capas de física: 1 `world`, 2 `player`, 3 `enemies` (valor 4).
+
+**Unidad del daño al jugador:** la vida del jugador se cuenta en medios corazones (`Heart.HALF_HEARTS_PER_HEART = 2`). Todo el daño que recibe el jugador (contacto, ataques, proyectiles, picos, efectos de los jefes) está en esa unidad: un golpe base vale 2 (un corazón entero, lo mismo que una vida antes del cambio). Desde el nivel 25 el nivel le suma `LevelGenerator.enemy_damage_bonus` (+1, +2 y +3 en los niveles 25, 45 y 65) con un tope de 5 por golpe (`MAX_SCALED_HIT`), ver la sección 8. El daño del arma del jugador y el de un orbe devuelto contra un enemigo (`Projectile.reflected_damage`) siguen en golpes de la vida del enemigo.
 
 ### 3.1 Jugador (caballero)
 
@@ -152,12 +154,12 @@ Valores comunes de `EnemyBase` salvo que la escena los cambie: `knockback_distan
 | Visual | caballero con yelmo gris con visera, armadura gris y espada; 6 colores |
 | Animaciones | solo `idle` (4 frames, 6 FPS). La caminata se simula inclinando el sprite ±8° y con un rebote de 1.5 px a 8 pasos/s; el ataque es un arco blanco (`Line2D`) y un avance de 3 px |
 | Movimiento | 80 px/s en 8 direcciones; es más rápido que todos los enemigos |
-| Vidas | 3, invulnerable 1.5 s tras recibir daño |
+| Vida | 3 corazones (`max_health = 6` medios corazones), invulnerable 1.5 s tras recibir daño; la HUD dibuja cada corazón lleno, a medias o vacío |
 | Retroceso al recibir daño | 14 px en 0.15 s (no lo aplican los picos) |
 | Espada | daño 1, hitbox de 12 × 18 px centrada a 10 px del jugador (alcance de unos 16 px), activa 0.2 s, enfriamiento 0.4 s, apunta a la última dirección de movimiento |
 | Colisión | pies 10 × 6 px; la hitbox detecta capa 3 (cuerpos y también áreas con `take_hit`) |
 
-Consecuencias de diseño: con 3 vidas, cada punto de daño es un tercio de la partida; la invulnerabilidad de 1.5 s hace que varios golpes seguidos cuenten como uno. Un enemigo más rápido que 80 px/s no se puede esquivar corriendo.
+Consecuencias de diseño: con 3 corazones, cada golpe base es un tercio de la partida y uno escalado del nivel 65 (5 medios) casi la mata, pero nunca de una vez con la vida llena; la invulnerabilidad de 1.5 s hace que varios golpes seguidos cuenten como uno. Un enemigo más rápido que 80 px/s no se puede esquivar corriendo.
 
 ### 3.2 Esqueleto (soldado)
 
@@ -170,7 +172,7 @@ Consecuencias de diseño: con 3 vidas, cada punto de daño es un tercio de la pa
 | Comportamiento | va y viene entre su punto inicial y `patrol_offset` (tramo recto de 3–7 celdas, 48–112 px); sin tramo espera en su puesto |
 | Detección | detecta a 64 px, pierde a 96 px, no persigue si el jugador está a más de 56 px de su ruta (`leash_radius`, medido al punto más cercano del tramo) |
 | Estados | patrulla → va hacia el jugador → ataca → enfriamiento → vuelve a la ruta si lo pierde |
-| Estocada | empieza a 20 px (`attack_range`), alcance 24 px (`attack_reach`), daño 1, frames de impacto 6–7 (el arco del tajo, verificado en la hoja) |
+| Estocada | empieza a 20 px (`attack_range`), alcance 24 px (`attack_reach`), daño 2 (un corazón; más el bonus del nivel), frames de impacto 6–7 (el arco del tajo, verificado en la hoja) |
 | Tiempos de la estocada (9 frames a 10 FPS, el 5 dura 1.5) | anticipación 650 ms (frames 0–5), activo 200 ms (6–7), recuperación 100 ms (8), enfriamiento 1.4 s |
 | Paso de guardia | cada golpe que aguanta lo hace retroceder 22 px (10 + `guard_step_distance` 12) y no ataca durante 1.8 s (`guard_attack_delay`) |
 | Interrupción | un golpe del jugador cancela la estocada; atacando no esquiva |
@@ -190,7 +192,7 @@ Esquiva (todos los enemigos, `EnemyBase.dodge_chance`): esqueleto 15 %, calavera
 | Stats | vida 3, velocidad 50 px/s, `contact_damage = 0` (solo lastima al morder) |
 | Detección | detecta a 80 px, pierde a 120 px, no persigue si el jugador está a más de 140 px de su puesto (`leash_radius`) |
 | Estados | en el puesto → persigue → ataca → enfriamiento → vuelve al puesto si lo pierde |
-| Mordisco | empieza a 20 px (`attack_range`), alcance 26 px (`attack_reach`), daño 1, frames de impacto 9–10 |
+| Mordisco | empieza a 20 px (`attack_range`), alcance 26 px (`attack_reach`), daño 2 (un corazón; más el bonus del nivel), frames de impacto 9–10 |
 | Tiempos del mordisco (16 frames a 14 FPS) | anticipación 643 ms (frames 0–8), activo 143 ms (9–10), recuperación 357 ms (11–15), enfriamiento 1.2 s |
 | Interrupción | un golpe del jugador cancela el mordisco y empieza el enfriamiento |
 | Cómo vencerlo | retroceder un paso durante la anticipación y contraatacar; es más lento que el jugador |
@@ -204,7 +206,7 @@ Esquiva (todos los enemigos, `EnemyBase.dodge_chance`): esqueleto 15 %, calavera
 | Archivos | `scripts/skull_enemy.gd` (`SkullEnemy`), `scenes/Skull.tscn`, `monsters_idle/skull/v1/skull_v1_1..4.png` (16 × 16) |
 | Rol | embestida en línea recta |
 | Visual | calavera azul envuelta en llama espectral, ojos rojos; 6 colores |
-| Stats | vida 2, cuerpo 8 × 8, contacto 12 × 12; daño 1 **solo mientras embiste** |
+| Stats | vida 2, cuerpo 8 × 8, contacto 12 × 12; daño 2 (un corazón) **solo mientras embiste** |
 | Estados | `IDLE` → `WINDUP` (0.7 s, parpadeo rojo a 6 Hz) → `CHARGE` (150 px/s, hasta 0.6 s ≈ 90 px o hasta chocar con una pared) → `RECOVER` (1.0 s, tinte azulado, quieta) → enfriamiento 0.8 s |
 | Detección | 90 px |
 | Apuntado | fija la dirección **al final** de la carga: el jugador tiene los 0.7 s para salirse de la línea |
@@ -221,7 +223,7 @@ Esquiva (todos los enemigos, `EnemyBase.dodge_chance`): esqueleto 15 %, calavera
 | Archivos | `scripts/chaser_enemy.gd`, `scenes/Reaper.tscn`, `enemies-skeleton2_*.png` |
 | Rol | jefe lento que custodia la puerta o la llave |
 | Visual | esqueleto con capucha marrón y guadaña, a escala 1.4 (unos 22 px de alto); 11 colores |
-| Stats | vida 5, velocidad 22 px/s, retroceso 4 px, corazón garantizado (`heart_drop_chance = 1.0`), contacto 1, cuerpo 14 × 10, contacto 18 × 20 |
+| Stats | vida 5, velocidad 22 px/s, retroceso 4 px, corazón garantizado (`heart_drop_chance = 1.0`), contacto 2 (un corazón; más el bonus del nivel), cuerpo 14 × 10, contacto 18 × 20 |
 | Detección | detecta a 90 px, pierde a 130 px, no se aleja más de 100 px de su puesto |
 | Ataque | solo contacto (`attack_animation` vacío) |
 | Colocación | a 3–8 celdas de la puerta (desde el nivel 3) y otra de la llave (desde el nivel 6) |
@@ -237,16 +239,16 @@ Las hojas `enemies-skeleton2_attack.png` (15 frames, dos giros completos de guad
 |---|---|
 | Archivos | `scripts/spike_trap.gd`, `scenes/SpikeTrap.tscn`, `items_and_traps/peaks/peaks_1..4.png` (16 × 16) |
 | Ciclo `cycle` (6 FPS, 2.0 s en total) | abajo 667 ms (`peaks_3`) → aviso 333 ms (`peaks_4`, `peaks_2`) → **arriba 667 ms** (`peaks_1`, frame 3, `SPIKES_UP_FRAME`) → bajada 333 ms |
-| Daño | 1, sin retroceso, área 12 × 12 |
+| Daño | 2 (un corazón), sin retroceso, área 12 × 12; no recibe el bonus de daño del nivel |
 | Desfase | `start_frame` 0 o 3 al azar en mapas generados |
-| Aparece | nivel 1 (10); generadas desde el 2 (`HAZARDS_BASE = 5` + 1 por nivel, tope 18) |
+| Aparece | nivel 1 (10); generadas desde el 2 (`HAZARDS_BASE = 5` + 1 por nivel, tope 30 desde el nivel 26) |
 | Peso | `WEIGHT_HAZARD = 0.5` |
 
 ### 3.7 Objetos
 
 | Objeto | Archivos | Datos |
 |---|---|---|
-| Corazón | `scripts/heart.gd`, `scenes/Heart.tscn` | dibujo de 9 × 8 px generado en código (contorno `#3d0a12`, relleno `#d92633`, brillo `#ff9e9e`), flota 1.5 px, cura 1; si el jugador tiene todas las vidas se queda en el suelo |
+| Corazón | `scripts/heart.gd`, `scenes/Heart.tscn` | dibujo de 9 × 8 px generado en código (contorno `#3d0a12`, relleno `#d92633`, brillo `#ff9e9e`), flota 1.5 px, cura un corazón (`heal_amount = 2` medios); si el jugador tiene la vida llena se queda en el suelo. `get_half_texture` recorta el mismo dibujo a sus 5 primeras columnas para el medio corazón de la HUD |
 | Llave | `scripts/key.gd`, `scenes/Key.tscn`, `keys/keys_1_1..4.png` | 4 frames a 6 FPS, área 10 × 10 |
 | Puerta | `scripts/door.gd`, `scenes/Door.tscn` | región `Rect2(96, 96, 32, 16)` de `Dungeon_Tileset.png`, área 24 × 8; sin llave muestra "Necesitas la llave" |
 
@@ -266,7 +268,7 @@ Las hojas `enemies-skeleton2_attack.png` (15 frames, dos giros completos de guad
 
 ## 4. Plantilla de ficha
 
-Copiar y completar. Los campos de tiempo van en ms para comparar con la tabla de la sección 6.
+Copiar y completar. Los campos de tiempo van en ms para comparar con la tabla de la sección 6. El daño de las fichas y propuestas está en corazones (1 = un corazón = 2 medios corazones en el código, ver la sección 3).
 
 ```markdown
 ### <Nombre> (`<KIND>` = &"<kind>")
@@ -608,7 +610,7 @@ Ejemplo con el arquero (`ARCHER`). Para trampas, ver el paso 9.
    - campo `var archer_count := 0` en `Params` y su cálculo en `params_for_level`;
    - colocarlos en `_place_enemies` después de los perseguidores, con `_is_spaced(cell, taken, ENEMY_SPACING)` y `taken.append(cell)`;
    - `validate` ya rechaza patrullas de todo lo que no sea `SKELETON`.
-   - Decidir si el tipo nuevo **se suma** a `ENEMIES_MAX` (más entidades) o **reemplaza** parte de los comunes (más peso sin ocupar más celdas). La sección 8 asume que se suma.
+   - Decidir si el tipo nuevo **se suma** a `ENEMIES_MAX` (más entidades) o **reemplaza** parte de los comunes (más peso sin ocupar más celdas). Los especiales actuales se suman (`SPECIAL_ENEMIES`) y, desde el nivel 15, parte de los comunes se convierte en especiales (sección 8.2).
 5. **`scripts/level_builder.gd`:** agregar `LevelGenerator.ARCHER: preload("res://scenes/Archer.tscn")` a `ENEMY_SCENES`. Las propiedades por instancia (élites, grupos) se asignan en `_make_enemy` antes de devolver el nodo.
 6. **`scripts/difficulty_curve.gd`:**
    - `const WEIGHT_ARCHER := 2.5` con su comentario;
@@ -624,40 +626,55 @@ Ejemplo con el arquero (`ARCHER`). Para trampas, ver el paso 9.
 9. **Trampas nuevas.** Hoy todas las trampas son picos: `LevelBuilder._make_trap` siempre instancia `SPIKE_TRAP_SCENE` y `LevelGenerator.validate` exige `hazard.frame` entre 0 y 3. Hay que pasar a un diccionario `TRAP_SCENES` por `kind`, limitar la regla del frame a `SPIKES`, sumar `WEIGHT_*` en `DifficultyCurve` y, para trampas de pared, una función de colocación como `_place_torches` / `_is_torch_wall`.
 10. **Probar en juego** con el modo prueba de dificultad (`DifficultyReport.tscn`), que muestra el índice por nivel y los topes alcanzados.
 
-## 8. Propuesta de curva
+## 8. Curva de dificultad
 
-> **Nota:** desde que se escribió esta sección la vida de los enemigos crece un 8 % de la base por nivel y `index_for` multiplica la parte de enemigos por ese factor, así que la columna «Índice actual» ya no refleja el código (por ejemplo, el nivel 14 pasó de 65.5 a 212.4).
+### 8.1 Objetivo actual
 
-**Esto es una estimación.** Usa la fórmula de `DifficultyCurve.index_for` con los pesos actuales (1.0 / 2.0 / 2.5 / 6.0 / 0.5) y los propuestos en la sección 5. Supuestos:
+`DifficultyCurve` resume cada nivel en un índice (enemigos por su peso efectivo × vida de los enemigos × factor de daño, más las trampas) y el objetivo tiene dos tramos:
 
-- los tipos nuevos se suman a los comunes, no los reemplazan;
-- un grupo de murciélagos ocupa 1 celda de aparición;
-- élite: multiplicador medio de 1.29 (la media de la tabla de 5.8) sobre el peso de todos los enemigos, jefes incluidos; las trampas no cuentan;
-- desde el nivel 9 la parca pesa 7.5 (ataque de guadaña);
-- en cada nivel se agrega lo mínimo para llegar a +10 %, repartiendo entre los tipos ya disponibles.
+- **Hasta el nivel 14:** +10 % de índice por nivel (`TARGET_GROWTH`). Los niveles 11 (+9.97 %), 12 (+4.54 %) y 13 (+4.35 %) ya no lo cumplían antes de estos cambios y se dejaron como están; la prueba los deja afuera a la vista.
+- **Del 15 al 100:** cada nivel sube algo y el índice del 100 es al menos 10 veces el del 14 (`ESCALATION_TARGET`). Antes era ×4.5: desde el 14 los topes de cantidad estaban alcanzados y solo crecía la vida, cada vez menos en relativo (+0.9 % en el 100).
 
-| Nivel | Índice actual | Se agrega respecto del nivel anterior | Índice estimado | Crecimiento |
+### 8.2 Palancas después del nivel 14
+
+| Palanca | Qué hace | Números |
+|---|---|---|
+| Daño por escalones | `LevelGenerator.enemy_damage_bonus`: medios corazones que suma cada golpe de un enemigo (comunes, especiales, parca, jefes temáticos, sus proyectiles y efectos). Las trampas de picos no lo reciben | +1 en el 25, +2 en el 45, +3 desde el 65 (golpe de 3, 4 y 5 medios). Tope `MAX_SCALED_HIT = 5`: con 6 medios de vida ningún golpe mata de una vez. En el índice, factor (2 + bonus) / 2 = 1.5, 2.0, 2.5 |
+| Composición | `LevelGenerator.conversion_count`: un común más pasa a especial cada 3 niveles desde el 15, primero esqueletos y después vampiros; las calaveras se quedan. Destinos rotando: arquero, mago, mímico (la torre no: su peso efectivo 1.5 es menor que el del esqueleto, 1.76). El total de enemigos no cambia | 17 conversiones: 7 esqueletos (15–33) y 10 vampiros (36–63) |
+| Topes de especiales | `SPECIAL_ENEMIES`: el arquero sube de 4 a 6 y el mago de 3 a 5, con su mismo ritmo; la torre y el mímico no cambian porque ya estaban al tope antes del 14 | arqueros 6 desde el 23, magos 5 desde el 26 |
+| Trampas | `HAZARDS_MAX` de 18 a 30 | 30 desde el 26 |
+| Jefes temáticos | igual que con la vida, solo suman el bonus ganado desde su primer nivel (8, 12, 16), que es 0: en sus vueltas desde el 25 pegan como el resto | — |
+
+### 8.3 Curva resultante
+
+| Nivel | Índice antes | Crec. antes | Índice ahora | Crec. ahora |
 |---|---|---|---|---|
-| 7 | 51.0 | — | 51.0 | +13.3 % |
-| 8 | 55.0 | **arquero** ×1 | 57.5 | +12.7 % |
-| 9 | 58.5 | **lanzallamas** ×1, **parca con guadaña** | 65.0 | +13.0 % |
-| 10 | 63.5 | **guardián acorazado** ×1 | 73.0 | +12.3 % |
-| 11 | 64.0 | **murciélagos** ×2 grupos, arquero +1, lanzallamas +1 | 81.8 | +12.1 % |
-| 12 | 64.5 | **piromante** ×1, **ballesta** ×2, guardián +1, lanzallamas +1 | 91.3 | +11.6 % |
-| 13 | 65.0 | **espectro** ×2, piromante +1 | 100.8 | +10.4 % |
-| 14 | 65.5 | **élites** 30 %, arquero +1, ballesta +1 | 112.6 | +11.7 % |
-| 15 | 65.5 | **nigromante** ×2, élites 40 %, lanzallamas +1, ballesta +1 | 126.1 | +12.0 % |
-| 16 | 65.5 | **limo** ×2, **runa ígnea** ×4, murciélagos +1 grupo, lanzallamas +1 | 139.7 | +10.8 % |
-| 17 | 65.5 | guardián +1, piromante +1, espectro +1, limo +1, runa +1 | 153.9 | +10.2 % |
-| 18 | 65.5 | élites 50 %, arquero +1, lanzallamas +1, ballesta +2, runa +1 (todo al tope) | 164.0 | +6.6 % |
-| 19+ | 65.5 | — | 164.0 | 0 % |
+| 2 | 20.63 | — | 20.63 | — |
+| 7 | 94.78 | +16.96 % | 94.78 | +16.96 % |
+| 14 | 204.98 | +11.33 % | 204.98 | +11.33 % |
+| 18 | 250.99 | +6.92 % | 259.93 | +8.79 % |
+| 25 | 308.42 | +2.73 % | 527.32 | +52.18 % |
+| 45 | 472.48 | +1.77 % | 1166.18 | +36.20 % |
+| 65 | 636.54 | +1.31 % | 2016.85 | +26.41 % |
+| 100 | 923.65 | +0.90 % | 2932.73 | +0.90 % |
 
-Topes por mapa en el nivel 18: 4 arqueros, 3 guardianes, 3 grupos de murciélagos, 3 piromantes, 3 espectros, 2 nigromantes, 3 limos y 6 trampas de cada tipo nuevo.
+Escalada del 14 al 100: ×14.31 (antes ×4.51). El crecimiento mínimo después del 14 sigue siendo el de la vida sola, +0.90 % en el nivel 100; los saltos grandes son los escalones de daño (25, 45, 65). Los niveles hasta el 14 no cambian.
 
-Lectura:
+### 8.4 Capacidad de los mapas
 
-- Con este contenido, la curva cumple +10 % hasta el nivel 17 (hoy deja de cumplir en el 8) y llega al tope en el 18.
-- En el nivel 17 hay 20 celdas extra de enemigos. Los mapas al tope tienen sitio para 15–38 enemigos más según la semilla: en las semillas más justas no entraría todo. El generador coloca lo que cabe, así que el índice real puede quedar por debajo de la estimación. Hay que medirlo con `DifficultyCurve.capacity_report`.
-- Las trampas de pared no ocupan celdas de suelo para enemigos. Las runas sí, pero hay sitio para 66–144 trampas más.
-- Un crecimiento compuesto de +10 % no se sostiene indefinidamente con un mapa que deja de crecer en el nivel 13: el nivel 30 pediría un índice de unos 457. Pasado el nivel 17 hay que elegir entre mantener el índice y rotar la composición para que cada nivel sea distinto, bajar el objetivo de crecimiento a partir de cierto nivel, o agregar otra fuente de dificultad (un tercer jefe o subir `GRID_MAX`). `test_every_level_meets_the_target_growth` va a seguir fallando desde el 18 con cualquiera de las tres.
-- Los pesos nuevos son supuestos, igual que los actuales (ver el comentario de `difficulty_curve.gd`): conviene ajustarlos con los datos de `difficulty_playtest.csv` después de probarlos.
+Medida con `DifficultyCurve.capacity_report` (lugares libres que quedan para un enemigo más, contando las trampas ya puestas como bloqueo, una estimación conservadora), 30 semillas por nivel:
+
+| Nivel | Antes (código viejo) | Con la conversión, topes viejos | Con los topes nuevos |
+|---|---|---|---|
+| 20 | mín. 11, media 21.0 | mín. 13, media 23.2 | mín. 9, media 18.9 |
+| 30 | mín. 5, media 19.9 | mín. 8, media 25.1 | mín. 3, media 14.5 |
+| 50 | mín. 5, media 18.1 | mín. 8, media 24.4 | mín. 3, media 14.6 |
+| 75 | mín. 3, media 15.8 | mín. 6, media 22.5 | mín. 0, media 13.0 |
+| 100 | mín. 9, media 19.8 | mín. 13, media 25.7 | mín. 8, media 17.6 |
+
+- La conversión libera lugar: un esqueleto reserva todo su tramo de patrulla y un especial, una sola celda. Por eso el mínimo pasó de 3 a 6.
+- Los +4 especiales (dos arqueros y dos magos) son el 67 % de ese mínimo de 6. Con la lectura más estricta (el mínimo de 3 del código viejo) entrarían solo 2: arquero 5 y mago 4.
+- Las +12 trampas son el 32 % del mínimo de lugares para trampas medido antes (38).
+- Con los topes nuevos, en todos los niveles medidos (20, 30, 50, 75, 100 con 30 semillas, y 26, 30, 50, 75 con 100) se coloca todo lo pedido y ningún mapa usa el diseño de emergencia. El mínimo de 0 del nivel 75 es por las trampas nuevas, que se cuentan como bloqueo; antes de las trampas (que el generador coloca después de los enemigos) quedan al menos 8 lugares para enemigos en 100 semillas.
+
+Los pesos del índice siguen siendo supuestos (ver el comentario de `difficulty_curve.gd`): conviene ajustarlos con los datos de `difficulty_playtest.csv`. La propuesta anterior de esta sección (sumar los tipos de la sección 5 hasta el nivel 18) queda en el historial de git.

@@ -11,7 +11,7 @@ const SANDBOX_SCENE := "res://scenes/Sandbox.tscn"
 const WEAPONS_DIR := "res://assets/weapons"
 const EXPECTED_WEAPON_COUNT := 21
 ## Estado de la partida que la zona de pruebas no debe tocar.
-const GAME_STATE := [&"current_level", &"lives", &"enemies_killed", &"score", &"coins",
+const GAME_STATE := [&"current_level", &"health", &"enemies_killed", &"score", &"coins",
 		&"damage_bonus", &"weapon_id", &"run_seed", &"test_mode"]
 
 
@@ -170,12 +170,12 @@ func test_player_is_invincible_and_never_dies() -> void:
 		return
 	var player: CharacterBody2D = sandbox.player
 	sandbox.invincible_check.button_pressed = true
-	player.take_damage(1, Vector2.ZERO)
-	assert_eq(player.lives, player.max_lives, "invencible no pierde vidas")
+	player.take_damage(2, Vector2.ZERO)
+	assert_eq(player.health, player.max_health, "invencible no pierde vida")
 	sandbox.invincible_check.button_pressed = false
 	player._invulnerable_left = 0.0
-	player.take_damage(player.lives, Vector2.ZERO)
-	assert_eq(player.lives, player.max_lives, "al quedarse sin vidas las recupera")
+	player.take_damage(player.health, Vector2.ZERO)
+	assert_eq(player.health, player.max_health, "al quedarse sin vida la recupera toda")
 	assert_true(player.is_physics_processing(), "y se puede seguir moviendo")
 
 

@@ -24,7 +24,7 @@ class TargetStub:
 	extends Node2D
 	var damage_taken := 0
 
-	func take_damage(amount: int, _from_position: Vector2 = Vector2.INF) -> void:
+	func take_damage(amount: int, _from_position: Vector2 = Vector2.INF, _source: StringName = &"") -> void:
 		damage_taken += amount
 
 
@@ -37,7 +37,8 @@ func test_scene_has_a_telegraphed_sword_attack() -> void:
 	assert_true(skeleton is ChaserEnemy, "el esqueleto reutiliza el ataque de ChaserEnemy")
 	assert_eq(skeleton.attack_animation, &"attack")
 	assert_eq(skeleton.contact_damage, 0, "solo lastima con la estocada")
-	assert_eq(skeleton.attack_damage, 1, "el daño de los enemigos no escala")
+	assert_eq(skeleton.attack_damage, Heart.HALF_HEARTS_PER_HEART,
+			"la estocada base quita un corazón (el bonus de daño lo suma el nivel)")
 	assert_eq(skeleton.attack_hit_frames, Vector2i(6, 7))
 	var frames: SpriteFrames = skeleton.get_node("AnimatedSprite2D").sprite_frames
 	assert_eq(frames.get_frame_count(&"attack"), 9)
@@ -119,10 +120,10 @@ func test_thrust_hurts_only_on_impact_frames_and_once() -> void:
 		skeleton.sprite.frame = frame
 	assert_eq(target.damage_taken, 0, "la anticipación no lastima")
 	skeleton.sprite.frame = skeleton.attack_hit_frames.x
-	assert_eq(target.damage_taken, 1, "el primer frame de impacto lastima")
+	assert_eq(target.damage_taken, skeleton.attack_damage, "el primer frame de impacto lastima")
 	skeleton.sprite.frame = skeleton.attack_hit_frames.y
 	skeleton.sprite.frame = 8
-	assert_eq(target.damage_taken, 1, "una sola vez por ataque, y la recuperación no lastima")
+	assert_eq(target.damage_taken, skeleton.attack_damage, "una sola vez por ataque, y la recuperación no lastima")
 
 
 func test_thrust_misses_out_of_reach() -> void:

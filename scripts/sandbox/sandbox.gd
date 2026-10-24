@@ -81,7 +81,7 @@ func _ready() -> void:
 	var tile_size := Vector2(dungeon.tile_set.tile_size)
 	player.position = (Vector2(PLAYER_CELL) + Vector2(0.5, 0.5)) * tile_size
 	_fit_camera()
-	# El jugador nunca muere acá: si se queda sin vidas vuelve a tenerlas todas.
+	# El jugador nunca muere acá: si se queda sin vida vuelve a tenerla toda.
 	player.died.connect(_revive_player)
 
 	weapons = SandboxCatalog.load_weapons()
@@ -105,7 +105,8 @@ func _exit_tree() -> void:
 
 
 func _process(_delta: float) -> void:
-	status_label.text = "Vidas: %d/%d · Enemigos: %d" % [player.lives, player.max_lives, alive_enemy_count()]
+	status_label.text = "Vida: %s/%s corazones · Enemigos: %d" % [Heart.format_hearts(player.health),
+			Heart.format_hearts(player.max_health), alive_enemy_count()]
 
 
 ## Atajos de teclado del panel. Los botones del panel no toman el foco, así
@@ -394,9 +395,9 @@ func _fit_camera() -> void:
 
 # ----- otros -----
 
-## El jugador se quedó sin vidas: vuelve a tenerlas todas y sigue jugando.
+## El jugador se quedó sin vida: vuelve a tenerla toda y sigue jugando.
 func _revive_player() -> void:
-	player.lives = player.max_lives
+	player.health = player.max_health
 	player.set_physics_process(true)
 
 

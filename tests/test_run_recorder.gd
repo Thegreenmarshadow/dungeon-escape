@@ -2,11 +2,13 @@
 extends McpTestSuite
 ## Pruebas de RunRecorder: qué eventos y qué resumen produce cada momento de
 ## una partida. Usa un destino que solo anota (RecordingSink), sin red. También
-## cubre el nombre del jugador (PlayerProfile) y la lectura de la tabla en
-## línea (OnlineLeaderboard.parse_response).
+## cubre el nombre del jugador (PlayerProfile y el perfil elegido con el que
+## RunTracker empieza la partida) y la lectura de la tabla en línea
+## (OnlineLeaderboard.parse_response).
 
 const RUN_ID := "0123456789abcdef0123456789abcdef"
 const TEMP_DIR := "user://test_run_recorder"
+const RUN_TRACKER_SCRIPT := "res://scripts/stats/run_tracker.gd"
 
 
 ## Destino falso: guarda todo lo que recibe.
@@ -36,6 +38,9 @@ class RecordingSink:
 
 var _sink: RecordingSink
 var _recorder: RunRecorder
+# Autoload Profiles y su ProfileStore real, para devolverlo en teardown.
+var _profiles: Node
+var _previous_store: ProfileStore
 
 
 func suite_name() -> String:
@@ -48,11 +53,11 @@ func setup() -> void:
 
 
 func teardown() -> void:
-	if not DirAccess.dir_exists_absolute(TEMP_DIR):
-		return
-	for file_name in DirAccess.get_files_at(TEMP_DIR):
-		DirAccess.remove_absolute(TEMP_DIR.path_join(file_name))
-	DirAccess.remove_absolute(TEMP_DIR)
+	if _profiles != null:
+		_profiles.store = _previous_store
+		_profiles = null
+		_previous_store = null
+	JsonFile.remove_tree(TEMP_DIR)
 
 
 func test_start_run_sends_the_run_data() -> void:
@@ -70,30 +75,34 @@ func test_start_run_sends_the_run_data() -> void:
 
 func test_a_full_level_produces_events_in_order() -> void:
 	_recorder.start_run(RUN_ID, "Ana", RunRecorder.MODE_NORMAL, 1, 1)
-	_recorder.start_level(1, 3, 4)
+	# La vida llega en medios corazones (6 = 3 corazones) y sale en corazones.
+	_recorder.start_level(1, 6, 4)
 	_recorder.advance(2.0)
 	_recorder.record_kill("Skeleton", 1, 10)
-	_recorder.record_lives(2)
+	_recorder.record_health(4, "Skeleton")
 	_recorder.advance(1.0)
-	_recorder.record_lives(3)
+	_recorder.record_health(6)
 	_recorder.record_key()
+	_recorder.record_weapon("spear")
 	_recorder.advance(0.5)
 	_recorder.complete_level(110)
 
 	assert_eq(_sink.types(), [
-		"level_started", "enemy_killed", "damage_taken", "heart_picked", "key_picked", "level_completed"])
+		"level_started", "enemy_killed", "damage_taken", "heart_picked", "key_picked",
+		"weapon_changed", "level_completed"])
 	var seqs := []
 	for event in _sink.events:
 		seqs.append(event["seq"])
 		assert_eq(event["run_id"], RUN_ID)
 		assert_eq(event["level"], 1)
-	assert_eq(seqs, [0, 1, 2, 3, 4, 5])
-	assert_eq(_sink.events[0]["payload"], {"lives": 3, "enemies_total": 4})
+	assert_eq(seqs, [0, 1, 2, 3, 4, 5, 6])
+	assert_eq(_sink.events[0]["payload"], {"lives": 3.0, "enemies_total": 4})
 	assert_eq(_sink.events[1]["payload"], {"enemy": "Skeleton"})
 	assert_eq(_sink.events[1]["t_run_s"], 2.0)
-	assert_eq(_sink.events[2]["payload"], {"amount": 1, "lives": 2})
-	assert_eq(_sink.events[3]["payload"], {"amount": 1, "lives": 3})
-	var completed: Dictionary = _sink.events[5]["payload"]
+	assert_eq(_sink.events[2]["payload"], {"amount": 1.0, "lives": 2.0, "source": "Skeleton"})
+	assert_eq(_sink.events[3]["payload"], {"amount": 1.0, "lives": 3.0})
+	assert_eq(_sink.events[5]["payload"], {"weapon": "spear"})
+	var completed: Dictionary = _sink.events[6]["payload"]
 	assert_eq(completed["duration_s"], 3.5)
 	assert_eq(completed["kills"], 1)
 	assert_eq(completed["enemies_total"], 4)
@@ -104,17 +113,18 @@ func test_a_full_level_produces_events_in_order() -> void:
 
 func test_death_ends_the_run_with_its_totals() -> void:
 	_recorder.start_run(RUN_ID, "Ana", RunRecorder.MODE_NORMAL, 1, 1)
-	_recorder.start_level(1, 3, 2)
+	_recorder.start_level(1, 6, 2)
 	_recorder.advance(4.0)
 	_recorder.complete_level(100)
 	_recorder.advance(9.0)  # Entre niveles (pantalla de nivel superado) no cuenta.
-	_recorder.start_level(2, 3, 5)
+	_recorder.start_level(2, 6, 5)
 	_recorder.advance(6.0)
 	_recorder.record_kill("Vampire", 1, 110)
-	_recorder.record_lives(0)
-	_recorder.record_death(110, 1)
+	_recorder.record_health(0, "spikes")
+	_recorder.record_death(110, 1, "spikes")
 
 	assert_eq(_sink.types().slice(-2), ["damage_taken", "player_died"])
+	assert_eq(_sink.events[-1]["payload"], {"score": 110, "cause": "spikes"})
 	assert_eq(_sink.events[-1]["level"], 2)
 	assert_eq(_sink.summaries.size(), 1)
 	var summary := _sink.summaries[0]
@@ -129,7 +139,7 @@ func test_death_ends_the_run_with_its_totals() -> void:
 
 func test_quit_uses_the_given_totals_and_adds_a_quit_event() -> void:
 	_recorder.start_run(RUN_ID, "Ana", RunRecorder.MODE_NORMAL, 1, 3)
-	_recorder.start_level(3, 2, 6)
+	_recorder.start_level(3, 4, 6)
 	_recorder.finish_run(RunRecorder.OUTCOME_QUIT, 40, 4)
 
 	assert_eq(_sink.types()[-1], "run_quit")
@@ -143,7 +153,7 @@ func test_quit_uses_the_given_totals_and_adds_a_quit_event() -> void:
 
 func test_starting_a_run_while_another_is_running_closes_the_old_one() -> void:
 	_recorder.start_run(RUN_ID, "Ana", RunRecorder.MODE_NORMAL, 1, 1)
-	_recorder.start_level(1, 3, 2)
+	_recorder.start_level(1, 6, 2)
 	_recorder.record_kill("Skeleton", 1, 10)
 	_recorder.start_run("ffffffffffffffff", "Ana", RunRecorder.MODE_NORMAL, 2, 1)
 
@@ -155,7 +165,7 @@ func test_starting_a_run_while_another_is_running_closes_the_old_one() -> void:
 
 
 func test_nothing_is_sent_without_a_run_or_outside_a_level() -> void:
-	_recorder.start_level(1, 3, 2)
+	_recorder.start_level(1, 6, 2)
 	_recorder.record_kill("Skeleton", 1, 10)
 	_recorder.finish_run(RunRecorder.OUTCOME_QUIT)
 	assert_true(_sink.events.is_empty())
@@ -163,22 +173,36 @@ func test_nothing_is_sent_without_a_run_or_outside_a_level() -> void:
 
 	_recorder.start_run(RUN_ID, "Ana", RunRecorder.MODE_NORMAL, 1, 1)
 	_recorder.record_key()
-	_recorder.record_lives(1)
+	_recorder.record_health(1)
 	_recorder.record_death(0, 0)
 	assert_true(_sink.events.is_empty(), "sin nivel activo no hay eventos")
 	assert_true(_recorder.is_running())
 
 
-func test_unchanged_lives_produce_no_event() -> void:
+func test_unchanged_health_produces_no_event() -> void:
 	_recorder.start_run(RUN_ID, "Ana", RunRecorder.MODE_NORMAL, 1, 1)
-	_recorder.start_level(1, 3, 0)
-	_recorder.record_lives(3)
+	_recorder.start_level(1, 6, 0)
+	_recorder.record_health(6)
 	assert_eq(_sink.types(), ["level_started"])
+
+
+func test_half_hearts_are_reported_as_fractional_hearts() -> void:
+	# Un golpe con el bonus de daño quita 3 medios corazones: 1.5 corazones.
+	_recorder.start_run(RUN_ID, "Ana", RunRecorder.MODE_NORMAL, 1, 25)
+	_recorder.start_level(25, 5, 0)
+	_recorder.record_health(2, "Archer")
+	_recorder.record_health(4)
+	_recorder.record_respawn(6)
+	assert_eq(_sink.types(), ["level_started", "damage_taken", "heart_picked", "player_respawned"])
+	assert_eq(_sink.events[0]["payload"], {"lives": 2.5, "enemies_total": 0})
+	assert_eq(_sink.events[1]["payload"], {"amount": 1.5, "lives": 1.0, "source": "Archer"})
+	assert_eq(_sink.events[2]["payload"], {"amount": 1.0, "lives": 2.0})
+	assert_eq(_sink.events[3]["payload"], {"lives": 3.0})
 
 
 func test_coins_picked_in_a_level_are_recorded() -> void:
 	_recorder.start_run(RUN_ID, "Ana", RunRecorder.MODE_NORMAL, 1, 1)
-	_recorder.start_level(1, 3, 2)
+	_recorder.start_level(1, 6, 2)
 	_recorder.record_coins(2)
 	_recorder.record_coins(0)
 	assert_eq(_sink.types(), ["level_started", "coin_picked"], "cero monedas no es un evento")
@@ -192,7 +216,7 @@ func test_enemy_dodges_in_a_level_are_recorded() -> void:
 	_recorder.start_run(RUN_ID, "Ana", RunRecorder.MODE_NORMAL, 1, 1)
 	_recorder.record_dodge("Skeleton")
 	assert_true(_sink.events.is_empty(), "antes del nivel no se registran esquivas")
-	_recorder.start_level(1, 3, 2)
+	_recorder.start_level(1, 6, 2)
 	_recorder.record_dodge("Skeleton")
 	assert_eq(_sink.types(), ["level_started", "enemy_dodged"])
 	assert_eq(_sink.events[1]["type"], RunRecorder.EVENT_ENEMY_DODGED)
@@ -205,7 +229,7 @@ func test_enemy_dodges_in_a_level_are_recorded() -> void:
 
 func test_purchases_between_levels_are_recorded_with_the_completed_level() -> void:
 	_recorder.start_run(RUN_ID, "Ana", RunRecorder.MODE_NORMAL, 1, 2)
-	_recorder.start_level(2, 3, 4)
+	_recorder.start_level(2, 6, 4)
 	_recorder.complete_level(100)
 	_recorder.record_purchase("damage", 10)
 	_recorder.record_purchase("life", 6)
@@ -245,6 +269,37 @@ func test_player_name_is_sanitized_and_persisted() -> void:
 	assert_eq(PlayerProfile.sanitize("   "), PlayerProfile.DEFAULT_NAME)
 	assert_eq(PlayerProfile.sanitize("x".repeat(40)).length(), PlayerProfile.MAX_NAME_LENGTH)
 	assert_eq(PlayerProfile.sanitize("Iñaki Núñez"), "Iñaki Núñez")
+
+
+func test_current_name_is_the_selected_profile() -> void:
+	var store := ProfileStore.new(TEMP_DIR.path_join("profiles"))
+	var ana := store.create_profile("  Ana  ")
+	var long_name := store.create_profile("x".repeat(40))
+	store.select_profile(ana["slug"])
+	assert_eq(PlayerProfile.current_name(store.base_dir), "Ana")
+	store.select_profile(long_name["slug"])
+	assert_eq(PlayerProfile.current_name(store.base_dir).length(), PlayerProfile.MAX_NAME_LENGTH,
+			"entra en el player_name del servidor (32 como máximo)")
+
+
+func test_run_tracker_starts_the_run_with_the_selected_profile_name() -> void:
+	var root := (Engine.get_main_loop() as SceneTree).root
+	var profiles := root.get_node_or_null("Profiles")
+	if profiles == null or root.get_node_or_null("Game") == null:
+		skip("necesita los Autoload Profiles y Game")
+		return
+	_profiles = profiles
+	_previous_store = profiles.store
+	_profiles.store = ProfileStore.new(TEMP_DIR.path_join("profiles"))
+	_profiles.store.create_profile("Ana")
+	var beto: Dictionary = _profiles.store.create_profile("Beto")
+	_profiles.store.select_profile(beto["slug"])
+
+	var tracker: Node = track(load(RUN_TRACKER_SCRIPT).new())
+	tracker.recorder = _recorder
+	tracker._on_run_started()
+	assert_eq(_sink.runs.size(), 1)
+	assert_eq(_sink.runs[0]["player_name"], "Beto", "el perfil elegido, no el primero ni player.cfg")
 
 
 func test_online_leaderboard_parses_valid_responses_only() -> void:

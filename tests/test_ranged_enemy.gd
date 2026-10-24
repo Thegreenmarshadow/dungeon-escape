@@ -25,7 +25,7 @@ class TargetStub:
 	extends Node2D
 	var damage_taken := 0
 
-	func take_damage(amount: int, _from_position: Vector2 = Vector2.INF) -> void:
+	func take_damage(amount: int, _from_position: Vector2 = Vector2.INF, _source: StringName = &"") -> void:
 		damage_taken += amount
 
 
@@ -200,6 +200,21 @@ func test_turret_and_mage_fire_their_orbs() -> void:
 	mage._get_move_velocity(0.016)
 	mage.sprite.frame = mage.release_frame
 	assert_true(_projectiles(mage)[0].reflectable, "el orbe del mago se puede devolver")
+
+
+func test_projectiles_carry_the_level_damage_bonus() -> void:
+	# Sin bonus el proyectil quita lo de su escena (un corazón); con el bonus
+	# del nivel lo dispara más fuerte, sin pasar del tope. Devuelto contra un
+	# enemigo sigue haciendo un golpe de su vida.
+	for bonus in [0, 1, 3, 9]:
+		var mage := _make("res://scenes/Mage.tscn", Vector2(80, 0))
+		mage.apply_damage_bonus(bonus)
+		mage._get_move_velocity(0.016)
+		mage.sprite.frame = mage.release_frame
+		var orb: Projectile = _projectiles(mage)[0]
+		assert_eq(orb.damage, mini(Heart.HALF_HEARTS_PER_HEART + bonus, LevelGenerator.MAX_SCALED_HIT),
+				"orbe con bonus %d" % bonus)
+		assert_eq(orb.reflected_damage, 1, "devuelto no cambia con el bonus")
 
 
 # ----- ayudas -----

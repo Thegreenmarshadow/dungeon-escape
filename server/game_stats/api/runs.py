@@ -1,10 +1,17 @@
-from typing import Annotated
+import json
+from typing import Annotated, Any
 
-from fastapi import APIRouter, HTTPException, Query, Response, status
+from fastapi import APIRouter, HTTPException, Query, Request, Response, status
+from fastapi.concurrency import run_in_threadpool
+from pydantic import ValidationError
 
 from ..models import (
     EventBatch,
     EventBatchResult,
+    LevelTrackIn,
+    LevelTrackResult,
+    LevelTrackView,
+    MAX_LEVEL_BYTES,
     Mode,
     PlayerNotFound,
     Run,
@@ -69,3 +76,61 @@ def add_events(run_id: str, body: EventBatch, repo: Repository) -> EventBatchRes
     except RunNotFound as error:
         raise _not_found(error) from error
     return EventBatchResult(received=len(body.events), inserted=inserted)
+
+
+@router.post(
+    "/{run_id}/levels",
+    response_model=LevelTrackResult,
+    status_code=status.HTTP_201_CREATED,
+    responses={404: {"description": "unknown run"}, 413: {"description": "file too large"}},
+)
+async def add_level_track(run_id: str, request: Request, repo: Repository, response: Response) -> LevelTrackResult:
+    """Store one level telemetry file (the JSON the game's Telemetry writes),
+    sent as is in the body. run_id is the server's run, which must exist first.
+    Sending the same run, level and attempt again changes nothing (200)."""
+    raw = await _read_level_json(request)
+    try:
+        track = LevelTrackIn.model_validate(raw)
+    except ValidationError as error:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
+            detail=error.errors(include_url=False, include_context=False, include_input=False),
+        ) from error
+    try:
+        created = await run_in_threadpool(repo.add_level_track, run_id, track, raw)
+    except RunNotFound as error:
+        raise _not_found(error) from error
+    if not created:
+        response.status_code = status.HTTP_200_OK
+    return LevelTrackResult(run_id=run_id, level=track.level, attempt=track.attempt, created=created)
+
+
+@router.get("/{run_id}/levels", response_model=list[LevelTrackView])
+def list_level_tracks(run_id: str, repo: Repository) -> list[LevelTrackView]:
+    """The run's levels with map, route, events and summary, to draw them."""
+    try:
+        return repo.list_level_tracks(run_id)
+    except RunNotFound as error:
+        raise _not_found(error) from error
+
+
+async def _read_level_json(request: Request) -> dict[str, Any]:
+    too_large = HTTPException(
+        status_code=status.HTTP_413_CONTENT_TOO_LARGE,
+        detail=f"a level file can have at most {MAX_LEVEL_BYTES} bytes",
+    )
+    declared = request.headers.get("content-length", "")
+    if declared.isdigit() and int(declared) > MAX_LEVEL_BYTES:
+        raise too_large
+    body = bytearray()
+    async for chunk in request.stream():
+        body += chunk
+        if len(body) > MAX_LEVEL_BYTES:
+            raise too_large
+    try:
+        raw = json.loads(body)
+    except (UnicodeDecodeError, json.JSONDecodeError) as error:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="the body is not JSON") from error
+    if not isinstance(raw, dict):
+        raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_CONTENT, detail="expected a JSON object")
+    return raw

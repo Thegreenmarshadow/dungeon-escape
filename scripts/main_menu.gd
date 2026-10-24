@@ -6,10 +6,13 @@ const MENU_MUSIC := preload("res://assets/music/dungeon_yd.ogg")
 const FADE_IN_TIME := 0.8
 ## Cuántos puntajes de la tabla se muestran en el menú.
 const SHOWN_SCORES := 5
+## Informe de patrones de la telemetría (herramienta del equipo).
+const ANALYTICS_REPORT_SCENE := "res://scenes/AnalyticsReport.tscn"
 
 @onready var play_button: Button = %PlayButton
 @onready var demo_button: Button = %DemoButton
 @onready var test_mode_button: Button = %TestModeButton
+@onready var analytics_button: Button = %AnalyticsButton
 @onready var sandbox_button: Button = %SandboxButton
 @onready var quit_button: Button = %QuitButton
 @onready var title: Label = %Title
@@ -18,7 +21,10 @@ const SHOWN_SCORES := 5
 @onready var no_scores_label: Label = %NoScoresLabel
 @onready var last_column_header: Label = %DateHeader
 @onready var scores_source_label: Label = %ScoresSourceLabel
-@onready var player_name_edit: LineEdit = %PlayerNameEdit
+@onready var continue_button: Button = %ContinueButton
+@onready var settings_button: Button = %SettingsButton
+@onready var profile_label: Label = %ProfileLabel
+@onready var profile_button: Button = %ProfileButton
 
 
 func _ready() -> void:
@@ -27,17 +33,25 @@ func _ready() -> void:
 	# La demo está en todas las builds: es para quien todavía no conoce el juego.
 	demo_button.pressed.connect(Game.start_demo)
 	test_mode_button.pressed.connect(Game.go_to_difficulty_report)
+	# El informe de analítica es para el equipo, no para quien juega: igual
+	# que la zona de pruebas, solo en el editor y en builds de depuración.
+	analytics_button.visible = OS.is_debug_build()
+	analytics_button.pressed.connect(func() -> void: get_tree().change_scene_to_file(ANALYTICS_REPORT_SCENE))
 	# La zona de pruebas es una herramienta de desarrollo: solo en el editor y
 	# en builds de depuración, nunca en la versión publicada.
 	sandbox_button.visible = OS.is_debug_build()
 	sandbox_button.pressed.connect(Game.go_to_sandbox)
 	quit_button.pressed.connect(get_tree().quit)
-	# Con el foco en "Jugar" el menú también se maneja con el teclado.
-	play_button.grab_focus()
-	player_name_edit.text = PlayerProfile.load_name()
-	player_name_edit.text_changed.connect(func(text: String) -> void: PlayerProfile.save_name(text))
-	player_name_edit.text_submitted.connect(_on_player_name_submitted)
-	player_name_edit.focus_exited.connect(_normalize_player_name)
+	continue_button.pressed.connect(Profiles.continue_saved_game)
+	settings_button.pressed.connect(Game.go_to_settings)
+	profile_button.pressed.connect(Game.go_to_profile_select)
+	_show_profile()
+	# Con el foco en "Continuar" (o en "Jugar" si no hay partida guardada) el
+	# menú también se maneja con el teclado.
+	if continue_button.disabled:
+		play_button.grab_focus()
+	else:
+		continue_button.grab_focus()
 	_show_scores()
 	_fetch_online_scores()
 	_fade_in()
@@ -96,16 +110,16 @@ func _fill_scores(rows: Array[PackedStringArray], best_level: int, last_column: 
 		_add_score_cell(row[2])
 
 
-## Con Enter se guarda el nombre y el foco vuelve a "Jugar".
-func _on_player_name_submitted(_text: String) -> void:
-	_normalize_player_name()
-	play_button.grab_focus()
-
-
-## Muestra el nombre tal como quedó guardado (sin espacios sobrantes; vacío
-## pasa a ser el nombre por defecto).
-func _normalize_player_name() -> void:
-	player_name_edit.text = PlayerProfile.save_name(player_name_edit.text)
+## Perfil elegido (lo crea si todavía no hay ninguno), su tiempo jugado y si
+## tiene una partida para continuar.
+func _show_profile() -> void:
+	var profile := Profiles.ensure_profile()
+	profile_label.text = "Perfil: %s · %s jugados" % [profile["name"],
+			ProfileStore.format_duration(profile["total_time_s"])]
+	var save: Dictionary = profile["save"]
+	continue_button.disabled = save.is_empty()
+	continue_button.tooltip_text = "Seguir la partida guardada de este perfil" if save.is_empty() \
+			else "Seguir desde el nivel %d" % save["level"]
 
 
 func _add_score_cell(text: String, alignment: HorizontalAlignment = HORIZONTAL_ALIGNMENT_LEFT) -> void:

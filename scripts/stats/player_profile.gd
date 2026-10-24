@@ -1,9 +1,11 @@
 @tool
 class_name PlayerProfile
 extends RefCounted
-## Nombre del jugador, guardado en user:// para recordarlo entre sesiones. Lo
-## edita el menú principal y RunTracker lo envía con cada partida. Las
-## funciones reciben la ruta del archivo, así las pruebas usan una temporal.
+## Nombre del jugador, guardado en user:// para recordarlo entre sesiones.
+## Ahora el nombre sale del perfil elegido (ProfileStore): current_name() es
+## el que RunTracker envía con cada partida, y al elegir un perfil también se
+## guarda acá, así los dos quedan iguales. Las funciones reciben la ruta del
+## archivo, así las pruebas usan una temporal.
 
 const DEFAULT_PATH := "user://player.cfg"
 const DEFAULT_NAME := "Jugador"
@@ -21,6 +23,12 @@ static func sanitize(raw_name: String) -> String:
 			clean += character
 	clean = clean.strip_edges().left(MAX_NAME_LENGTH).strip_edges()
 	return clean if not clean.is_empty() else DEFAULT_NAME
+
+
+## Nombre del perfil elegido en profiles_dir; sin perfil, el de player.cfg.
+static func current_name(profiles_dir: String = ProfileStore.DEFAULT_BASE_DIR) -> String:
+	var profile := ProfileStore.new(profiles_dir).selected_profile()
+	return str(profile["name"]) if not profile.is_empty() else load_name()
 
 
 static func load_name(path: String = DEFAULT_PATH) -> String:

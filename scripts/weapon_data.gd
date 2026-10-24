@@ -83,9 +83,10 @@ const PATH_FORMAT := "res://assets/weapons/%s/%s.tres"
 @export var status_effect: StringName = &""
 @export_range(0.0, 1.0) var status_chance := 1.0
 @export var status_time := 0.0
-## Cura 1 vida cada N golpes acertados (0 = nunca).
+## Cura un corazón (Heart.HALF_HEARTS_PER_HEART medios) cada N golpes
+## acertados (0 = nunca).
 @export var heal_every_hits := 0
-## Cura 1 vida cada N enemigos eliminados (0 = nunca).
+## Cura un corazón cada N enemigos eliminados (0 = nunca).
 @export var heal_every_kills := 0
 
 @export_group("Escudo")

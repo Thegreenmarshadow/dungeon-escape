@@ -87,7 +87,7 @@ Los 6 `.tres` anteriores siguen siendo válidos.
 | Katana (`katana`) | rara | 4 | 1 | 22 × 8 a 14 px | — | 0.3 s | 8 | Corte rapidísimo y largo; a veces hace el doble. |
 | Mandoble (`greatsword`) | rara | 6 | 2 | sector de 180°, radio 22 | 0.3 | 1.0 s | 20 | Barrido enorme de 180° que hace 2 de daño. Muy lento. |
 | Estoque (`rapier`) | común | 2 | 1 | 24 × 4 a 16 px | — | 0.25 s | 4 | Estocada fina y veloz; muchos críticos. |
-| Guadaña (`scythe`) | épica | 10 | 1 | sector de 270°, radio 21 | 0.2 | 0.9 s | 12 | Barrido de 270°. Cada 6 enemigos eliminados cura 1 vida. |
+| Guadaña (`scythe`) | épica | 10 | 1 | sector de 270°, radio 21 | 0.2 | 0.9 s | 12 | Barrido de 270°. Cada 6 enemigos eliminados cura 1 corazón. |
 | Martillo de guerra (`warhammer`) | épica | 9 | 2 | círculo r 18 a 16 px | 0.4 | 1.2 s | 28 | Golpe al suelo que hace 2 de daño, aturde y rompe escudos. |
 | Mangual (`flail`) | rara | 7 | 1 | giro, radio 20 | — | 0.5 s | 14 | Mantener el botón para girar: daña todo alrededor sin parar. |
 | Látigo (`whip`) | común | 3 | 1 | 30 × 6 a 22 px | 0.1 | 0.6 s | -12 | El alcance más largo. Jala al enemigo hacia ti y lo aturde un momento. |
@@ -98,7 +98,7 @@ Los 6 `.tres` anteriores siguen siendo válidos.
 | Ballesta de mano (`crossbow`) | rara | 5 | 1 | proyectil 220 px/s, 160 px | 0.1 | 0.9 s | 10 | Virote rápido de largo alcance; hay que recargar. |
 | Báculo ígneo (`fire_staff`) | épica | 9 | 1 | proyectil 110 px/s, 140 px | 0.2 | 1.1 s | 12 | Bola de fuego que explota y quema. |
 | Espada de escarcha (`frost_blade`) | rara | 5 | 1 | 12 × 18 a 10 px | — | 0.45 s | 8 | Como la espada, pero cada golpe ralentiza al enemigo. |
-| Hoz de enredadera (`vine_sickle`) | rara | 13 | 1 | 14 × 16 a 9 px | — | 0.35 s | 8 | Hoz viva: cada 8 golpes acertados recupera 1 vida. |
+| Hoz de enredadera (`vine_sickle`) | rara | 13 | 1 | 14 × 16 a 9 px | — | 0.35 s | 8 | Hoz viva: cada 8 golpes acertados recupera 1 corazón. |
 
 Notas de implementación:
 

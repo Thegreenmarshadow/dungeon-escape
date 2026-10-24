@@ -1,26 +1,42 @@
 extends CharacterBody2D
-## Jugador controlable con movimiento en 8 direcciones, vidas, invulnerabilidad
+## Jugador controlable con movimiento en 8 direcciones, vida, invulnerabilidad
 ## y ataque con el arma equipada (WeaponData). El arma se ve en WeaponPivot,
 ## que gira hacia donde mira el jugador y lleva la hitbox y la estela del golpe.
+##
+## La vida se cuenta en medios corazones (Heart.HALF_HEARTS_PER_HEART por
+## corazón): max_health 6 son los 3 corazones de la HUD, un golpe base de
+## enemigo quita 2 (un corazón) y un corazón del suelo cura 2.
 
-## Se emite cada vez que cambia la cantidad de vidas.
-signal lives_changed(lives: int)
+## Se emite cada vez que cambia la vida, en medios corazones.
+signal health_changed(health: int)
 ## Se emite al recoger la llave.
 signal key_collected
 ## Se emite al recoger monedas, con cuántas suma.
 signal coins_collected(amount: int)
-## Se emite cuando el jugador se queda sin vidas.
+## Se emite cuando el jugador se queda sin vida.
 signal died
-## Se emite en lugar de died cuando el jugador se queda sin vidas con
+## Se emite en lugar de died cuando el jugador se queda sin vida con
 ## revives_on_death activo: el nivel decide dónde lo revive (revive()).
 signal knocked_out
-## Se emite al revivir, con las vidas con las que vuelve.
-signal revived(lives: int)
+## Se emite al revivir, con la vida (medios corazones) con la que vuelve.
+## revive() también lo teletransporta: la telemetría corta ahí la línea del
+## recorrido.
+signal revived(health: int)
+## Se emite al recibir daño, con los medios corazones perdidos y quién lo hizo (source):
+## el tipo de enemigo (RunRecorder.enemy_kind), &"spikes", el id del jefe para
+## sus efectos de suelo... Vacío si quien llamó no lo dijo. Solo lo observan
+## las estadísticas; el juego no depende de esta señal.
+signal damaged(amount: int, source: StringName)
+## Se emite una vez por golpe, al terminar su ventana activa: hit es true si
+## tocó algo golpeable (enemigo o proyectil). Solo observa.
+signal attacked(hit: bool)
+## Se emite cuando equip_weapon cambia el arma por otra distinta, con su id.
+signal weapon_changed(weapon_id: StringName)
 
 ## Velocidad de movimiento en píxeles por segundo.
 @export var speed: float = 80.0
-## Vidas con las que empieza el jugador.
-@export var max_lives: int = 3
+## Vida máxima, en medios corazones (6 = 3 corazones). Con ella empieza.
+@export var max_health: int = 6
 ## Segundos de invulnerabilidad después de recibir daño.
 @export var invulnerability_time: float = 1.5
 ## Parpadeos por segundo mientras dura la invulnerabilidad.
@@ -59,7 +75,8 @@ const THRUST_DISTANCE := 4.0
 ## Animación de la estela en effect_frames.
 const EFFECT_ANIMATION := &"default"
 
-var lives: int
+## Vida actual, en medios corazones.
+var health: int
 var has_key: bool = false
 ## Daño extra de cada golpe, comprado en la tienda. El nivel lo asigna desde
 ## Game.damage_bonus; se suma al daño del arma.
@@ -69,10 +86,13 @@ var facing: Vector2 = Vector2.RIGHT
 ## true ignora todo el daño (sin retroceso ni invulnerabilidad). Solo lo usa la
 ## zona de pruebas; en una partida siempre es false.
 var invincible := false
-## true: quedarse sin vidas no termina la partida. El jugador se detiene y
+## true: quedarse sin vida no termina la partida. El jugador se detiene y
 ## emite knocked_out en lugar de died, y el nivel lo revive con revive(). Solo
 ## lo usa la demo (puntos de control); en una partida normal es false.
 var revives_on_death := false
+## Quién hizo el último daño (el source de take_damage): con él se registra la
+## causa de la muerte. Vacío hasta el primer golpe.
+var last_damage_source: StringName = &""
 
 # Tiempo restante de invulnerabilidad; mayor que cero significa invulnerable.
 var _invulnerable_left: float = 0.0
@@ -106,7 +126,7 @@ var _slow_particles: CPUParticles2D
 
 
 func _ready() -> void:
-	lives = max_lives
+	health = max_health
 	# Inicia la animación de reposo.
 	sprite.play("idle")
 	# La hitbox detecta cuerpos (enemigos) y también áreas, por si algún
@@ -173,19 +193,24 @@ func _update_walk_animation(delta: float, moving: bool) -> void:
 			sprite.play("idle")
 
 
-## Resta vidas salvo que el jugador esté en su ventana de invulnerabilidad.
-## Lo llaman las trampas y los enemigos. Si se pasa from_position (de dónde
-## vino el golpe), el jugador retrocede en la dirección contraria; sin ella,
-## como en los picos, solo pierde vidas.
-func take_damage(amount: int, from_position: Vector2 = Vector2.INF) -> void:
-	if invincible or _invulnerable_left > 0.0 or lives <= 0:
+## Resta amount medios corazones salvo que el jugador esté en su ventana de
+## invulnerabilidad. Lo llaman las trampas y los enemigos. Si se pasa
+## from_position (de dónde vino el golpe), el jugador retrocede en la
+## dirección contraria; sin ella, como en los picos, solo pierde vida. source
+## dice quién lo lastimó (ver damaged); no cambia nada del juego.
+func take_damage(amount: int, from_position: Vector2 = Vector2.INF, source: StringName = &"") -> void:
+	if invincible or _invulnerable_left > 0.0 or health <= 0:
 		return
 
-	lives = max(lives - amount, 0)
-	lives_changed.emit(lives)
+	var health_before := health
+	health = max(health - amount, 0)
+	last_damage_source = source
+	health_changed.emit(health)
+	if health < health_before:
+		damaged.emit(health_before - health, source)
 	Sfx.play(&"player_hurt")
 
-	if lives == 0:
+	if health == 0:
 		_die()
 		return
 
@@ -211,13 +236,14 @@ func _knockback_step(delta: float) -> Vector2:
 	return _knockback * maxf(_knockback_left, 0.0) / KNOCKBACK_TIME
 
 
-## Suma vidas sin superar max_lives. Devuelve true si recuperó al menos una;
-## false si ya tenía todas sus vidas o está muerto. La llaman los corazones.
-func heal(amount: int = 1) -> bool:
-	if amount <= 0 or lives <= 0 or lives >= max_lives:
+## Suma amount medios corazones sin superar max_health. Devuelve true si
+## recuperó algo; false si ya tenía la vida llena o está muerto. La llaman los
+## corazones.
+func heal(amount: int = Heart.HALF_HEARTS_PER_HEART) -> bool:
+	if amount <= 0 or health <= 0 or health >= max_health:
 		return false
-	lives = mini(lives + amount, max_lives)
-	lives_changed.emit(lives)
+	health = mini(health + amount, max_health)
+	health_changed.emit(health)
 	return true
 
 
@@ -238,10 +264,13 @@ func get_hit_damage() -> int:
 func equip_weapon(new_weapon: WeaponData) -> void:
 	if new_weapon == null:
 		return
+	var changed := weapon == null or weapon.id != new_weapon.id
 	weapon = new_weapon
 	if is_node_ready():
 		_apply_weapon()
 		_aim_weapon()
+	if changed:
+		weapon_changed.emit(weapon.id)
 
 
 ## true desde que empieza un golpe (anticipación incluida) hasta que su hitbox
@@ -292,6 +321,7 @@ func _update_attack(delta: float) -> void:
 		# Al terminar la ventana activa, la hitbox deja de detectar.
 		if _attack_left <= 0.0:
 			hitbox.set_deferred("monitoring", false)
+			attacked.emit(not _hit_this_swing.is_empty())
 
 
 ## Multiplicador de la velocidad: el arma puede frenar al jugador mientras ataca
@@ -459,14 +489,16 @@ func _die() -> void:
 	died.emit()
 
 
-## Vuelve a la vida en la posición global at con new_lives vidas (entre 1 y
-## max_lives), sin retroceso, frenos ni golpe en curso y con la invulnerabilidad
-## de un golpe recibido, para que no lo lastimen apenas aparece. No emite
-## lives_changed: el nivel actualiza lo que se ve con revived.
-func revive(at: Vector2, new_lives: int) -> void:
+## Vuelve a la vida en la posición global at con new_health medios corazones
+## (entre 1 y max_health), sin retroceso, frenos ni golpe en curso y con la
+## invulnerabilidad de un golpe recibido, para que no lo lastimen apenas
+## aparece. No emite health_changed: el nivel actualiza lo que se ve con
+## revived.
+func revive(at: Vector2, new_health: int) -> void:
 	global_position = at
 	velocity = Vector2.ZERO
-	lives = clampi(new_lives, 1, max_lives)
+	health = clampi(new_health, 1, max_health)
+	last_damage_source = &""
 	_knockback_left = 0.0
 	_slow_left = 0.0
 	_slow_factor = 1.0
@@ -478,4 +510,4 @@ func revive(at: Vector2, new_lives: int) -> void:
 	_invulnerable_left = invulnerability_time
 	sprite.modulate.a = 0.5
 	set_physics_process(true)
-	revived.emit(lives)
+	revived.emit(health)

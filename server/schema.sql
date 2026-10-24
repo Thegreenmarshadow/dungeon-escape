@@ -45,3 +45,26 @@ CREATE TABLE IF NOT EXISTS events (
 
 CREATE INDEX IF NOT EXISTS idx_events_run ON events(run_id);
 CREATE INDEX IF NOT EXISTS idx_events_type ON events(type);
+
+-- One row per level played, uploaded by the game after its Telemetry autoload
+-- writes the level file (route, events and map; see docs/analitica.md).
+-- (run_id, level, attempt) is unique: re-uploading a file changes nothing.
+-- data keeps the whole JSON file; the other columns are copies for filtering.
+CREATE TABLE IF NOT EXISTS level_tracks (
+    id               INTEGER PRIMARY KEY AUTOINCREMENT,
+    run_id           TEXT    NOT NULL REFERENCES runs(id) ON DELETE CASCADE,
+    level            INTEGER NOT NULL,
+    attempt          INTEGER NOT NULL DEFAULT 1,
+    mode             TEXT    NOT NULL DEFAULT 'normal',
+    game_version     TEXT    NOT NULL DEFAULT '',
+    outcome          TEXT    NOT NULL,
+    duration_s       REAL    NOT NULL DEFAULT 0,
+    map_key          TEXT    NOT NULL DEFAULT '',
+    difficulty_index REAL,
+    data             TEXT    NOT NULL,
+    received_at      TEXT    NOT NULL,
+    UNIQUE (run_id, level, attempt)
+);
+
+CREATE INDEX IF NOT EXISTS idx_level_tracks_run ON level_tracks(run_id);
+CREATE INDEX IF NOT EXISTS idx_level_tracks_level ON level_tracks(level);

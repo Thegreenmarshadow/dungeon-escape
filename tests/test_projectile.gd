@@ -21,7 +21,7 @@ class TargetStub:
 	var damage_taken := 0
 	var last_source := Vector2.INF
 
-	func take_damage(amount: int, from_position: Vector2 = Vector2.INF) -> void:
+	func take_damage(amount: int, from_position: Vector2 = Vector2.INF, _source: StringName = &"") -> void:
 		damage_taken += amount
 		last_source = from_position
 
@@ -43,6 +43,16 @@ func test_scenes_use_the_expected_layers() -> void:
 	assert_false(arrow.reflectable, "la flecha se rompe")
 	var gold: Projectile = track(_load_fresh(SCENES[2]).instantiate())
 	assert_true(gold.reflectable, "el orbe del mago se devuelve")
+
+
+func test_scenes_hurt_one_heart_and_one_enemy_hit_when_reflected() -> void:
+	# Al jugador le quitan un corazón entero (2 medios), como antes de los
+	# medios corazones; devueltos, a un enemigo le quitan un golpe de su vida,
+	# que no cambió de unidad.
+	for path: String in SCENES:
+		var projectile: Projectile = track(_load_fresh(path).instantiate())
+		assert_eq(projectile.damage, Heart.HALF_HEARTS_PER_HEART, "%s: un corazón al jugador" % path)
+		assert_eq(projectile.reflected_damage, 1, "%s: un golpe al enemigo" % path)
 
 
 func test_flies_straight_and_expires_at_max_range() -> void:
@@ -107,7 +117,8 @@ func test_sword_reflects_the_mage_orb_against_enemies() -> void:
 	var enemy := _make_enemy()
 	var health_before := enemy.health
 	reflected._on_body_entered(enemy)
-	assert_eq(enemy.health, health_before - reflected.damage, "lastima al enemigo que toca")
+	assert_eq(enemy.health, health_before - reflected.reflected_damage, "lastima al enemigo que toca")
+	assert_eq(enemy.health, health_before - 1, "en golpes de la vida del enemigo, no en medios corazones")
 	assert_true(reflected.is_queued_for_deletion())
 
 

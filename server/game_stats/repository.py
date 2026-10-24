@@ -5,14 +5,19 @@ import sqlite3
 import uuid
 from typing import Any
 
+from . import analytics, level_maps
 from .models import (
     Event,
     EventIn,
     Leaderboard,
     LeaderboardEntry,
+    LevelTrackIn,
+    LevelTrackView,
     Mode,
     Player,
     PlayerNotFound,
+    PlayerProfile,
+    PlayerTotals,
     Run,
     RunCreate,
     RunDetail,
@@ -27,7 +32,7 @@ from .models import (
 KILL_EVENT = "enemy_killed"
 KEY_EVENT = "key_picked"
 HEART_EVENT = "heart_picked"
-DAMAGE_EVENT = "damage_taken"
+DAMAGE_EVENT = "damage_taken"  # payload {"amount": hearts, may be 0.5, 1.5...}
 LEVEL_COMPLETED_EVENT = "level_completed"
 COIN_EVENT = "coin_picked"  # payload {"amount": int}
 ITEM_BOUGHT_EVENT = "item_bought"  # payload {"item": str, "price": int}
@@ -71,12 +76,29 @@ def _run_sum(expression: str, event_type: str) -> str:
 
 _RUN_COINS_COLLECTED = _run_sum(_COIN_AMOUNT, COIN_EVENT)
 _RUN_COINS_SPENT = _run_sum(_ITEM_PRICE, ITEM_BOUGHT_EVENT)
+_RUN_LEVEL_TRACKS = "(SELECT COUNT(*) FROM level_tracks t WHERE t.run_id = r.id)"
 
 _RUN_COLUMNS = f"""
     r.id, r.player_id, p.name AS player_name, r.mode, r.run_seed, r.start_level,
     r.started_at, r.ended_at, r.level_reached, r.score, r.enemies_killed,
     r.outcome, r.duration_s,
-    {_RUN_COINS_COLLECTED} AS coins_collected, {_RUN_COINS_SPENT} AS coins_spent
+    {_RUN_COINS_COLLECTED} AS coins_collected, {_RUN_COINS_SPENT} AS coins_spent,
+    {_RUN_LEVEL_TRACKS} AS level_tracks
+"""
+
+# Order of the leaderboard: best score, then deeper, then faster, then earlier.
+_BEST_RUN_ORDER = "r.score DESC, r.level_reached DESC, r.duration_s ASC, r.ended_at ASC"
+_FINISHED_NORMAL = "r.mode = 'normal' AND r.outcome != 'in_progress'"
+
+_TOTALS_COLUMNS = """
+    p.id AS player_id, p.name AS player_name,
+    COUNT(*) AS runs,
+    CAST(TOTAL(r.score) AS INTEGER) AS total_score,
+    TOTAL(r.duration_s) AS total_time_s,
+    MAX(r.score) AS best_score,
+    MAX(r.level_reached) AS deepest_level,
+    SUM(r.outcome = 'died') AS deaths,
+    MAX(COALESCE(r.ended_at, r.started_at)) AS last_played_at
 """
 
 
@@ -153,12 +175,21 @@ class SqliteStatsRepository:
         run = self.get_run(run_id)
         return RunDetail(**run.model_dump(), events=self.list_events(run_id))
 
-    def list_runs(self, player: str | None = None, mode: Mode | None = None, limit: int = 50) -> list[Run]:
-        """Most recent runs first, optionally filtered by player name and mode."""
+    def list_runs(
+        self,
+        player: str | None = None,
+        mode: Mode | None = None,
+        limit: int = 50,
+        player_id: int | None = None,
+    ) -> list[Run]:
+        """Most recent runs first, optionally filtered by player (name or id) and mode."""
         where, params = [], []
         if player:
             where.append("p.name = ?")
             params.append(player)
+        if player_id is not None:
+            where.append("r.player_id = ?")
+            params.append(player_id)
         if mode:
             where.append("r.mode = ?")
             params.append(mode)
@@ -245,30 +276,33 @@ class SqliteStatsRepository:
 
     # --- Leaderboard and stats -----------------------------------------------
 
-    def leaderboard(self, limit: int = 10) -> Leaderboard:
-        """Best finished normal-mode runs: test and demo runs and runs in progress are excluded."""
-        finished_normal = "r.mode = 'normal' AND r.outcome != 'in_progress'"
+    def leaderboard(self, limit: int = 10, player: str | None = None) -> Leaderboard:
+        """Best finished normal-mode runs: test and demo runs and runs in progress
+        are excluded. With player, only that player's runs."""
+        conditions, params = _run_filter(None, player)
+        finished_normal = " AND ".join([_FINISHED_NORMAL, *conditions])
         rows = self._conn.execute(
             f"""
-            SELECT r.id AS run_id, p.name AS player_name, r.score, r.level_reached,
+            SELECT r.id AS run_id, r.player_id, p.name AS player_name, r.score, r.level_reached,
                    r.enemies_killed, {_RUN_COINS_COLLECTED} AS coins_collected,
                    r.duration_s, r.ended_at
             FROM runs r JOIN players p ON p.id = r.player_id
             WHERE {finished_normal}
-            ORDER BY r.score DESC, r.level_reached DESC, r.duration_s ASC, r.ended_at ASC
+            ORDER BY {_BEST_RUN_ORDER}
             LIMIT ?
             """,
-            (limit,),
+            (*params, limit),
         ).fetchall()
         best_level = self._conn.execute(
-            f"SELECT COALESCE(MAX(r.level_reached), 0) FROM runs r WHERE {finished_normal}"
+            f"SELECT COALESCE(MAX(r.level_reached), 0) FROM runs r WHERE {finished_normal}", params
         ).fetchone()[0]
         entries = [LeaderboardEntry(rank=i + 1, **dict(row)) for i, row in enumerate(rows)]
         return Leaderboard(entries=entries, best_level=best_level)
 
-    def stats(self, mode: Mode | None = None) -> Stats:
-        run_filter = "WHERE r.mode = ?" if mode else ""
-        params: tuple[Any, ...] = (mode,) if mode else ()
+    def stats(self, mode: Mode | None = None, player: str | None = None) -> Stats:
+        conditions, params = _run_filter(mode, player)
+        run_filter = f"WHERE {' AND '.join(conditions)}" if conditions else ""
+        and_filter = "".join(f" AND {condition}" for condition in conditions)
         runs = self._conn.execute(
             f"""
             SELECT COUNT(*) AS total_runs,
@@ -294,17 +328,16 @@ class SqliteStatsRepository:
             f"""
             SELECT COALESCE(SUM(COALESCE(json_extract(e.payload, '$.amount'), 1)), 0)
             FROM events e JOIN runs r ON r.id = e.run_id
-            WHERE e.type = ? {"AND r.mode = ?" if mode else ""}
+            WHERE e.type = ? {and_filter}
             """,
             (DAMAGE_EVENT, *params),
         ).fetchone()[0]
-        mode_filter = "AND r.mode = ?" if mode else ""
         coins = self._conn.execute(
             f"""
             SELECT CAST(TOTAL(CASE WHEN e.type = ? THEN {_COIN_AMOUNT} END) AS INTEGER) AS collected,
                    CAST(TOTAL(CASE WHEN e.type = ? THEN {_ITEM_PRICE} END) AS INTEGER) AS spent
             FROM events e JOIN runs r ON r.id = e.run_id
-            WHERE e.type IN (?, ?) {mode_filter}
+            WHERE e.type IN (?, ?) {and_filter}
             """,
             (COIN_EVENT, ITEM_BOUGHT_EVENT, COIN_EVENT, ITEM_BOUGHT_EVENT, *params),
         ).fetchone()
@@ -313,7 +346,7 @@ class SqliteStatsRepository:
             self._conn.execute(
                 f"""
                 SELECT {item} AS item, COUNT(*) FROM events e JOIN runs r ON r.id = e.run_id
-                WHERE e.type = ? {mode_filter} GROUP BY item ORDER BY COUNT(*) DESC, item
+                WHERE e.type = ? {and_filter} GROUP BY item ORDER BY COUNT(*) DESC, item
                 """,
                 (ITEM_BOUGHT_EVENT, *params),
             ).fetchall()
@@ -325,7 +358,7 @@ class SqliteStatsRepository:
             total_kills=by_type.get(KILL_EVENT, 0),
             keys_collected=by_type.get(KEY_EVENT, 0),
             hearts_collected=by_type.get(HEART_EVENT, 0),
-            damage_taken=int(damage),
+            damage_taken=float(damage),
             coins_collected=coins["collected"],
             coins_spent=coins["spent"],
             items_bought=by_type.get(ITEM_BOUGHT_EVENT, 0),
@@ -336,6 +369,191 @@ class SqliteStatsRepository:
             best_score=runs["best_score"] or 0,
             events_by_type=by_type,
         )
+
+    def player_totals(self, mode: Mode | None = None, player: str | None = None) -> list[PlayerTotals]:
+        """Per-player totals over their runs (of one mode, or all), the player
+        who played longest first. Players without matching runs are left out."""
+        conditions, params = _run_filter(mode, player)
+        where = f"WHERE {' AND '.join(conditions)}" if conditions else ""
+        rows = self._conn.execute(
+            f"""
+            SELECT {_TOTALS_COLUMNS}
+            FROM runs r JOIN players p ON p.id = r.player_id
+            {where}
+            GROUP BY p.id
+            ORDER BY total_time_s DESC, p.name
+            """,
+            params,
+        ).fetchall()
+        return [_totals(row) for row in rows]
+
+    def player_profile(self, player_id: int, limit: int = 500) -> PlayerProfile:
+        """Totals, totals per mode, best run and the latest runs (at most limit)
+        of one player. A player without runs gets zero totals."""
+        row = self._conn.execute(
+            "SELECT id, name, created_at FROM players WHERE id = ?", (player_id,)
+        ).fetchone()
+        if row is None:
+            raise PlayerNotFound(player_id)
+        player = Player(**dict(row))
+        by_mode = self._conn.execute(
+            f"""
+            SELECT r.mode, {_TOTALS_COLUMNS}
+            FROM runs r JOIN players p ON p.id = r.player_id
+            WHERE r.player_id = ? GROUP BY r.mode ORDER BY r.mode
+            """,
+            (player_id,),
+        ).fetchall()
+        overall = self._conn.execute(
+            f"""
+            SELECT {_TOTALS_COLUMNS}, MIN(r.started_at) AS first_played_at
+            FROM runs r JOIN players p ON p.id = r.player_id
+            WHERE r.player_id = ? GROUP BY p.id
+            """,
+            (player_id,),
+        ).fetchone()
+        best = self._conn.execute(
+            f"""
+            SELECT {_RUN_COLUMNS} FROM runs r JOIN players p ON p.id = r.player_id
+            WHERE r.player_id = ? AND {_FINISHED_NORMAL}
+            ORDER BY {_BEST_RUN_ORDER} LIMIT 1
+            """,
+            (player_id,),
+        ).fetchone()
+        return PlayerProfile(
+            player=player,
+            totals=_totals(overall) if overall else _empty_totals(player),
+            totals_by_mode={row["mode"]: _totals(row) for row in by_mode},
+            first_played_at=overall["first_played_at"] if overall else None,
+            best_run=Run(**dict(best)) if best else None,
+            runs=self.list_runs(player_id=player_id, limit=limit),
+        )
+
+    # --- Level telemetry -----------------------------------------------------
+
+    def add_level_track(self, run_id: str, track: LevelTrackIn, raw: dict[str, Any]) -> bool:
+        """Store one uploaded level file of run_id (the server's run id). The
+        same run, level and attempt again is ignored. Returns True if stored."""
+        self.get_run(run_id)
+        level_map = raw.get("map") if isinstance(raw.get("map"), dict) else {}
+        with self._conn:
+            cursor = self._conn.execute(
+                """
+                INSERT OR IGNORE INTO level_tracks
+                    (run_id, level, attempt, mode, game_version, outcome, duration_s,
+                     map_key, difficulty_index, data, received_at)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                """,
+                (
+                    run_id,
+                    track.level,
+                    track.attempt,
+                    track.mode,
+                    track.game_version,
+                    track.outcome,
+                    track.duration_s,
+                    level_maps.map_key(track.level, level_map),
+                    track.difficulty_index,
+                    json.dumps(raw, ensure_ascii=False, separators=(",", ":")),
+                    to_utc_iso(),
+                ),
+            )
+        return cursor.rowcount == 1
+
+    def list_level_tracks(self, run_id: str) -> list[LevelTrackView]:
+        """Every stored level of a run, by level and attempt, ready to draw."""
+        self.get_run(run_id)
+        rows = self._conn.execute(
+            f"SELECT {_TRACK_COLUMNS}, t.data FROM level_tracks t WHERE t.run_id = ? ORDER BY t.level, t.attempt",
+            (run_id,),
+        ).fetchall()
+        views = []
+        for row in rows:
+            data = _decode_payload(row["data"])
+            level_map = data.get("map") if isinstance(data.get("map"), dict) else {}
+            info = {key: row[key] for key in row.keys() if key != "data"}
+            views.append(
+                LevelTrackView(
+                    **info,
+                    label=level_maps.map_label(row["level"], row["mode"], data.get("level_seed")),
+                    map=level_maps.view_map(level_map),
+                    path=[p[:3] for p in data.get("path") or [] if isinstance(p, list) and len(p) >= 3],
+                    events=[e for e in data.get("events") or [] if isinstance(e, dict)],
+                    weapons_used=[str(w) for w in data.get("weapons_used") or []],
+                    summary=analytics.track_summary(data),
+                )
+            )
+        return views
+
+    def level_data(
+        self,
+        player: str | None = None,
+        level: int | None = None,
+        version: str | None = None,
+        mode: Mode | None = None,
+    ) -> list[dict[str, Any]]:
+        """Stored level files (parsed JSON) that match the filters, oldest first."""
+        conditions, params = _run_filter(None, player)
+        for column, value in (("t.level", level), ("t.game_version", version), ("t.mode", mode)):
+            if value is not None and value != "":
+                conditions.append(f"{column} = ?")
+                params.append(value)
+        where = f"WHERE {' AND '.join(conditions)}" if conditions else ""
+        rows = self._conn.execute(
+            f"""
+            SELECT t.data FROM level_tracks t JOIN runs r ON r.id = t.run_id
+            {where} ORDER BY t.received_at, t.id
+            """,
+            params,
+        ).fetchall()
+        return [_decode_payload(row["data"]) for row in rows]
+
+    def level_filter_options(self) -> dict[str, list[Any]]:
+        """Values present in the uploaded levels, for the page's filters."""
+        def distinct(column: str) -> list[Any]:
+            return [row[0] for row in self._conn.execute(
+                f"SELECT DISTINCT {column} FROM level_tracks ORDER BY {column}"
+            )]
+
+        return {"levels": distinct("level"), "versions": distinct("game_version"), "modes": distinct("mode")}
+
+
+_TRACK_COLUMNS = (
+    "t.run_id, t.level, t.attempt, t.mode, t.game_version, t.outcome, t.duration_s,"
+    " t.difficulty_index, t.received_at"
+)
+
+
+def _totals(row: sqlite3.Row) -> PlayerTotals:
+    fields = {key: row[key] for key in PlayerTotals.model_fields}
+    return PlayerTotals(**{**fields, "total_time_s": round(row["total_time_s"], 1)})
+
+
+def _empty_totals(player: Player) -> PlayerTotals:
+    return PlayerTotals(
+        player_id=player.id,
+        player_name=player.name,
+        runs=0,
+        total_score=0,
+        total_time_s=0.0,
+        best_score=0,
+        deepest_level=0,
+        deaths=0,
+        last_played_at=None,
+    )
+
+
+def _run_filter(mode: Mode | None, player: str | None) -> tuple[list[str], list[Any]]:
+    """SQL conditions on runs r for an optional mode and player name."""
+    conditions: list[str] = []
+    params: list[Any] = []
+    if mode:
+        conditions.append("r.mode = ?")
+        params.append(mode)
+    if player:
+        conditions.append("r.player_id IN (SELECT id FROM players WHERE name = ?)")
+        params.append(player)
+    return conditions, params
 
 
 def _decode_payload(raw: str) -> dict[str, Any]:

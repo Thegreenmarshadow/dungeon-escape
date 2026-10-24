@@ -120,6 +120,20 @@ def test_stats_totals(client: TestClient, start_run, finish_run) -> None:
     assert normal_only["total_kills"] == 2
 
 
+def test_stats_damage_keeps_half_hearts(client: TestClient, start_run) -> None:
+    # Old runs report whole hearts; since the half-heart change a hit can take
+    # 0.5 or 1.5 hearts. Both add up in the same unit.
+    start_run("run-halves-1", player="Ana")
+    events = [
+        {"seq": 0, "type": "damage_taken", "payload": {"amount": 1, "lives": 2}},
+        {"seq": 1, "type": "damage_taken", "payload": {"amount": 0.5, "lives": 1.5}},
+        {"seq": 2, "type": "damage_taken", "payload": {"amount": 1.5, "lives": 0}},
+    ]
+    client.post("/api/runs/run-halves-1/events", json={"events": events})
+
+    assert client.get("/api/stats").json()["damage_taken"] == 3.0
+
+
 def test_stats_coin_and_shop_totals(client: TestClient, start_run) -> None:
     start_run("run-shop-1", player="Ana")
     start_run("run-shop-2", player="Bruno", mode="test")

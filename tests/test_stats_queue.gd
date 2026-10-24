@@ -117,6 +117,17 @@ func test_remove_ignores_items_already_dropped_by_the_cap() -> void:
 	assert_eq(queue.items[0]["data"]["seq"], 2, "el evento nuevo no debe perderse")
 
 
+func test_knows_whether_a_run_start_is_still_pending() -> void:
+	var queue := StatsQueue.new()
+	queue.push(StatsQueue.KIND_RUN_STARTED, RUN_B, {"id": RUN_B})
+	queue.push(StatsQueue.KIND_EVENT, RUN_A, {"seq": 0})
+	assert_false(queue.has_run_start(RUN_A), "un evento no es el inicio")
+	var in_flight := queue.next_batch(10)
+	assert_true(queue.has_run_start(RUN_B), "también mientras se envía")
+	queue.remove(in_flight)
+	assert_false(queue.has_run_start(RUN_B), "enviado, ya existe en el servidor")
+
+
 func test_corrupt_file_gives_empty_queue_and_skips_invalid_items() -> void:
 	_write(_path, "{no es json")
 	assert_true(StatsQueue.load_from(_path).is_empty())

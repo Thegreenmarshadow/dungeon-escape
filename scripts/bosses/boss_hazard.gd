@@ -24,8 +24,12 @@ extends Node2D
 ## Lastimó al jugador (o a lo que tenga en target).
 signal struck(target: Node2D)
 
-## Daño que hace.
-@export var damage: int = 1
+## Fuente del daño (Player.damaged) de un efecto sin source asignado.
+const DEFAULT_SOURCE := &"boss_hazard"
+
+## Daño que hace al jugador, en medios corazones (2 = un corazón). El jefe le
+## suma su bonus de daño al crearlo (BossBase.spawn_hazard).
+@export var damage: int = 2
 ## Radio en píxeles alrededor del efecto en el que alcanza al jugador.
 @export var radius: float = 12.0
 ## Primer y último frame (incluidos) en los que lastima. Los anteriores son el
@@ -42,6 +46,9 @@ signal struck(target: Node2D)
 ## Quién puede recibir el daño. spawn_hazard del jefe pone al jugador; si queda
 ## en null, se busca el primer nodo del grupo "player".
 var target: Node2D
+## Fuente del daño (Player.damaged): spawn_hazard del jefe pone su boss_id.
+## Vacía usa DEFAULT_SOURCE.
+var source: StringName = &""
 
 var _time_left: float = 0.0
 var _has_struck: bool = false
@@ -92,7 +99,7 @@ func try_strike() -> bool:
 	if slow_factor < 1.0 and target.has_method("apply_slow"):
 		target.apply_slow(slow_factor, 0.2)
 	if damage > 0 and target.has_method("take_damage"):
-		target.take_damage(damage, global_position)
+		target.take_damage(damage, global_position, source if source != &"" else DEFAULT_SOURCE)
 	struck.emit(target)
 	return true
 

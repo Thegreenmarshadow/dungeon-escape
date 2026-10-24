@@ -26,7 +26,7 @@ func test_scene_uses_the_guide_stats() -> void:
 	assert_eq(forge.get("boss_id"), &"forge")
 	assert_eq(forge.get("max_health"), 12)
 	assert_eq(forge.get("speed"), 20.0)
-	assert_eq(forge.get("contact_damage"), 1)
+	assert_eq(forge.get("contact_damage"), Heart.HALF_HEARTS_PER_HEART)
 	assert_eq(forge.get("detect_radius"), 120.0)
 	assert_eq(forge.get("leash_radius"), 160.0)
 	assert_eq(forge.get("slam_reach"), 28.0)
@@ -134,7 +134,7 @@ func test_slam_hits_a_player_who_stays_in_the_wave() -> void:
 	forge._get_move_velocity(0.016)
 	forge._get_move_velocity(0.016)
 	BossRig.play_until(forge, ForgeBoss.SLAM_IMPACT_FRAME)
-	assert_eq(forge._player.damage_taken, 1, "la onda lo alcanza (los charcos lastiman en su paso de física)")
+	assert_eq(forge._player.damage_taken, Heart.HALF_HEARTS_PER_HEART, "la onda lo alcanza (los charcos lastiman en su paso de física)")
 
 
 func test_hammer_stays_down_during_the_punish_window() -> void:

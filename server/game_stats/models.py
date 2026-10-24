@@ -1,7 +1,7 @@
 """Domain models: request payloads, responses and domain errors."""
 
 from datetime import UTC, datetime
-from typing import Any, Literal
+from typing import Annotated, Any, Literal
 
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 
@@ -104,6 +104,8 @@ class Run(BaseModel):
     # Computed from the run's coin_picked and item_bought events.
     coins_collected: int = 0
     coins_spent: int = 0
+    # Level telemetry files stored for the run (routes the page can draw).
+    level_tracks: int = 0
 
 
 # --- Events ------------------------------------------------------------------
@@ -148,6 +150,7 @@ class RunDetail(Run):
 class LeaderboardEntry(BaseModel):
     rank: int
     run_id: str
+    player_id: int
     player_name: str
     score: int
     level_reached: int
@@ -169,7 +172,9 @@ class Stats(BaseModel):
     total_kills: int
     keys_collected: int
     hearts_collected: int
-    damage_taken: int
+    # Hearts lost: since the game counts health in half hearts it can be
+    # fractional (older runs only have whole hearts).
+    damage_taken: float
     coins_collected: int
     coins_spent: int
     items_bought: int
@@ -179,3 +184,127 @@ class Stats(BaseModel):
     best_level: int
     best_score: int
     events_by_type: dict[str, int]
+
+
+class PlayerTotals(BaseModel):
+    """Totals of one player over the runs that match the filters."""
+
+    player_id: int
+    player_name: str
+    runs: int
+    total_score: int
+    total_time_s: float
+    best_score: int
+    deepest_level: int
+    deaths: int
+    last_played_at: str | None
+
+
+class PlayerProfile(BaseModel):
+    """One player's page: totals over every run and per mode, the best run
+    (the one the leaderboard would rank: finished, normal mode) and the runs,
+    newest first."""
+
+    player: Player
+    totals: PlayerTotals
+    totals_by_mode: dict[str, PlayerTotals]
+    first_played_at: str | None
+    best_run: Run | None
+    runs: list[Run]
+
+
+# --- Level telemetry -----------------------------------------------------------
+# The game's Telemetry autoload writes one JSON file per level played and
+# uploads it as is (see docs/analitica.md for the format). Only the fields the
+# server reads are validated; unknown fields are kept in the stored JSON.
+
+LevelOutcome = Literal["completed", "died", "abandoned"]
+# Upload size limit. A level file is a few KB (about 25 bytes per path sample).
+MAX_LEVEL_BYTES = 2_000_000
+MAX_MAP_SIDE = 512
+MAX_PATH_SAMPLES = 100_000
+MAX_LEVEL_EVENTS = 20_000
+Cell = Annotated[list[int], Field(min_length=2, max_length=2)]
+
+
+class LevelMapIn(BaseModel):
+    model_config = ConfigDict(extra="allow")
+
+    size: Annotated[list[Annotated[int, Field(ge=0, le=MAX_MAP_SIDE)]], Field(min_length=2, max_length=2)]
+    cell_px: int = Field(default=16, ge=1, le=1024)
+    origin: Annotated[list[float], Field(min_length=2, max_length=2)] = [0.0, 0.0]
+    floor_encoding: Literal["rle"] = "rle"
+    floor: str = Field(default="", max_length=MAX_MAP_SIDE * MAX_MAP_SIDE, pattern=r"^[0-9,]*$")
+    door: Cell | None = None
+    key: Cell | None = None
+    start: Cell | None = None
+    rooms: Annotated[list[Annotated[list[int], Field(min_length=4)]], Field(max_length=1000)] = []
+
+
+class LevelEventIn(BaseModel):
+    model_config = ConfigDict(extra="allow")
+
+    t: float = Field(ge=0)
+    type: str = Field(pattern=EVENT_TYPE_PATTERN)
+    x: float = 0.0
+    y: float = 0.0
+
+
+class LevelTrackIn(BaseModel):
+    """Shape check of an uploaded level file."""
+
+    model_config = ConfigDict(extra="allow")
+
+    schema_version: int = Field(ge=1, le=1000)
+    game_version: str = Field(default="", max_length=32)
+    run_id: str = Field(default="", max_length=64)
+    profile: str = Field(default="", max_length=64)
+    mode: Mode = "normal"
+    level: int = Field(ge=1, le=9999)
+    attempt: int = Field(default=1, ge=1, le=9999)
+    outcome: LevelOutcome
+    duration_s: float = Field(default=0.0, ge=0, le=7 * 24 * 3600)
+    level_seed: Annotated[str, Field(max_length=32)] | int | None = None
+    map: LevelMapIn
+    path: Annotated[
+        list[Annotated[list[float], Field(min_length=3)]], Field(max_length=MAX_PATH_SAMPLES)
+    ] = []
+    events: Annotated[list[LevelEventIn], Field(max_length=MAX_LEVEL_EVENTS)] = []
+    weapons_used: Annotated[list[Annotated[str, Field(max_length=64)]], Field(max_length=200)] = []
+    # Planned difficulty (DifficultyCurve.index_for); null for hand-made levels
+    # and for files written before the field existed.
+    difficulty_index: float | None = None
+
+
+class LevelTrackResult(BaseModel):
+    run_id: str
+    level: int
+    attempt: int
+    created: bool
+
+
+class LevelTrackInfo(BaseModel):
+    """A stored level without its route: one row of a run's level list."""
+
+    run_id: str
+    level: int
+    attempt: int
+    mode: Mode
+    game_version: str
+    outcome: LevelOutcome
+    duration_s: float
+    difficulty_index: float | None
+    received_at: str
+
+
+class LevelTrackView(LevelTrackInfo):
+    """Everything the route view draws: the map already decoded (cells: one
+    digit per cell, 0 empty, 1 floor, 2 wall), the route, the events and a
+    summary (damage by source, death causes, kills...)."""
+
+    label: str
+    map: dict[str, Any]
+    path: list[list[float]]
+    events: list[dict[str, Any]]
+    weapons_used: list[str]
+    summary: dict[str, Any]

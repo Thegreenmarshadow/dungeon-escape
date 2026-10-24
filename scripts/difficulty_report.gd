@@ -1,10 +1,17 @@
 extends Control
 ## Pantalla del modo prueba: tabla de la curva de dificultad de los niveles
-## generados, análisis de capacidad del mapa, exportación a CSV y acceso
-## directo a una partida de prueba en cualquier nivel.
+## generados, gráfica de dificultad planificada contra medida (con las
+## partidas guardadas por la telemetría), análisis de capacidad del mapa,
+## exportación a CSV y acceso directo a una partida de prueba en cualquier
+## nivel.
+
+## Carpeta de perfiles de donde se leen las partidas (TelemetryStore).
+@export var telemetry_dir := ProfileStore.DEFAULT_BASE_DIR
+## Carpeta donde "Exportar análisis" escribe los CSV e insights.md.
+@export var analytics_dir := CsvExport.DEFAULT_DIR
 
 ## Niveles y semillas de muestra para el análisis de capacidad.
-const CAPACITY_LEVELS: Array[int] = [2, 5, 10, 20, 50, 100]
+const CAPACITY_LEVELS: Array[int] = [2, 5, 10, 20, 30, 50, 100]
 const CAPACITY_SEEDS: Array[int] = [1, 2, 3]
 ## Niveles cuyo índice se resume en la parte superior.
 const SUMMARY_LEVELS: Array[int] = [10, 25, 50, 100]
@@ -14,8 +21,8 @@ const HEADER_COLOR := Color(1.0, 0.86, 0.5)
 
 ## Columnas de la tabla: título y ancho mínimo. La última se estira.
 const COLUMNS := [
-	["Nivel", 44], ["Enemigos", 70], ["Esq/Vamp/Cal", 100], ["Jefes", 44],
-	["Trampas", 64], ["Vida", 52], ["Índice", 56], ["Δ%", 64], ["Topes", 0],
+	["Nivel", 44], ["Comunes", 64], ["Esq/Vamp/Cal", 100], ["Especiales", 84], ["Jefes", 44],
+	["Trampas", 64], ["Vida", 52], ["Golpe", 52], ["Índice", 56], ["Δ%", 64], ["Topes", 0],
 ]
 ## Nombre abreviado de cada tope de LevelGenerator (la leyenda está en la
 ## línea de estado).
@@ -25,6 +32,7 @@ const CAP_LABELS := {
 	DifficultyCurve.CAP_HAZARDS: "T",
 	DifficultyCurve.CAP_GRID: "G",
 	DifficultyCurve.CAP_ROOMS: "S",
+	DifficultyCurve.CAP_DAMAGE: "D",
 }
 const CAPACITY_HEADERS := ["Nivel", "Sem.", "Enem.", "Tramp.", "Libres", "+Enem.", "+Tramp."]
 const CAPACITY_FONT_SIZE := 12
@@ -38,16 +46,23 @@ const CAPACITY_FONT_SIZE := 12
 @onready var level_spin: SpinBox = %LevelSpin
 @onready var play_level_button: Button = %PlayLevelButton
 @onready var export_button: Button = %ExportButton
+@onready var analytics_export_button: Button = %AnalyticsExportButton
+@onready var chart: DifficultyChart = %DifficultyChart
+@onready var chart_hint: Label = %ChartHint
 @onready var back_button: Button = %BackButton
 @onready var status_label: Label = %StatusLabel
 
 var _rows: Array[Dictionary] = []
+## Archivos de nivel de la telemetría y sus estadísticas por nivel.
+var _levels: Array[Dictionary] = []
+var _level_stats: Array[Dictionary] = []
 
 
 func _ready() -> void:
 	_rows = DifficultyCurve.report()
 	_show_summary()
 	_fill_table()
+	load_measured()
 
 	level_spin.min_value = 1
 	level_spin.max_value = DifficultyCurve.LAST_LEVEL
@@ -61,10 +76,13 @@ func _ready() -> void:
 	capacity_button.pressed.connect(_run_capacity_check)
 	play_level_button.pressed.connect(func() -> void: Game.start_test_run(int(level_spin.value)))
 	export_button.pressed.connect(_export_csv)
+	analytics_export_button.pressed.connect(export_analytics)
 	back_button.pressed.connect(Game.go_to_menu)
-	status_label.text = ("Las filas en rojo crecen menos del %d %% respecto del nivel anterior. "
-			+ "Vida: multiplicador de la vida de los enemigos. Topes: E enemigos, P proporción de perseguidores, T trampas, G grilla, S salas.") % roundi(
-			DifficultyCurve.TARGET_GROWTH * 100.0)
+	status_label.text = ("Las filas en rojo no cumplen el objetivo de su tramo: +%d %% respecto del nivel anterior hasta el nivel %d, crecer algo después. "
+			+ "Especiales: total (comunes convertidos). Vida: multiplicador de la vida de los enemigos. "
+			+ "Golpe: corazones que quita un golpe común. "
+			+ "Topes: E enemigos, P proporción de perseguidores, T trampas, G grilla, S salas, D daño.") % [
+			roundi(DifficultyCurve.TARGET_GROWTH * 100.0), DifficultyCurve.TARGET_GROWTH_LAST_LEVEL]
 	play_level_button.grab_focus()
 
 
@@ -78,9 +96,14 @@ func _show_summary() -> void:
 	var failing := DifficultyCurve.failing_levels(_rows)
 	var first_below := DifficultyCurve.first_below_target(_rows)
 	var plateau := DifficultyCurve.plateau_start(_rows)
+	var escalation := DifficultyCurve.escalation()
 	var lines := PackedStringArray()
-	lines.append("Objetivo: +%d %% por nivel · Primer nivel bajo el %d %%: %s · Meseta (crecimiento < %d %%) desde el nivel %s" % [
-		roundi(DifficultyCurve.TARGET_GROWTH * 100.0), roundi(DifficultyCurve.TARGET_GROWTH * 100.0),
+	lines.append("Objetivo: +%d %% por nivel hasta el %d; después crecer en cada nivel y llegar a ×%d del %d al %d (hoy ×%.1f, %s)" % [
+		roundi(DifficultyCurve.TARGET_GROWTH * 100.0), DifficultyCurve.TARGET_GROWTH_LAST_LEVEL,
+		roundi(DifficultyCurve.ESCALATION_TARGET), DifficultyCurve.TARGET_GROWTH_LAST_LEVEL,
+		DifficultyCurve.LAST_LEVEL, escalation,
+		"cumple" if escalation >= DifficultyCurve.ESCALATION_TARGET else "no cumple"])
+	lines.append("Primer nivel bajo el objetivo: %s · Meseta (crecimiento < %d %%) desde el nivel %s" % [
 		str(first_below) if first_below > 0 else "ninguno",
 		roundi(DifficultyCurve.PLATEAU_GROWTH * 100.0),
 		str(plateau) if plateau > 0 else "ninguno"])
@@ -107,9 +130,11 @@ func _fill_table() -> void:
 			str(row["level"]),
 			str(row["enemies"]),
 			"%d/%d/%d" % [row["skeletons"], row["vampires"], row["skulls"]],
+			"%d (%d)" % [row["archers"] + row["skull_turrets"] + row["mimics"] + row["mages"], row["converted"]],
 			str(row["bosses"]),
 			str(row["hazards"]),
 			"×%.1f" % row["health_scale"],
+			Heart.format_hearts(row["hit"]),
 			"%.1f" % row["index"],
 			"—" if is_nan(level_growth) else "%+.1f%%" % (level_growth * 100.0),
 			" ".join(caps),
@@ -212,3 +237,37 @@ func _export_csv() -> void:
 		status_label.text = "CSV exportado en: " + ProjectSettings.globalize_path(DifficultyCurve.CSV_PATH)
 	else:
 		status_label.text = "No se pudo exportar el CSV (error %d)." % error
+
+
+## Lee las partidas guardadas en telemetry_dir y actualiza la gráfica.
+func load_measured() -> void:
+	_levels = TelemetryStore.new(telemetry_dir).load_levels()
+	_level_stats = LevelStats.aggregate(_levels)
+	chart.set_points(LevelStats.chart_rows(_level_stats))
+	var files := 0
+	for row in _level_stats:
+		files += row["attempts"]
+	chart_hint.text = ("Las dos líneas van de 0 a 1. Planificada: índice de dificultad ÷ su máximo en el rango. "
+			+ "Medida: %d %% muertes por intento + %d %% daño por minuto, cada uno ÷ su máximo entre los niveles jugados. "
+			+ "Datos: %d intentos en %d niveles (sin la demo). Pasa el puntero sobre la gráfica para ver los valores.") % [
+			roundi(LevelStats.WEIGHT_DEATHS * 100.0), roundi(LevelStats.WEIGHT_DAMAGE * 100.0),
+			files, _level_stats.size()]
+
+
+## Escribe levels.csv, deaths.csv, runs.csv e insights.md en analytics_dir.
+## Devuelve OK o el primer error.
+func export_analytics() -> Error:
+	var result := CsvExport.export_all(_levels, analytics_dir)
+	var error: Error = result["error"]
+	var lines := AnalyticsInsights.generate_from_stats(_level_stats)
+	if error == OK:
+		var files := 0
+		for row in _level_stats:
+			files += row["attempts"]
+		error = AnalyticsInsights.save_markdown(lines, analytics_dir, files)
+	if error == OK:
+		status_label.text = "Análisis exportado en %s (levels.csv, deaths.csv, runs.csv, insights.md). Avisos: %d." % [
+			ProjectSettings.globalize_path(analytics_dir), lines.size()]
+	else:
+		status_label.text = "No se pudo exportar el análisis (error %d)." % error
+	return error

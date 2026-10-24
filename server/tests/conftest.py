@@ -1,3 +1,4 @@
+import json
 from collections.abc import Callable, Iterator
 from pathlib import Path
 from typing import Any
@@ -42,3 +43,27 @@ def finish_run(client: TestClient) -> Callable[..., dict[str, Any]]:
         return response.json()
 
     return _finish
+
+
+FIXTURES_DIR = Path(__file__).parent / "fixtures"
+
+
+@pytest.fixture
+def level_file() -> Callable[..., dict[str, Any]]:
+    """A copy of a sample level telemetry file (tests/fixtures), with overrides."""
+
+    def _load(name: str, **overrides: Any) -> dict[str, Any]:
+        data = json.loads((FIXTURES_DIR / f"{name}.json").read_text(encoding="utf-8"))
+        return {**data, **overrides}
+
+    return _load
+
+
+@pytest.fixture
+def upload_level(client: TestClient) -> Callable[..., Any]:
+    def _upload(run_id: str, data: dict[str, Any], expected: int = 201) -> dict[str, Any]:
+        response = client.post(f"/api/runs/{run_id}/levels", json=data)
+        assert response.status_code == expected, response.text
+        return response.json()
+
+    return _upload

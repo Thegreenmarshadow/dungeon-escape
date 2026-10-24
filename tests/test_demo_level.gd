@@ -11,7 +11,7 @@ extends McpTestSuite
 const DEMO_SCENE := "res://scenes/DemoLevel.tscn"
 const GAME_SCRIPT := "res://scripts/game.gd"
 ## Estado de Game que las pruebas tocan y dejan como estaba.
-const GAME_STATE := [&"current_level", &"lives", &"enemies_killed", &"score", &"coins",
+const GAME_STATE := [&"current_level", &"health", &"enemies_killed", &"score", &"coins",
 		&"damage_bonus", &"weapon_id", &"run_seed", &"test_mode", &"test_start_level", &"demo_mode"]
 ## Salas en el orden en que se recorren.
 const ROOM_ORDER: Array[StringName] = [&"entrance", &"archers", &"mage", &"mimic", &"armory",
@@ -157,8 +157,9 @@ func test_scene_builds_rooms_enemies_pickups_and_boss() -> void:
 	var lava_atlas := demo.lava_layer.tile_set.get_source(0) as TileSetAtlasSource
 	assert_eq(lava_atlas.texture.resource_path, DungeonTheme.tileset_texture_path(DungeonTheme.LAVA))
 	assert_gt(demo.lava_layer.get_used_cells().size(), 0)
-	assert_eq(demo.player.lives, _game().DEMO_LIVES)
-	assert_eq(demo.player.max_lives, _game().DEMO_LIVES)
+	assert_eq(demo.player.health, _game().DEMO_HEALTH)
+	assert_eq(demo.player.max_health, _game().DEMO_HEALTH)
+	assert_eq(_game().DEMO_HEALTH, 5 * Heart.HALF_HEARTS_PER_HEART, "5 corazones")
 	assert_eq(demo.hud.message_label.text, demo.demo_map.rooms[0].hint, "la primera ayuda")
 
 
@@ -216,12 +217,12 @@ func test_knock_out_respawns_at_the_checkpoint_instead_of_game_over() -> void:
 	var room_respawn: Vector2 = demo._cell_center(demo.demo_map.rooms[2].respawn_cell)
 	assert_eq(demo.respawn_position, room_respawn)
 	player.position = Vector2(700, 150)
-	player.take_damage(player.lives)
+	player.take_damage(player.health)
 	assert_eq(deaths[0], 0, "no muere: no hay Game Over")
 	assert_false(demo.hud.game_over_screen.visible)
 	demo.respawn_player()
-	assert_eq(player.lives, _game().DEMO_LIVES, "vuelve con todas las vidas")
-	assert_eq(_game().lives, _game().DEMO_LIVES)
+	assert_eq(player.health, _game().DEMO_HEALTH, "vuelve con toda la vida")
+	assert_eq(_game().health, _game().DEMO_HEALTH)
 	assert_eq(player.global_position, demo.to_global(room_respawn))
 	assert_true(player.is_physics_processing(), "se puede mover")
 
@@ -231,7 +232,7 @@ func test_knock_out_respawns_at_the_checkpoint_instead_of_game_over() -> void:
 	var flag_respawn: Vector2 = demo._cell_center(demo.demo_map.checkpoint_cell + Vector2i(0, 1))
 	assert_eq(demo.respawn_position, flag_respawn)
 	player._invulnerable_left = 0.0
-	player.take_damage(player.lives)
+	player.take_damage(player.health)
 	demo.respawn_player()
 	assert_eq(player.global_position, demo.to_global(flag_respawn))
 	assert_eq(deaths[0], 0)
@@ -272,10 +273,10 @@ func test_respawn_is_recorded_without_counting_a_heart() -> void:
 	var sink := RecordingSink.new()
 	var recorder := RunRecorder.new(sink)
 	recorder.start_run("demo-run", "Ana", RunRecorder.MODE_DEMO, 1, 1)
-	recorder.start_level(1, 5, 8)
-	recorder.record_lives(0)
-	recorder.record_respawn(5)
-	recorder.record_lives(4)
+	recorder.start_level(1, 10, 8)
+	recorder.record_health(0)
+	recorder.record_respawn(10)
+	recorder.record_health(9)
 	var types: Array = sink.events.map(func(e: Dictionary) -> String: return e["type"])
 	assert_eq(types, ["level_started", "damage_taken", "player_respawned", "damage_taken"])
 	assert_true(recorder.is_running(), "reaparecer no termina la partida")
@@ -287,17 +288,17 @@ func test_leaving_the_demo_resets_the_game_state() -> void:
 	var game := _make_game_stub()
 	game.start_demo()
 	assert_true(game.demo_mode)
-	assert_eq(game.lives, game.DEMO_LIVES)
+	assert_eq(game.health, game.DEMO_HEALTH)
 	assert_eq(game.current_level, 1)
 	assert_eq(game.scenes, [game.DEMO_SCENE])
 	game.weapon_id = &"spear"
 	game.add_coins(12)
-	game.lives = 2
+	game.health = 2
 	game.register_kill()
 	game.go_to_menu()
 	assert_false(game.demo_mode)
 	assert_false(game.test_mode)
-	assert_eq(game.lives, game.STARTING_LIVES)
+	assert_eq(game.health, game.STARTING_HEALTH)
 	assert_eq(game.weapon_id, WeaponData.STARTING_ID)
 	assert_eq(game.coins, 0)
 	assert_eq(game.score, 0)
@@ -307,10 +308,10 @@ func test_leaving_the_demo_resets_the_game_state() -> void:
 func test_retry_in_the_demo_restarts_the_demo() -> void:
 	var game := _make_game_stub()
 	game.start_demo()
-	game.lives = 0
+	game.health = 0
 	game.retry()
 	assert_true(game.demo_mode)
-	assert_eq(game.lives, game.DEMO_LIVES)
+	assert_eq(game.health, game.DEMO_HEALTH)
 	assert_eq(game.scenes, [game.DEMO_SCENE, game.DEMO_SCENE])
 
 
@@ -319,7 +320,7 @@ func test_a_normal_game_after_the_demo_is_not_a_demo() -> void:
 	game.start_demo()
 	game.start_new_game()
 	assert_false(game.demo_mode)
-	assert_eq(game.lives, game.STARTING_LIVES)
+	assert_eq(game.health, game.STARTING_HEALTH)
 	game.retry()
 	assert_false(game.demo_mode, "reintentar una partida normal no vuelve a la demo")
 
@@ -358,7 +359,7 @@ func _make_demo() -> Node2D:
 	tracker.recorder = RunRecorder.new(_sink)
 	game.new_game()
 	game.demo_mode = true
-	game.lives = game.DEMO_LIVES
+	game.health = game.DEMO_HEALTH
 	var demo: Node2D = track(load(DEMO_SCENE).instantiate())
 	if not demo.has_method("enter_room"):
 		skip("los scripts del nivel no corren en el editor")
