@@ -139,6 +139,10 @@ Es una página estática (`server/web/`: HTML, CSS y JS sin dependencias) que el
 
 ![Estadísticas en la página web](docs/capturas/03-estadisticas-web.png)
 
+**Recorrido de una partida** (detalle en Partidas): el mapa del nivel con el camino del jugador, del inicio al final, y dónde recibió daño, eliminó enemigos, recogió corazones y la llave. Al costado, el tiempo, el daño por fuente, el combate y el arma:
+
+![Recorrido de un nivel en la página web](docs/capturas/04-recorrido-web.png)
+
 ### API
 
 `POST /api/players`, `POST /api/runs`, `POST /api/runs/{id}/events`, `POST /api/runs/{id}/levels`, `PATCH /api/runs/{id}`, `GET /api/leaderboard?limit=10`, `GET /api/players`, `GET /api/players/totals`, `GET /api/players/{id}`, `GET /api/runs?player=&mode=&limit=`, `GET /api/runs/{id}`, `GET /api/runs/{id}/levels`, `GET /api/stats`, `GET /api/analytics` y `GET /api/health`. La documentación interactiva está en <http://127.0.0.1:8765/docs>.

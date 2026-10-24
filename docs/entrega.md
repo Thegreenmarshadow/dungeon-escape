@@ -8,7 +8,7 @@
 |---|---|
 | Repositorio público | <https://github.com/Thegreenmarshadow/dungeon-escape> |
 | Video corto | _(pegar aquí el enlace al video)_ |
-| 3 capturas de pantalla | [`docs/capturas/`](capturas/) (se muestran abajo) |
+| 3 capturas de pantalla (más una extra) | [`docs/capturas/`](capturas/) (se muestran abajo) |
 
 ## Requisitos y dónde se cumplen
 
@@ -32,6 +32,10 @@
 **3. Estadísticas guardadas.** Totales de partidas, enemigos, llaves, corazones, monedas recogidas y gastadas, compras y eventos por tipo.
 
 ![Estadísticas web](capturas/03-estadisticas-web.png)
+
+**4. Extra: recorrido de un nivel.** El mapa con el camino que hizo el jugador, del inicio al final, y dónde recibió daño, eliminó enemigos y recogió corazones y la llave. Al costado: resultado, tiempo, daño por fuente, golpes acertados y arma usada.
+
+![Recorrido web](capturas/04-recorrido-web.png)
 
 > Las capturas web usan las partidas reales más las de ejemplo que agrega `uv run game-stats-seed` (jugadores como Ana o Bruno).
 
