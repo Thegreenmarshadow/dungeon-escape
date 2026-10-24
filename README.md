@@ -4,7 +4,7 @@ Juego de acción 2D con vista cenital, hecho en **Godot 4.7.2**. El jugador cont
 
 ![Captura del juego](docs/capturas/01-juego.png)
 
-Más capturas (ranking y estadísticas de la página web) y el resumen de la entrega en [docs/entrega.md](docs/entrega.md).
+Las capturas de la página web están en [Página web](#página-web) y el resumen de la entrega en [docs/entrega.md](docs/entrega.md).
 
 **Descarga:** los ejecutables para Windows y Linux están en [Releases](https://github.com/Thegreenmarshadow/dungeon-escape/releases/latest).
 
@@ -130,6 +130,14 @@ Es una página estática (`server/web/`: HTML, CSS y JS sin dependencias) que el
 | **Partidas** | Historial de partidas, filtrable por jugador y modo, con monedas recogidas y gastadas. Al abrir una se ve su detalle con la línea de tiempo de eventos y, si subió su telemetría, el recorrido sobre el mapa. |
 | **Analítica** | La telemetría de los niveles: avisos de dificultad, mapas de calor (tiempo, daño, muertes) y dificultad por nivel. |
 | **Estadísticas** | Totales globales (jugadores, partidas, enemigos eliminados, llaves, corazones, daño recibido, mejor nivel y puntaje, duración media), monedas recogidas y gastadas, artículos comprados por tipo y cantidad de eventos de cada tipo. Se puede filtrar por modo. |
+
+**Ranking** (mejores puntajes):
+
+![Ranking en la página web](docs/capturas/02-ranking-web.png)
+
+**Estadísticas** (totales de todo lo que hicieron los jugadores):
+
+![Estadísticas en la página web](docs/capturas/03-estadisticas-web.png)
 
 ### API
 
