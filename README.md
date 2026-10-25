@@ -60,6 +60,17 @@ Descargar el archivo de la plataforma desde [Releases](https://github.com/Thegre
 
 Mejoras para que las acciones se sientan más responsivas y claras. Los parámetros del jugador son `@export` de `scripts/player.gd` (se cambian en el Inspector de `Player.tscn`); los de la cámara y el feedback son constantes al inicio de `scripts/game_feel.gd` (Autoload `GameFeel`). Pulsa **F3** durante el juego para ver un panel con los tiempos en vivo (buffer, coyote time, trauma, hit-stop).
 
+### Capturas
+
+| Input buffering, screenshake y feedback | Coyote time |
+|---|---|
+| ![Ataque guardado en el buffer mientras la espada se enfría, con hit-stop, chispas y número de daño](docs/capturas/buffer-y-feedback.png) | ![El jugador ya está sobre el abismo y todavía puede saltar](docs/capturas/coyote-time.png) |
+| El panel F3 muestra un ataque guardado (`Buffer ataque: 131 / 150 ms`) mientras la espada se enfría, y «buffer» sobre el jugador cuando sale uno. El golpe anterior dejó trauma en la cámara (barra de screenshake), chispas, el enemigo en rojo y el número de daño. | El jugador ya pisa el abismo, pero le quedan 53 de los 120 ms de coyote time: si salta ahora, llega al otro lado. |
+
+![Parry: destello, congelado y el golpe devuelto al enemigo](docs/capturas/parry.png)
+
+Parry logrado: el texto «¡PARRY!», el juego congelado (`Hit-stop: SÍ`), la cámara con trauma 0.68 y el golpe devuelto al esqueleto.
+
 ### Input buffering
 
 Si se pulsa una acción cuando todavía no se puede hacer, el juego la recuerda un momento y la ejecuta en cuanto se puede, en lugar de ignorarla.
