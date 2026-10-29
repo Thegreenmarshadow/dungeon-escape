@@ -1,0 +1,88 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://scripts/input/touch_controls.gd" id="1_controls"]
+[ext_resource type="Script" path="res://scripts/input/touch_joystick.gd" id="2_joystick"]
+[ext_resource type="Script" path="res://scripts/input/touch_action_button.gd" id="3_button"]
+[ext_resource type="Texture2D" path="res://assets/weapons/sword/sword_icon.png" id="4_sword"]
+[ext_resource type="Texture2D" path="res://assets/weapons/shield/shield_icon.png" id="5_shield"]
+
+[node name="TouchControls" type="CanvasLayer"]
+layer = 50
+script = ExtResource("1_controls")
+
+[node name="Safe" type="Control" parent="."]
+unique_name_in_owner = true
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = 8.0
+offset_top = 8.0
+offset_right = -8.0
+offset_bottom = -8.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+
+[node name="Joystick" type="Control" parent="Safe"]
+unique_name_in_owner = true
+layout_mode = 1
+anchor_top = 0.3
+anchor_right = 0.45
+anchor_bottom = 1.0
+grow_vertical = 0
+mouse_filter = 2
+script = ExtResource("2_joystick")
+
+[node name="BottomRight" type="Control" parent="Safe"]
+layout_mode = 1
+anchors_preset = 3
+anchor_left = 1.0
+anchor_top = 1.0
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 0
+grow_vertical = 0
+mouse_filter = 2
+
+[node name="AttackButton" type="TouchScreenButton" parent="Safe/BottomRight"]
+unique_name_in_owner = true
+position = Vector2(-140, -140)
+action = "attack"
+script = ExtResource("3_button")
+diameter = 132.0
+icon = ExtResource("4_sword")
+caption = "ATAQUE"
+
+[node name="JumpButton" type="TouchScreenButton" parent="Safe/BottomRight"]
+unique_name_in_owner = true
+position = Vector2(-300, -100)
+action = "jump"
+script = ExtResource("3_button")
+glyph = 1
+caption = "SALTO"
+
+[node name="ParryButton" type="TouchScreenButton" parent="Safe/BottomRight"]
+unique_name_in_owner = true
+position = Vector2(-115, -300)
+action = "parry"
+script = ExtResource("3_button")
+diameter = 100.0
+icon = ExtResource("5_shield")
+caption = "PARRY"
+
+[node name="TopRight" type="Control" parent="Safe"]
+layout_mode = 1
+anchors_preset = 1
+anchor_left = 1.0
+anchor_right = 1.0
+grow_horizontal = 0
+mouse_filter = 2
+
+[node name="PauseButton" type="TouchScreenButton" parent="Safe/TopRight"]
+unique_name_in_owner = true
+position = Vector2(-300, 64)
+action = "pause"
+script = ExtResource("3_button")
+diameter = 96.0
+glyph = 2

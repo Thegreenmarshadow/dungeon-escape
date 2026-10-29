@@ -61,8 +61,12 @@ const ITEM_ICON_WIDTH := 32
 @onready var run_summary: RunSummary = %RunSummary
 @onready var end_summary_button: Button = %EndSummaryButton
 @onready var game_over_summary_button: Button = %GameOverSummaryButton
+@onready var top_bar: Control = $TopBar
 
 var _game_over_tween: Tween
+# Márgenes de la escena de lo que va pegado a los bordes; la zona segura (notch)
+# se les suma en _apply_safe_area.
+var _edge_offsets: Dictionary[Control, Vector4] = {}
 # Segundos de un mensaje sin duración propia (el wait_time de la escena).
 var _message_time := 1.5
 # Botón de cada artículo de la tienda; se crean la primera vez que se muestra.
@@ -87,6 +91,27 @@ func _ready() -> void:
 	var telemetry := get_node_or_null(^"/root/Telemetry")
 	if telemetry != null:
 		telemetry.level_finished.connect(_on_level_finished)
+	for control: Control in [top_bar, minimap, boss_bar]:
+		_edge_offsets[control] = Vector4(control.offset_left, control.offset_top,
+				control.offset_right, control.offset_bottom)
+	get_viewport().size_changed.connect(_apply_safe_area)
+	_apply_safe_area()
+
+
+## Corre la barra de arriba, el minimapa y la barra del jefe dentro de la zona
+## segura (en un celular con notch; en PC los márgenes son cero).
+func _apply_safe_area() -> void:
+	var insets := SafeArea.insets(get_viewport())
+	for control: Control in _edge_offsets:
+		var base: Vector4 = _edge_offsets[control]
+		# La barra de arriba va a la izquierda y el minimapa a la derecha; la
+		# del jefe está centrada, solo baja.
+		var shift_x: float = insets["left"] if control == top_bar \
+				else -insets["right"] if control == minimap else 0.0
+		control.offset_left = base.x + shift_x
+		control.offset_right = base.z + shift_x
+		control.offset_top = base.y + insets["top"]
+		control.offset_bottom = base.w + insets["top"]
 
 
 ## Muestra la vida (health y max_health en medios corazones) con un corazón

@@ -10,14 +10,17 @@ Las capturas de la página web están en [Página web](#página-web) y el resume
 
 ## Cómo jugar
 
-| Acción | Teclas |
-|---|---|
-| Moverse (8 direcciones) | Flechas o W A S D |
-| Atacar con la espada | Espacio o J |
-| Saltar (abismos y picos) | K o Shift |
-| Parry | L |
-| Panel de game feel | F3 |
-| Reiniciar (en las pantallas finales) | R |
+| Acción | Teclas | Mando | Pantalla táctil |
+|---|---|---|---|
+| Moverse (8 direcciones) | Flechas o W A S D | Stick izquierdo o cruceta | Joystick (mitad izquierda) |
+| Atacar con la espada | Espacio o J | X | ATAQUE |
+| Saltar (abismos y picos) | K o Shift | A | SALTO |
+| Parry | L | B o RB | PARRY |
+| Pausa | Escape | Start | Botón de pausa |
+| Panel de game feel | F3 | — | — |
+| Reiniciar (en las pantallas finales) | R | Back | Botones de la pantalla |
+
+Los controles táctiles se explican en [Controles móviles](#controles-móviles).
 
 **Objetivo:** encontrar la llave y llegar a la puerta de salida, en el extremo opuesto del mapa.
 
@@ -54,7 +57,7 @@ Descargar el archivo de la plataforma desde [Releases](https://github.com/Thegre
 
 1. Instalar **Godot 4.7.2** (versión estándar, no .NET).
 2. En el gestor de proyectos: **Importar** → seleccionar el archivo `project.godot`.
-3. Presionar **F5** (o el botón ▶) para jugar. La escena principal es `scenes/Level.tscn`.
+3. Presionar **F5** (o el botón ▶) para jugar. La escena principal es el menú, `scenes/MainMenu.tscn`; los niveles son `scenes/Level.tscn`.
 
 ## Game feel
 
@@ -160,6 +163,102 @@ Vibración de cámara por **trauma**: cada momento clave suma trauma (de 0 a 1),
 
 Ninguna de estas mejoras cambia las estadísticas: `GameFeel` solo escucha señales, y el registro de partidas, el leaderboard y la web siguen igual. La única novedad en la base es la fuente de daño `pit`.
 
+## Controles móviles
+
+El juego se puede jugar entero con la pantalla táctil sin perder el teclado ni el mando: un joystick flotante a la izquierda, los botones **ATAQUE**, **SALTO** y **PARRY** abajo a la derecha y la pausa arriba. Los menús, la tienda y las pantallas finales ya eran botones, y se tocan directamente.
+
+| Controles en juego | Menú de ajustes |
+|---|---|
+| ![Joystick inclinado hacia arriba a la derecha y ATAQUE apretado, con el golpe en curso](docs/capturas/05-controles-tactiles.png) | ![Ajustes con opacidad, tamaño, zona muerta y vibración, y la vista previa de los controles](docs/capturas/06-ajustes-controles.png) |
+| Un dedo en el joystick y otro en ATAQUE a la vez (multitouch): el caballero camina y golpea. | Los cambios se guardan en el acto y la vista previa los muestra. |
+
+![HUD y controles en una pantalla de celular 20:9](docs/capturas/07-hud-movil.png)
+
+HUD y controles con la proporción de un celular (20:9, la vista queda en 1440 × 648): los anclajes mantienen los corazones arriba a la izquierda, el minimapa arriba a la derecha y los botones en las esquinas de abajo.
+
+### Una sola capa de entrada
+
+El jugador (`scripts/player.gd`) solo lee **acciones del Input Map** (`move_left`, `move_right`, `move_up`, `move_down`, `attack`, `jump`, `parry`, `pause`) con `Input.get_vector` e `Input.is_action_just_pressed`, sin saber qué dispositivo las aprieta. Cada acción tiene su tecla, su botón del mando y su control táctil:
+
+- **Botones** (`scripts/input/touch_action_button.gd`): son `TouchScreenButton` con su propiedad `action`, así que tocarlos aprieta la acción como la tecla. Se dibujan solos (círculo, ícono del juego y rótulo) y su área de toque es un círculo del mismo diámetro.
+- **Joystick** (`scripts/input/touch_joystick.gd`): convierte el desplazamiento de la perilla en `Input.action_press("move_right", fuerza)` y `Input.action_release(...)`. Solo suelta las acciones que apretó él, así no corta una tecla que se mantiene a la vez. Es **flotante**: el centro queda donde apoya el pulgar; sin dedo se ve tenue abajo a la izquierda. Fuera de la zona muerta la dirección sale con fuerza completa, porque el caballero camina a una sola velocidad, igual que con el teclado.
+- **Multitouch:** el joystick sigue a un solo dedo por su índice de toque y cada `TouchScreenButton` sigue al suyo, así que se puede caminar y saltar o atacar al mismo tiempo.
+
+Godot 4.7 trae un `VirtualJoystick` nativo (por eso el del juego se llama `TouchJoystick`). Se prefirió uno propio para controlar qué acciones suelta, que se suelte solo al pausar u ocultarse y poder probarlo sin pantalla.
+
+Como todo pasa por las mismas acciones, el **input buffering** y el **coyote time** funcionan igual con los botones táctiles. `tests/test_touch_controls.gd` lo comprueba tocando SALTO en el aire (el salto sale al aterrizar) y sobre el borde de un abismo (salta dentro del coyote time).
+
+### Cuándo se ven
+
+`scripts/input/touch_controls.gd` (Autoload `TouchControls`, escena `scenes/TouchControls.tscn`) los muestra solo en partida: con un jugador vivo, sin pausa y fuera de las pantallas finales. Al ocultarse suelta todo lo que estaba apretado. En **Ajustes → Mostrar** se elige el modo:
+
+| Modo | Cuándo se ven |
+|---|---|
+| **Auto** (por defecto) | En el celular, siempre (`DisplayServer.is_touchscreen_available()`). En una PC con pantalla táctil, desde el primer toque real hasta que se usa el teclado o el mando: en Windows Godot no informa la pantalla táctil, así que se detecta con el toque |
+| **Siempre** | Modo de depuración para probar en PC. Sin pantalla táctil enciende `Input.emulate_touch_from_mouse`, así el mouse maneja el joystick y los botones |
+| **Nunca** | Solo teclado y mando |
+
+La emulación de toques se enciende desde el código y no en Project Settings: con *Emulate Touch From Mouse* activado en el proyecto, `is_touchscreen_available()` daría `true` en cualquier PC y el modo Auto los mostraría siempre.
+
+### Diseño y pantalla
+
+- **Ergonomía:** el joystick ocupa la parte izquierda de la pantalla (45 % del ancho, sin el 30 % de arriba) y aparece donde se apoye el pulgar. ATAQUE, la acción más usada, es el botón más grande y queda en la esquina, donde descansa el pulgar derecho; SALTO a su izquierda y PARRY encima, en arco. La pausa va arriba, a la izquierda del minimapa, lejos de los pulgares para no tocarla sin querer. El centro de la pantalla, donde está el caballero, queda libre.
+- **Orientación y escalado:** horizontal (`display/window/handheld/orientation` = sensor landscape, gira con el celular) y stretch `canvas_items` + `expand`. La vista mide 648 px de alto y se ensancha según la pantalla (1440 px en un 20:9).
+- **Anclajes:** joystick y botones cuelgan de nodos anclados a cada esquina (`Safe/BottomRight`, `Safe/TopRight`).
+- **Zona segura:** `scripts/input/safe_area.gd` convierte `DisplayServer.get_display_safe_area()` a píxeles de la vista. Los controles, la barra superior del HUD, el minimapa y la barra del jefe se corren para no quedar debajo del notch ni de los bordes redondeados. En PC los márgenes valen cero.
+- **Menú de ajustes:** con la vista previa visible, el contenido se corre al espacio libre entre el joystick y los botones.
+
+### Parámetros
+
+| Parámetro | Valor usado | Dónde |
+|---|---|---|
+| Radio del joystick | 100 px (75–150 px con el tamaño de Ajustes) | `JOYSTICK_RADIUS` en `touch_controls.gd` |
+| Zona muerta | 0.20 del radio (ajustable de 0.05 a 0.50) | Ajustes; `ControlSettings.DEFAULT_DEADZONE` |
+| Tamaño de los botones | ATAQUE 132 px, SALTO 112 px, PARRY 100 px, pausa 96 px (× 0.75–1.5) | `*_DIAMETER` en `touch_controls.gd` |
+| Tamaño físico aproximado | 96 px de la vista ≈ 160 px en una pantalla de 1080 px de alto ≈ 10 mm a 400 ppp | — |
+| Opacidad de los controles | 0.55 (ajustable de 0.2 a 1.0); en reposo el joystick se ve al 60 % de eso | Ajustes; `ControlSettings.DEFAULT_OPACITY` |
+| Zona muerta del stick del mando | 0.2 en las acciones de movimiento (antes 0.5) | Input Map |
+| Duración de vibración | 30–80 ms (ver abajo) | `scripts/input/haptics.gd` |
+| Orientación y stretch | Landscape (sensor), `canvas_items` + `expand` | Project Settings |
+
+### Vibración
+
+`Haptics` llama a `Input.vibrate_handheld(ms)` solo en Android e iOS y si la vibración está encendida en Ajustes. La dispara `GameFeel`, que ya escuchaba esos momentos:
+
+| Momento | Duración |
+|---|---|
+| Recibir daño (también al caer a un abismo) | 70 ms |
+| Parry logrado | 50 ms |
+| Matar un enemigo / un jefe | 35 / 80 ms |
+| Recoger la llave o un corazón | 30 ms |
+
+Las monedas no vibran, para no saturar.
+
+### Ajustes guardados
+
+Se guardan en la sección `[controls]` de `user://settings.cfg`, el mismo archivo de la telemetría (`scripts/settings/control_settings.gd`). Un valor fuera de rango se recorta al límite y un archivo dañado vuelve a los valores por defecto.
+
+```ini
+[controls]
+touch_mode="auto"   ; auto, always o never
+opacity=0.55
+scale=1.0
+deadzone=0.2
+vibration=true
+```
+
+### Cómo probarlo
+
+- **PC con pantalla táctil** (por ejemplo, una Latitude 5320): correr el juego con F5 y tocar la pantalla; con Auto los controles aparecen al primer toque y se ocultan al usar el teclado.
+- **PC sin pantalla táctil:** Ajustes → Mostrar → **Siempre (depuración)** y usar el mouse (un solo "dedo": sirve para el joystick o un botón, no para los dos a la vez).
+- **Pruebas automáticas:** `tests/test_touch_joystick.gd` (zona muerta, acciones, un dedo por joystick) y `tests/test_touch_controls.gd` (ajustes, modos, multitouch, buffer y coyote con el botón táctil, vibración, zona segura). Las suites anteriores siguen pasando, y también las del servidor (`uv run pytest`).
+
+### Limitaciones en el celular
+
+- **Servidor y web local:** el servidor escucha en `127.0.0.1`, la propia PC. En el celular esa dirección es el celular, así que el juego no llega al servidor: guarda las partidas en su cola local (`user://stats_queue.json`, hasta 1000 pedidos) y el menú muestra el ranking local ("Fuente: local"). La base de datos, el leaderboard y la web se consultan desde la PC como siempre; las partidas del celular no aparecen ahí. La web tampoco se puede abrir desde el celular.
+- **Panel F3** de game feel: solo con teclado.
+- **Zona de pruebas** (sandbox): sus atajos para hacer aparecer enemigos son de teclado; el jugador sí se maneja con los controles táctiles.
+
 ## Estadísticas, ranking y servidor local
 
 El juego registra cada partida (tiempo, niveles, enemigos eliminados, daño recibido, monedas, llaves y corazones recogidos, compras, muerte o abandono) y la envía a un servidor local que la guarda en SQLite. El mismo servidor tiene una interfaz web para consultar los datos.
@@ -264,6 +363,8 @@ scripts/         Lógica en GDScript, comentada en español
   chaser_enemy.gd  Persecución con regreso a su puesto (vampiro y parca)
   level.gd       Conecta jugador, puerta, enemigos e interfaz
   stats/         Registro de partidas: RunTracker (Autoload), cola en disco y envío HTTP
+  input/         Controles táctiles (TouchControls), joystick, botones, vibración y zona segura
+  settings/      Ajustes guardados (telemetría y controles) y su menú
 server/          Servidor local de estadísticas (FastAPI + SQLite) e interfaz web
 tilesets/        TileSet del calabozo con colisión en las paredes
 assets/          Sprites del calabozo y de los enemigos
@@ -275,6 +376,7 @@ Decisiones de diseño principales:
 - **Enemigos reutilizables:** `EnemyBase` concentra vida, daño por contacto, reacción al golpe (animación, parpadeo rojo y retroceso) y muerte. Cada enemigo solo define cómo se mueve.
 - **Colisiones por capas:** `world`, `player` y `enemies`. Los enemigos chocan con las paredes pero no bloquean al jugador.
 - **Interfaz desacoplada:** el HUD solo muestra datos; `level.gd` decide cuándo actualizarlo.
+- **Entrada por acciones:** el jugador solo lee acciones del Input Map; teclado, mando y controles táctiles aprietan las mismas.
 
 ## Nota sobre el plugin godot-ai
 

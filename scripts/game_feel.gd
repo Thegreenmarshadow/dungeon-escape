@@ -11,6 +11,9 @@ extends Node
 ##
 ## F3 muestra un panel con los tiempos en vivo (buffer, coyote, trauma) para
 ## demostrar los efectos.
+##
+## En el celular también vibra (Haptics) al recibir daño, en un parry, al matar
+## enemigos y al recoger la llave o curarse.
 
 ## Desplazamiento máximo de la cámara, en píxeles del mundo (la cámara tiene
 ## zoom 3: 5 px son 15 px en pantalla).
@@ -245,14 +248,17 @@ func _on_enemy_died(enemy: EnemyBase) -> void:
 	if enemy is BossBase:
 		add_trauma(TRAUMA_BOSS_KILLED)
 		hitstop(HITSTOP_BOSS_KILLED)
+		Haptics.vibrate(Haptics.BOSS_KILL_MS)
 	else:
 		add_trauma(TRAUMA_ENEMY_KILLED)
+		Haptics.vibrate(Haptics.KILL_MS)
 	sparks(enemy.global_position, Color(1.0, 0.6, 0.3))
 
 
 func _on_player_damaged(amount: int, _source: StringName) -> void:
 	add_trauma(TRAUMA_PLAYER_HURT)
 	hitstop(HITSTOP_PLAYER_HURT)
+	Haptics.vibrate(Haptics.DAMAGE_MS)
 	if is_instance_valid(_player):
 		popup(_player.global_position, "-%s♥" % _hearts_text(amount), COLOR_DAMAGE_TAKEN)
 
@@ -260,6 +266,8 @@ func _on_player_damaged(amount: int, _source: StringName) -> void:
 func _on_player_health_changed(health: int) -> void:
 	if _player_health >= 0 and health > _player_health and is_instance_valid(_player):
 		popup(_player.global_position, "+%s♥" % _hearts_text(health - _player_health), COLOR_HEAL)
+		# Un corazón del suelo (o la cura del parry, que enseguida vibra más).
+		Haptics.vibrate(Haptics.PICKUP_MS)
 	_player_health = health
 
 
@@ -272,6 +280,7 @@ func _on_player_key() -> void:
 	if is_instance_valid(_player):
 		popup(_player.global_position, "¡Llave!", COLOR_KEY, 8)
 	add_trauma(0.2)
+	Haptics.vibrate(Haptics.PICKUP_MS)
 
 
 func _on_buffered_action(action: StringName, waited: float) -> void:
@@ -287,6 +296,7 @@ func _on_player_parried(target: Node2D) -> void:
 	add_trauma(TRAUMA_PARRY)
 	screen_flash(Color(1, 1, 1, PARRY_FLASH_ALPHA), PARRY_FLASH_TIME)
 	zoom_punch(PARRY_ZOOM_PUNCH, PARRY_ZOOM_TIME)
+	Haptics.vibrate(Haptics.PARRY_MS)
 	Sfx.play(&"enemy_hit")
 	Sfx.play(&"key_pickup")
 	if is_instance_valid(target):

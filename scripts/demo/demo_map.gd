@@ -148,9 +148,9 @@ func reachable_rooms(open_gates: int) -> Array[int]:
 func _build() -> void:
 	rooms = [
 		Room.new(&"entrance", Rect2i(2, 5, 12, 10),
-				"Ataca con Espacio, salta con K", DungeonTheme.DUNGEON, CLEAR_BY_ENEMIES),
+				"Ataca: Espacio/ATAQUE. Salta: K/SALTO", DungeonTheme.DUNGEON, CLEAR_BY_ENEMIES),
 		Room.new(&"archers", Rect2i(18, 6, 16, 8),
-				"Parry con L: devuelve las flechas", DungeonTheme.DUNGEON, CLEAR_BY_ENEMIES),
+				"Parry (L/PARRY): devuelve las flechas", DungeonTheme.DUNGEON, CLEAR_BY_ENEMIES),
 		Room.new(&"mage", Rect2i(38, 4, 13, 12),
 				"Salta los picos, devuelve el orbe", DungeonTheme.DUNGEON, CLEAR_BY_ENEMIES),
 		Room.new(&"mimic", Rect2i(55, 6, 9, 8),
@@ -233,8 +233,8 @@ func _add_feel_sections() -> void:
 	for y in range(4, 16):
 		layout.hazards.append(LevelGenerator.Spawn.new(LevelGenerator.SPIKES, Vector2i(43, y)))
 	signs = {
-		Vector2i(16, CORRIDOR_Y - 1): "K: saltar",
-		Vector2i(23, 5): "L: parry",
+		Vector2i(16, CORRIDOR_Y - 1): "¡Salta!",
+		Vector2i(23, 5): "¡Parry!",
 		Vector2i(36, CORRIDOR_Y - 1): "Salta al borde",
 		Vector2i(43, 3): "Salta los picos",
 		Vector2i(86, 4): "¡Salta la lava!",
